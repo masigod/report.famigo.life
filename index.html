@@ -380,14 +380,14 @@
                 </select>
             </div>
             <div class="filter-group">
-                <label>피드백 상태</label>
+                <label>Feedback Status</label>
                 <select id="feedbackFilter">
-                    <option value="">전체</option>
-                    <option value="Pending">🔄 대기</option>
-                    <option value="Sent">📤 전송</option>
-                    <option value="Confirmed">✅ 확정</option>
-                    <option value="Requested">📝 수정요청</option>
-                    <option value="Cancelled">❌ 취소</option>
+                    <option value="">All</option>
+                    <option value="Pending">🔄 Pending</option>
+                    <option value="Sent">📤 Sent</option>
+                    <option value="Confirmed">✅ Confirmed</option>
+                    <option value="Requested">📝 Requested</option>
+                    <option value="Cancelled">❌ Cancelled</option>
                 </select>
             </div>
             <div class="filter-group" style="flex: 1;">
@@ -872,11 +872,11 @@
                     <td>${p.예비여부 ? '예비' : '정규'}</td>
                     <td>
                         <select onchange="updateFeedbackStatus(${p.ID}, this.value)" style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
-                            <option value="Pending" ${p.status === 'Pending' || p.status === '대기' ? 'selected' : ''}>🔄 대기</option>
-                            <option value="Sent" ${p.status === 'Sent' || p.status === '전송' ? 'selected' : ''}>📤 전송</option>
-                            <option value="Confirmed" ${p.status === 'Confirmed' || p.status === '확정' ? 'selected' : ''}>✅ 확정</option>
-                            <option value="Requested" ${p.status === 'Requested' || p.status === '수정요청' ? 'selected' : ''}>📝 수정요청</option>
-                            <option value="Cancelled" ${p.status === 'Cancelled' || p.status === '취소' ? 'selected' : ''}>❌ 취소</option>
+                            <option value="Pending" ${p.status === 'Pending' || p.status === '대기' ? 'selected' : ''}>🔄 Pending</option>
+                            <option value="Sent" ${p.status === 'Sent' || p.status === '전송' ? 'selected' : ''}>📤 Sent</option>
+                            <option value="Confirmed" ${p.status === 'Confirmed' || p.status === '확정' ? 'selected' : ''}>✅ Confirmed</option>
+                            <option value="Requested" ${p.status === 'Requested' || p.status === '수정요청' ? 'selected' : ''}>📝 Requested</option>
+                            <option value="Cancelled" ${p.status === 'Cancelled' || p.status === '취소' ? 'selected' : ''}>❌ Cancelled</option>
                         </select>
                     </td>
                     <td>
