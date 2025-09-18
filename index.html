@@ -600,9 +600,10 @@
                     document.getElementById('syncStatus').innerHTML = '⚠️ 샘플 데이터';
                 } else {
                     // Airtable 데이터를 내부 형식으로 변환
-                    participantsData = allRecords.map(record => {
+                    participantsData = allRecords.map((record, index) => {
                         console.log('Processing record:', record);
-                        airtableRecords[record.fields.ID || record.id] = record.id;
+                        const recordID = record.fields.ID || (index + 1);
+                        airtableRecords[recordID] = record.id;
 
                         // 날짜 포맷 변환 (2025-09-22 -> 9/22)
                         let formattedDate = record.fields.setDate || '';
@@ -646,7 +647,7 @@
                         console.log(`ID ${record.fields.ID}: 변환된 시간 값 = '${formattedTime}'`);
 
                         return {
-                            ID: record.fields.ID || parseInt(record.id.slice(-3)) || 0,
+                            ID: recordID,
                             setDate: formattedDate,
                             setTime: formattedTime,
                             name: record.fields.name || '',
@@ -806,7 +807,7 @@
                 return true;
             });
 
-            // 날짜와 시간으로 정렬 (setDate + setTime 기준)
+            // 날짜, 시간, ID 순으로 정렬
             filtered.sort((a, b) => {
                 // 날짜를 숫자로 변환하는 함수 (M/D 형식)
                 const parseDate = (dateStr) => {
@@ -833,7 +834,7 @@
                     return 9999;
                 };
 
-                // 먼저 날짜로 비교
+                // 1. 먼저 날짜로 비교
                 const dateA = parseDate(a.setDate);
                 const dateB = parseDate(b.setDate);
 
@@ -841,10 +842,16 @@
                     return dateA - dateB;
                 }
 
-                // 날짜가 같으면 시간으로 비교
+                // 2. 날짜가 같으면 시간으로 비교
                 const timeA = parseTime(a.setTime);
                 const timeB = parseTime(b.setTime);
-                return timeA - timeB;
+
+                if (timeA !== timeB) {
+                    return timeA - timeB;
+                }
+
+                // 3. 날짜와 시간이 같으면 ID로 비교
+                return (a.ID || 0) - (b.ID || 0);
             });
 
             const html = filtered.map(p => `
@@ -912,25 +919,18 @@
                 console.log(`피드백 상태 변경: ID ${participantId}, ${participant.status} -> ${newStatus}`);
                 participant.status = newStatus;
 
-                // Airtable Single Select 필드를 위해 영어 값으로 매핑
-                // Airtable의 status 필드에 이 옵션들이 미리 설정되어 있어야 함
-                const statusMap = {
-                    '대기': 'Pending',
-                    '전송': 'Sent',
-                    '확정': 'Confirmed',
-                    '수정요청': 'Revision'
-                };
+                // Airtable에는 한글 값을 그대로 사용
+                // status 필드가 Text 타입이면 한글 사용 가능
+                // Single Select 타입이면 Airtable에 해당 옵션이 미리 설정되어 있어야 함
+                console.log(`Airtable로 전송할 상태 값: ${newStatus} (한글)`);
 
-                const airtableStatus = statusMap[newStatus] || newStatus;
-                console.log(`Airtable로 전송할 상태 값: ${airtableStatus}`);
-
-                // Airtable 업데이트
-                const success = await updateAirtableRecord(participantId, 'status', airtableStatus);
+                // Airtable 업데이트 - 한글 값 그대로 전송
+                const success = await updateAirtableRecord(participantId, 'status', newStatus);
                 if (success) {
                     showNotification(`${participant.name}의 피드백 상태가 '${newStatus}'로 변경되었습니다.`, 'success');
                     console.log(`Airtable 업데이트 성공: ID ${participantId}`);
                 } else {
-                    showNotification(`${participant.name}의 피드백 상태 저장 실패\n(Airtable의 status 필드에 ${airtableStatus} 옵션이 있는지 확인하세요)`, 'error');
+                    showNotification(`${participant.name}의 피드백 상태 저장 실패\n(Airtable의 status 필드에 '${newStatus}' 옵션을 추가하거나 Text 타입으로 변경하세요)`, 'error');
                     console.error(`Airtable 업데이트 실패: ID ${participantId}`);
                     // 로컬 상태는 유지
                 }
