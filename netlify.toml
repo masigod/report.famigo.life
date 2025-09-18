@@ -1,0 +1,22 @@
+# Netlify 배포 설정
+
+[build]
+  # 빌드 명령어 - config.js 파일 생성
+  command = "./build.sh"
+
+  # 배포할 디렉토리
+  publish = "."
+
+# 헤더 설정 (CORS 문제 해결)
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Authorization, Content-Type"
+
+# 리다이렉트 설정
+[[redirects]]
+  from = "/"
+  to = "/index.html"
+  status = 200
