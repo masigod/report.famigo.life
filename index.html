@@ -601,12 +601,25 @@
                         }
 
                         // 시간 텍스트 처리 (single text field)
+                        // DB에 "13:00", "13:30", "14:00" 형식으로 저장됨
                         let formattedTime = record.fields.setTime || '';
-                        // 시간이 텍스트로 저장된 경우 그대로 사용
+
+                        // 텍스트로 저장된 시간을 그대로 사용 (이미 HH:MM 형식)
+                        // 만약 다른 형식이 있다면 변환
                         if (formattedTime && !formattedTime.includes(':')) {
-                            // "1300" -> "13:00" 형식으로 변환
+                            // "1300" -> "13:00" 형식으로 변환 (필요시)
                             if (formattedTime.length === 4) {
                                 formattedTime = formattedTime.substr(0, 2) + ':' + formattedTime.substr(2, 2);
+                            }
+                        }
+
+                        // 시간 형식 검증 및 정규화
+                        if (formattedTime && formattedTime.includes(':')) {
+                            const timeParts = formattedTime.split(':');
+                            if (timeParts.length === 2) {
+                                const hour = timeParts[0].padStart(2, '0');
+                                const minute = timeParts[1].padStart(2, '0');
+                                formattedTime = `${hour}:${minute}`;
                             }
                         }
 
@@ -764,18 +777,34 @@
                 return true;
             });
 
-            // 날짜와 시간으로 정렬
+            // 날짜와 시간으로 정렬 (setDate + setTime 기준)
             filtered.sort((a, b) => {
-                // 먼저 날짜로 정렬 (M/D 형식)
+                // 날짜를 숫자로 변환하는 함수 (M/D 형식)
                 const parseDate = (dateStr) => {
-                    if (!dateStr) return 9999;
+                    if (!dateStr) return 99999;
                     const parts = dateStr.split('/');
                     if (parts.length === 2) {
-                        return parseInt(parts[0]) * 100 + parseInt(parts[1]);
+                        const month = parseInt(parts[0]);
+                        const day = parseInt(parts[1]);
+                        return month * 100 + day; // 예: 9/22 -> 922
+                    }
+                    return 99999;
+                };
+
+                // 시간을 숫자로 변환하는 함수 (HH:MM 형식)
+                const parseTime = (timeStr) => {
+                    if (!timeStr) return 9999;
+                    // "13:00" -> 1300, "13:30" -> 1330
+                    const timeParts = timeStr.split(':');
+                    if (timeParts.length === 2) {
+                        const hour = parseInt(timeParts[0]) || 0;
+                        const minute = parseInt(timeParts[1]) || 0;
+                        return hour * 100 + minute;
                     }
                     return 9999;
                 };
 
+                // 먼저 날짜로 비교
                 const dateA = parseDate(a.setDate);
                 const dateB = parseDate(b.setDate);
 
@@ -783,10 +812,10 @@
                     return dateA - dateB;
                 }
 
-                // 날짜가 같으면 시간으로 정렬
-                const timeA = a.setTime || '99:99';
-                const timeB = b.setTime || '99:99';
-                return timeA.localeCompare(timeB);
+                // 날짜가 같으면 시간으로 비교
+                const timeA = parseTime(a.setTime);
+                const timeB = parseTime(b.setTime);
+                return timeA - timeB;
             });
 
             const html = filtered.map(p => `
