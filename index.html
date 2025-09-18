@@ -224,13 +224,22 @@
         .tone-olive { background: var(--olive); }
 
         .reserve-badge {
-            background: #ffebee;
-            color: #c62828;
+            background: #fff3e0;
+            color: #e65100;
             padding: 2px 8px;
             border-radius: 12px;
             font-size: 10px;
             font-weight: 600;
             margin-left: 5px;
+            border: 1px solid #ffb74d;
+        }
+
+        tr.reserve-row {
+            background-color: #fff8e1 !important;
+        }
+
+        tr.reserve-row:hover {
+            background-color: #fff3e0 !important;
         }
 
         .action-btn {
@@ -603,8 +612,12 @@
                         // 시간 텍스트 처리 (single text field)
                         // DB에 "13:00", "13:30", "14:00" 형식으로 저장됨
                         let formattedTime = record.fields.setTime || '';
+                        console.log(`ID ${record.fields.ID}: 원본 시간 값 = '${record.fields.setTime}'`);
 
                         // 텍스트로 저장된 시간을 그대로 사용 (이미 HH:MM 형식)
+                        // 공백 제거
+                        formattedTime = formattedTime.trim();
+
                         // 만약 다른 형식이 있다면 변환
                         if (formattedTime && !formattedTime.includes(':')) {
                             // "1300" -> "13:00" 형식으로 변환 (필요시)
@@ -622,6 +635,8 @@
                                 formattedTime = `${hour}:${minute}`;
                             }
                         }
+
+                        console.log(`ID ${record.fields.ID}: 변환된 시간 값 = '${formattedTime}'`);
 
                         return {
                             ID: record.fields.ID || parseInt(record.id.slice(-3)) || 0,
@@ -675,8 +690,11 @@
             const recordId = airtableRecords[participantId];
             if (!recordId) {
                 console.error('Record ID not found for participant:', participantId);
+                console.log('Available record IDs:', airtableRecords);
                 return false;
             }
+
+            console.log(`Airtable 업데이트 시작: Record ID=${recordId}, Field=${fieldName}, Value=${value}`);
 
             try {
                 const response = await fetch(`${AIRTABLE_API_URL}/${recordId}`, {
@@ -693,9 +711,13 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    const errorText = await response.text();
+                    console.error('Airtable 응답 에러:', errorText);
+                    throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
                 }
 
+                const result = await response.json();
+                console.log('Airtable 업데이트 성공:', result);
                 return true;
             } catch (error) {
                 console.error('Airtable 업데이트 실패:', error);
@@ -819,7 +841,7 @@
             });
 
             const html = filtered.map(p => `
-                <tr>
+                <tr class="${p.예비여부 ? 'reserve-row' : ''}">
                     <td>${p.ID}</td>
                     <td><span class="pid-badge">${p.PID || '대기'}</span></td>
                     <td>${p.setDate}</td>
@@ -880,12 +902,17 @@
         async function updateFeedbackStatus(participantId, newStatus) {
             const participant = participantsData.find(p => p.ID === participantId);
             if (participant) {
+                console.log(`피드백 상태 변경: ID ${participantId}, ${participant.status} -> ${newStatus}`);
                 participant.status = newStatus;
 
                 // Airtable 업데이트
                 const success = await updateAirtableRecord(participantId, 'status', newStatus);
                 if (success) {
                     showNotification(`${participant.name}의 피드백 상태가 '${newStatus}'로 변경되었습니다.`, 'success');
+                    console.log(`Airtable 업데이트 성공: ID ${participantId}`);
+                } else {
+                    showNotification(`${participant.name}의 피드백 상태 저장 실패`, 'error');
+                    console.error(`Airtable 업데이트 실패: ID ${participantId}`);
                 }
                 updateStats();
             }
