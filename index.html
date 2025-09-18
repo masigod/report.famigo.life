@@ -707,7 +707,7 @@
 
             // 날짜 필드에서 빈 값 처리
             let fieldValue = value;
-            if ((fieldName === 'requestDate' || fieldName === 'date') && (value === '' || value === null || value === undefined)) {
+            if ((fieldName === 'requestDate' || fieldName === 'confirmedDate' || fieldName === 'date') && (value === '' || value === null || value === undefined)) {
                 fieldValue = null;
             }
 
@@ -972,8 +972,9 @@
             if (participant) {
                 participant.confirmedDate = newDate;
 
-                // Airtable 업데이트
-                const success = await updateAirtableRecord(participantId, 'confirmedDate', newDate);
+                // Airtable 업데이트 - 빈 문자열 대신 null 전송
+                const valueToSend = (newDate === '' || newDate === null) ? null : newDate;
+                const success = await updateAirtableRecord(participantId, 'confirmedDate', valueToSend);
 
                 if (newDate && newDate.trim() !== '') {
                     participant.status = 'Confirmed';
