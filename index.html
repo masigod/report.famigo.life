@@ -705,6 +705,12 @@
 
             console.log(`Airtable 업데이트 시작: Record ID=${recordId}, Field=${fieldName}, Value=${value}`);
 
+            // 날짜 필드에서 빈 값 처리
+            let fieldValue = value;
+            if ((fieldName === 'requestDate' || fieldName === 'date') && (value === '' || value === null || value === undefined)) {
+                fieldValue = null;
+            }
+
             try {
                 const response = await fetch(`${AIRTABLE_API_URL}/${recordId}`, {
                     method: 'PATCH',
@@ -714,7 +720,7 @@
                     },
                     body: JSON.stringify({
                         fields: {
-                            [fieldName]: value
+                            [fieldName]: fieldValue
                         }
                     })
                 });
@@ -944,8 +950,9 @@
             if (participant) {
                 participant.requestDate = newDate;
 
-                // Airtable 업데이트
-                const success = await updateAirtableRecord(participantId, 'requestDate', newDate);
+                // Airtable 업데이트 - 빈 문자열 대신 null 전송
+                const valueToSend = (newDate === '' || newDate === null) ? null : newDate;
+                const success = await updateAirtableRecord(participantId, 'requestDate', valueToSend);
 
                 if (newDate && newDate.trim() !== '') {
                     participant.status = 'Requested';
