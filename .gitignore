@@ -1,0 +1,17 @@
+# Environment variables
+.env
+.env.local
+
+# Config files with sensitive data
+config.js
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Logs
+*.log
