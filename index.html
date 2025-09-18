@@ -538,27 +538,43 @@
             console.log('Airtable 데이터 가져오기 시작...');
             console.log('API URL:', AIRTABLE_API_URL);
 
+            let allRecords = [];
+            let offset = '';
+
             try {
-                const response = await fetch(AIRTABLE_API_URL + '?maxRecords=100&view=Grid%20view', {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
-                        'Content-Type': 'application/json'
+                // 페이지네이션을 통해 모든 레코드 가져오기
+                do {
+                    const url = offset
+                        ? `${AIRTABLE_API_URL}?pageSize=100&offset=${offset}`
+                        : `${AIRTABLE_API_URL}?pageSize=100`;
+
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    console.log('Response status:', response.status);
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error('Error response:', errorText);
+                        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
                     }
-                });
 
-                console.log('Response status:', response.status);
+                    const data = await response.json();
+                    console.log(`받은 레코드 수: ${data.records.length}`);
 
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('Error response:', errorText);
-                    throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-                }
+                    allRecords = allRecords.concat(data.records);
+                    offset = data.offset || '';
 
-                const data = await response.json();
-                console.log('받은 데이터:', data);
+                } while (offset);
 
-                if (!data.records || data.records.length === 0) {
+                console.log(`전체 받은 데이터: ${allRecords.length}개`);
+
+                if (!allRecords || allRecords.length === 0) {
                     console.log('레코드가 없습니다. 샘플 데이터를 사용합니다.');
                     // 샘플 데이터 사용
                     participantsData = [
@@ -569,7 +585,7 @@
                     document.getElementById('syncStatus').innerHTML = '⚠️ 샘플 데이터';
                 } else {
                     // Airtable 데이터를 내부 형식으로 변환
-                    participantsData = data.records.map(record => {
+                    participantsData = allRecords.map(record => {
                         console.log('Processing record:', record);
                         airtableRecords[record.fields.ID || record.id] = record.id;
 
