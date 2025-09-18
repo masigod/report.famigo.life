@@ -583,6 +583,12 @@
 
                 console.log(`전체 받은 데이터: ${allRecords.length}개`);
 
+                // 첫 번째 레코드의 필드 구조 확인 (디버깅용)
+                if (allRecords.length > 0) {
+                    console.log('첫 번째 레코드 필드 목록:', Object.keys(allRecords[0].fields));
+                    console.log('첫 번째 레코드 데이터:', allRecords[0].fields);
+                }
+
                 if (!allRecords || allRecords.length === 0) {
                     console.log('레코드가 없습니다. 샘플 데이터를 사용합니다.');
                     // 샘플 데이터 사용
@@ -611,8 +617,9 @@
 
                         // 시간 텍스트 처리 (single text field)
                         // DB에 "13:00", "13:30", "14:00" 형식으로 저장됨
-                        let formattedTime = record.fields.setTime || '';
-                        console.log(`ID ${record.fields.ID}: 원본 시간 값 = '${record.fields.setTime}'`);
+                        // 가능한 필드명들 확인: setTime, time, Time, 시간
+                        let formattedTime = record.fields.setTime || record.fields.time || record.fields.Time || record.fields['시간'] || '';
+                        console.log(`ID ${record.fields.ID}: 시간 필드 확인 - setTime='${record.fields.setTime}', time='${record.fields.time}', Time='${record.fields.Time}', 시간='${record.fields['시간']}'`);
 
                         // 텍스트로 저장된 시간을 그대로 사용 (이미 HH:MM 형식)
                         // 공백 제거
@@ -905,14 +912,27 @@
                 console.log(`피드백 상태 변경: ID ${participantId}, ${participant.status} -> ${newStatus}`);
                 participant.status = newStatus;
 
+                // Airtable Single Select 필드를 위해 영어 값으로 매핑
+                // Airtable의 status 필드에 이 옵션들이 미리 설정되어 있어야 함
+                const statusMap = {
+                    '대기': 'Pending',
+                    '전송': 'Sent',
+                    '확정': 'Confirmed',
+                    '수정요청': 'Revision'
+                };
+
+                const airtableStatus = statusMap[newStatus] || newStatus;
+                console.log(`Airtable로 전송할 상태 값: ${airtableStatus}`);
+
                 // Airtable 업데이트
-                const success = await updateAirtableRecord(participantId, 'status', newStatus);
+                const success = await updateAirtableRecord(participantId, 'status', airtableStatus);
                 if (success) {
                     showNotification(`${participant.name}의 피드백 상태가 '${newStatus}'로 변경되었습니다.`, 'success');
                     console.log(`Airtable 업데이트 성공: ID ${participantId}`);
                 } else {
-                    showNotification(`${participant.name}의 피드백 상태 저장 실패`, 'error');
+                    showNotification(`${participant.name}의 피드백 상태 저장 실패\n(Airtable의 status 필드에 ${airtableStatus} 옵션이 있는지 확인하세요)`, 'error');
                     console.error(`Airtable 업데이트 실패: ID ${participantId}`);
+                    // 로컬 상태는 유지
                 }
                 updateStats();
             }
