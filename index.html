@@ -383,10 +383,11 @@
                 <label>피드백 상태</label>
                 <select id="feedbackFilter">
                     <option value="">전체</option>
-                    <option value="대기">🔄 대기</option>
-                    <option value="전송">📤 전송</option>
-                    <option value="확정">✅ 확정</option>
-                    <option value="수정요청">📝 수정요청</option>
+                    <option value="Pending">🔄 대기</option>
+                    <option value="Sent">📤 전송</option>
+                    <option value="Confirmed">✅ 확정</option>
+                    <option value="Requested">📝 수정요청</option>
+                    <option value="Cancelled">❌ 취소</option>
                 </select>
             </div>
             <div class="filter-group" style="flex: 1;">
@@ -593,9 +594,9 @@
                     console.log('레코드가 없습니다. 샘플 데이터를 사용합니다.');
                     // 샘플 데이터 사용
                     participantsData = [
-                        {ID: 1, setDate: "9/22", setTime: "13:00", name: "테스트 참가자 1", skinColor: "2(L)", skinTone: "Cool", phone: "010-1234-5678", email: "test1@example.com", 예비여부: false, PID: "P001", status: "대기", requestDate: "", confirmedDate: "", desc: ""},
-                        {ID: 2, setDate: "9/22", setTime: "13:30", name: "테스트 참가자 2", skinColor: "3(LM)", skinTone: "Warm", phone: "010-2345-6789", email: "test2@example.com", 예비여부: false, PID: "P002", status: "대기", requestDate: "", confirmedDate: "", desc: ""},
-                        {ID: 3, setDate: "9/23", setTime: "14:00", name: "테스트 참가자 3", skinColor: "4(M)", skinTone: "Neutral", phone: "010-3456-7890", email: "test3@example.com", 예비여부: true, PID: "P003", status: "대기", requestDate: "", confirmedDate: "", desc: ""}
+                        {ID: 1, setDate: "9/22", setTime: "13:00", name: "테스트 참가자 1", skinColor: "2(L)", skinTone: "Cool", phone: "010-1234-5678", email: "test1@example.com", 예비여부: false, PID: "P001", status: "Pending", requestDate: "", confirmedDate: "", desc: ""},
+                        {ID: 2, setDate: "9/22", setTime: "13:30", name: "테스트 참가자 2", skinColor: "3(LM)", skinTone: "Warm", phone: "010-2345-6789", email: "test2@example.com", 예비여부: false, PID: "P002", status: "Pending", requestDate: "", confirmedDate: "", desc: ""},
+                        {ID: 3, setDate: "9/23", setTime: "14:00", name: "테스트 참가자 3", skinColor: "4(M)", skinTone: "Neutral", phone: "010-3456-7890", email: "test3@example.com", 예비여부: true, PID: "P003", status: "Pending", requestDate: "", confirmedDate: "", desc: ""}
                     ];
                     document.getElementById('syncStatus').innerHTML = '⚠️ 샘플 데이터';
                 } else {
@@ -657,7 +658,7 @@
                             email: record.fields.email || '',
                             예비여부: record.fields.reserveStatus === true || record.fields.reserveStatus === 'true',
                             PID: record.fields['P-ID'] || record.fields.PID || '',
-                            status: record.fields.status || '대기',
+                            status: record.fields.status || 'Pending',  // 기본값을 영어로
                             requestDate: record.fields.requestDate || '',
                             confirmedDate: record.fields.confirmedDate || '',
                             desc: record.fields.desc || ''
@@ -871,10 +872,11 @@
                     <td>${p.예비여부 ? '예비' : '정규'}</td>
                     <td>
                         <select onchange="updateFeedbackStatus(${p.ID}, this.value)" style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
-                            <option value="대기" ${p.status === '대기' ? 'selected' : ''}>🔄 대기</option>
-                            <option value="전송" ${p.status === '전송' ? 'selected' : ''}>📤 전송</option>
-                            <option value="확정" ${p.status === '확정' ? 'selected' : ''}>✅ 확정</option>
-                            <option value="수정요청" ${p.status === '수정요청' ? 'selected' : ''}>📝 수정요청</option>
+                            <option value="Pending" ${p.status === 'Pending' || p.status === '대기' ? 'selected' : ''}>🔄 대기</option>
+                            <option value="Sent" ${p.status === 'Sent' || p.status === '전송' ? 'selected' : ''}>📤 전송</option>
+                            <option value="Confirmed" ${p.status === 'Confirmed' || p.status === '확정' ? 'selected' : ''}>✅ 확정</option>
+                            <option value="Requested" ${p.status === 'Requested' || p.status === '수정요청' ? 'selected' : ''}>📝 수정요청</option>
+                            <option value="Cancelled" ${p.status === 'Cancelled' || p.status === '취소' ? 'selected' : ''}>❌ 취소</option>
                         </select>
                     </td>
                     <td>
@@ -919,18 +921,17 @@
                 console.log(`피드백 상태 변경: ID ${participantId}, ${participant.status} -> ${newStatus}`);
                 participant.status = newStatus;
 
-                // Airtable에는 한글 값을 그대로 사용
-                // status 필드가 Text 타입이면 한글 사용 가능
-                // Single Select 타입이면 Airtable에 해당 옵션이 미리 설정되어 있어야 함
-                console.log(`Airtable로 전송할 상태 값: ${newStatus} (한글)`);
+                // 상태가 이미 영어인지 확인
+                // Airtable에는 영어 값만 전송 (Pending, Sent, Confirmed, Requested, Cancelled)
+                console.log(`Airtable로 전송할 상태 값: ${newStatus}`);
 
-                // Airtable 업데이트 - 한글 값 그대로 전송
+                // Airtable 업데이트 - 영어 값 전송
                 const success = await updateAirtableRecord(participantId, 'status', newStatus);
                 if (success) {
                     showNotification(`${participant.name}의 피드백 상태가 '${newStatus}'로 변경되었습니다.`, 'success');
                     console.log(`Airtable 업데이트 성공: ID ${participantId}`);
                 } else {
-                    showNotification(`${participant.name}의 피드백 상태 저장 실패\n(Airtable의 status 필드에 '${newStatus}' 옵션을 추가하거나 Text 타입으로 변경하세요)`, 'error');
+                    showNotification(`${participant.name}의 피드백 상태 저장 실패\n(Airtable의 status 필드에 ${newStatus} 옵션이 있는지 확인하세요)`, 'error');
                     console.error(`Airtable 업데이트 실패: ID ${participantId}`);
                     // 로컬 상태는 유지
                 }
@@ -947,8 +948,8 @@
                 const success = await updateAirtableRecord(participantId, 'requestDate', newDate);
 
                 if (newDate && newDate.trim() !== '') {
-                    participant.status = '수정요청';
-                    await updateAirtableRecord(participantId, 'status', '수정요청');
+                    participant.status = 'Requested';
+                    await updateAirtableRecord(participantId, 'status', 'Requested');
                     loadParticipants(); // 화면 새로고침
                 }
 
@@ -968,8 +969,8 @@
                 const success = await updateAirtableRecord(participantId, 'confirmedDate', newDate);
 
                 if (newDate && newDate.trim() !== '') {
-                    participant.status = '확정';
-                    await updateAirtableRecord(participantId, 'status', '확정');
+                    participant.status = 'Confirmed';
+                    await updateAirtableRecord(participantId, 'status', 'Confirmed');
                     loadParticipants(); // 화면 새로고침
                 }
 
@@ -1112,7 +1113,7 @@
                 email: document.getElementById('newEmail').value || '',
                 예비여부: document.getElementById('newReserve').checked,
                 PID: document.getElementById('newPID').value.trim() || '',
-                status: '대기',
+                status: 'Pending',  // 영어 기본값
                 requestDate: '',
                 confirmedDate: '',
                 desc: document.getElementById('newNotes').value || ''
