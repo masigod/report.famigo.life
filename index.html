@@ -61,26 +61,26 @@
 
         .stat-card {
             background: white;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-            transition: transform 0.3s, box-shadow 0.3s;
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            transition: transform 0.2s, box-shadow 0.2s;
         }
 
         .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
         .stat-card .label {
-            font-size: 11px;
+            font-size: 10px;
             color: #666;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
             text-transform: uppercase;
         }
 
         .stat-card .value {
-            font-size: 28px;
+            font-size: 20px;
             font-weight: bold;
             background: var(--bg-gradient);
             -webkit-background-clip: text;
@@ -88,9 +88,9 @@
         }
 
         .stat-card .detail {
-            font-size: 12px;
+            font-size: 10px;
             color: #999;
-            margin-top: 5px;
+            margin-top: 2px;
         }
 
         .filters {
@@ -330,32 +330,34 @@
         </div>
 
         <!-- Feedback Status Summary -->
-        <div class="dashboard" style="margin-bottom: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 15px; border-radius: 10px;">
-            <div style="grid-column: 1 / -1; color: white; font-size: 16px; font-weight: 600; margin-bottom: 10px;">피드백 상태 현황</div>
-            <div class="stat-card" style="background: rgba(255,255,255,0.95);">
-                <div class="label">🔄 Pending</div>
-                <div class="value" id="pendingCount">0</div>
-                <div class="detail" id="pendingPercent">0%</div>
+        <div class="dashboard" style="margin-bottom: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 10px; border-radius: 8px;">
+            <div style="grid-column: 1 / -1; color: white; font-size: 14px; font-weight: 600; margin-bottom: 8px;">
+                피드백 상태 현황 <span id="selectedDateDisplay" style="font-weight: normal; opacity: 0.9;"></span>
             </div>
-            <div class="stat-card" style="background: rgba(255,255,255,0.95);">
-                <div class="label">📤 Sent</div>
-                <div class="value" id="sentCount">0</div>
-                <div class="detail" id="sentPercent">0%</div>
+            <div class="stat-card" style="background: rgba(255,255,255,0.95); padding: 8px;">
+                <div class="label" style="font-size: 10px;">🔄 Pending</div>
+                <div class="value" style="font-size: 18px;" id="pendingCount">0</div>
+                <div class="detail" style="font-size: 9px;" id="pendingPercent">0%</div>
             </div>
-            <div class="stat-card" style="background: rgba(255,255,255,0.95);">
-                <div class="label">✅ Confirmed</div>
-                <div class="value" id="confirmedCount">0</div>
-                <div class="detail" id="confirmedPercent">0%</div>
+            <div class="stat-card" style="background: rgba(255,255,255,0.95); padding: 8px;">
+                <div class="label" style="font-size: 10px;">📤 Sent</div>
+                <div class="value" style="font-size: 18px;" id="sentCount">0</div>
+                <div class="detail" style="font-size: 9px;" id="sentPercent">0%</div>
             </div>
-            <div class="stat-card" style="background: rgba(255,255,255,0.95);">
-                <div class="label">📝 Requested</div>
-                <div class="value" id="requestedCount">0</div>
-                <div class="detail" id="requestedPercent">0%</div>
+            <div class="stat-card" style="background: rgba(255,255,255,0.95); padding: 8px;">
+                <div class="label" style="font-size: 10px;">✅ Confirmed</div>
+                <div class="value" style="font-size: 18px;" id="confirmedCount">0</div>
+                <div class="detail" style="font-size: 9px;" id="confirmedPercent">0%</div>
             </div>
-            <div class="stat-card" style="background: rgba(255,255,255,0.95);">
-                <div class="label">❌ Cancelled</div>
-                <div class="value" id="cancelledCount">0</div>
-                <div class="detail" id="cancelledPercent">0%</div>
+            <div class="stat-card" style="background: rgba(255,255,255,0.95); padding: 8px;">
+                <div class="label" style="font-size: 10px;">📝 Requested</div>
+                <div class="value" style="font-size: 18px;" id="requestedCount">0</div>
+                <div class="detail" style="font-size: 9px;" id="requestedPercent">0%</div>
+            </div>
+            <div class="stat-card" style="background: rgba(255,255,255,0.95); padding: 8px;">
+                <div class="label" style="font-size: 10px;">❌ Cancelled</div>
+                <div class="value" style="font-size: 18px;" id="cancelledCount">0</div>
+                <div class="detail" style="font-size: 9px;" id="cancelledPercent">0%</div>
             </div>
         </div>
 
@@ -967,9 +969,12 @@
             `).join('');
 
             tbody.innerHTML = html || '<tr><td colspan="14" style="text-align: center; padding: 40px;">필터 조건에 맞는 데이터가 없습니다</td></tr>';
-            
+
             document.getElementById('displayCount').textContent = filtered.length;
             document.getElementById('totalParticipants').textContent = participantsData.length;
+
+            // 필터 변경시 통계 업데이트
+            updateStats();
         }
 
         function updateStats() {
@@ -1021,6 +1026,13 @@
             document.getElementById('matchRate').textContent = `${matchRate}%`;
             document.getElementById('requestConfirmCount').textContent = `${requestCount}/${confirmCount}`;
             document.getElementById('requestConfirmDetail').textContent = `요청: ${requestCount}건 | 확정: ${confirmCount}건`;
+
+            // 선택된 날짜 표시
+            if (dateFilter) {
+                document.getElementById('selectedDateDisplay').textContent = `- ${dateFilter}`;
+            } else {
+                document.getElementById('selectedDateDisplay').textContent = '- 전체';
+            }
 
             // 날짜별 분포 업데이트 (필터 적용시)
             if (dateFilter) {
