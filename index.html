@@ -340,6 +340,11 @@
                 <div class="detail" style="font-size: 9px;" id="pendingPercent">0%</div>
             </div>
             <div class="stat-card" style="background: rgba(255,255,255,0.95); padding: 8px;">
+                <div class="label" style="font-size: 10px;">🔧 Ongoing</div>
+                <div class="value" style="font-size: 18px;" id="ongoingCount">0</div>
+                <div class="detail" style="font-size: 9px;" id="ongoingPercent">0%</div>
+            </div>
+            <div class="stat-card" style="background: rgba(255,255,255,0.95); padding: 8px;">
                 <div class="label" style="font-size: 10px;">📤 Sent</div>
                 <div class="value" style="font-size: 18px;" id="sentCount">0</div>
                 <div class="detail" style="font-size: 9px;" id="sentPercent">0%</div>
@@ -427,6 +432,7 @@
                 <select id="feedbackFilter">
                     <option value="">All</option>
                     <option value="Pending">🔄 Pending</option>
+                    <option value="Ongoing">🔧 Ongoing</option>
                     <option value="Sent">📤 Sent</option>
                     <option value="Confirmed">✅ Confirmed</option>
                     <option value="Requested">📝 Requested</option>
@@ -966,6 +972,7 @@
                     <td>
                         <select onchange="updateFeedbackStatus(${p.ID}, this.value)" style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
                             <option value="Pending" ${p.status === 'Pending' || p.status === '대기' ? 'selected' : ''}>🔄 Pending</option>
+                            <option value="Ongoing" ${p.status === 'Ongoing' || p.status === '진행중' ? 'selected' : ''}>🔧 Ongoing</option>
                             <option value="Sent" ${p.status === 'Sent' || p.status === '전송' ? 'selected' : ''}>📤 Sent</option>
                             <option value="Confirmed" ${p.status === 'Confirmed' || p.status === '확정' ? 'selected' : ''}>✅ Confirmed</option>
                             <option value="Requested" ${p.status === 'Requested' || p.status === '수정요청' ? 'selected' : ''}>📝 Requested</option>
@@ -1043,6 +1050,7 @@
 
             // 피드백 상태별 집계 (필터된 데이터 기준)
             const pendingCount = filtered.filter(p => p.status === 'Pending' || p.status === '대기').length;
+            const ongoingCount = filtered.filter(p => p.status === 'Ongoing' || p.status === '진행중').length;
             const sentCount = filtered.filter(p => p.status === 'Sent' || p.status === '전송').length;
             const confirmedStatusCount = filtered.filter(p => p.status === 'Confirmed' || p.status === '확정').length;
             const requestedCount = filtered.filter(p => p.status === 'Requested' || p.status === '수정요청').length;
@@ -1088,6 +1096,9 @@
             // 피드백 상태 통계 업데이트
             document.getElementById('pendingCount').textContent = pendingCount;
             document.getElementById('pendingPercent').textContent = total > 0 ? `${Math.round((pendingCount / total) * 100)}%` : '0%';
+
+            document.getElementById('ongoingCount').textContent = ongoingCount;
+            document.getElementById('ongoingPercent').textContent = total > 0 ? `${Math.round((ongoingCount / total) * 100)}%` : '0%';
 
             document.getElementById('sentCount').textContent = sentCount;
             document.getElementById('sentPercent').textContent = total > 0 ? `${Math.round((sentCount / total) * 100)}%` : '0%';
