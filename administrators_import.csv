@@ -1,0 +1,5 @@
+username,password,fullName,email,role,isActive,department,notes
+admin,Admin123!,시스템 관리자,admin@amorepacific.com,admin,TRUE,IT팀,최고 관리자 계정
+manager01,Manager123!,김매니저,manager01@amorepacific.com,manager,TRUE,CLT팀,CLT 운영 담당자
+manager02,Manager123!,이매니저,manager02@amorepacific.com,manager,TRUE,마케팅팀,마케팅 담당자
+viewer01,Viewer123!,박뷰어,viewer01@amorepacific.com,viewer,TRUE,디자인팀,읽기 전용 계정
