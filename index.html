@@ -456,12 +456,13 @@
                             <th width="120">피드백상태</th>
                             <th width="120">요청일자</th>
                             <th width="120">확정일자</th>
+                            <th width="100">시간변경</th>
                             <th width="180">비고</th>
                         </tr>
                     </thead>
                     <tbody id="tableBody">
                         <tr>
-                            <td colspan="14" class="loading-indicator">데이터를 로드하는 중...</td>
+                            <td colspan="15" class="loading-indicator">데이터를 로드하는 중...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -963,12 +964,24 @@
                         <input type="date" value="${p.confirmedDate || ''}" onchange="updateConfirmDate(${p.ID}, this.value)" style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; width: 110px;">
                     </td>
                     <td>
+                        <select onchange="updateChangeTime(${p.ID}, this.value)" style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; width: 90px;" ${p.status === 'Confirmed' || p.status === '확정' ? '' : 'disabled'}>
+                            <option value="">-</option>
+                            <option value="13:00" ${p.changeTime === '13:00' ? 'selected' : ''}>13:00</option>
+                            <option value="13:30" ${p.changeTime === '13:30' ? 'selected' : ''}>13:30</option>
+                            <option value="14:00" ${p.changeTime === '14:00' ? 'selected' : ''}>14:00</option>
+                            <option value="14:30" ${p.changeTime === '14:30' ? 'selected' : ''}>14:30</option>
+                            <option value="15:00" ${p.changeTime === '15:00' ? 'selected' : ''}>15:00</option>
+                            <option value="15:30" ${p.changeTime === '15:30' ? 'selected' : ''}>15:30</option>
+                            <option value="16:00" ${p.changeTime === '16:00' ? 'selected' : ''}>16:00</option>
+                        </select>
+                    </td>
+                    <td>
                         <input type="text" value="${p.desc || ''}" onchange="updateNotes(${p.ID}, this.value)" placeholder="비고..." style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; width: 160px;">
                     </td>
                 </tr>
             `).join('');
 
-            tbody.innerHTML = html || '<tr><td colspan="14" style="text-align: center; padding: 40px;">필터 조건에 맞는 데이터가 없습니다</td></tr>';
+            tbody.innerHTML = html || '<tr><td colspan="15" style="text-align: center; padding: 40px;">필터 조건에 맞는 데이터가 없습니다</td></tr>';
 
             document.getElementById('displayCount').textContent = filtered.length;
             document.getElementById('totalParticipants').textContent = participantsData.length;
@@ -1140,6 +1153,54 @@
             }
         }
 
+        async function updateChangeTime(participantId, newTime) {
+            const participant = participantsData.find(p => p.ID === participantId);
+            if (participant) {
+                participant.changeTime = newTime;
+
+                // Airtable에 changeTime 업데이트
+                const success = await updateAirtableRecord(participantId, 'changeTime', newTime);
+
+                // 3가지 조건 확인: Confirmed 상태, 확정일자 있음, 시간변경 선택됨
+                if ((participant.status === 'Confirmed' || participant.status === '확정') &&
+                    participant.confirmedDate &&
+                    participant.confirmedDate.trim() !== '' &&
+                    newTime && newTime !== '') {
+
+                    // setDate를 confirmedDate로 변경
+                    const oldDate = participant.setDate;
+                    const oldTime = participant.setTime;
+
+                    // 날짜 형식 변환 (YYYY-MM-DD to M/D)
+                    let newDate = participant.confirmedDate;
+                    if (newDate.includes('-')) {
+                        const parts = newDate.split('-');
+                        if (parts.length === 3) {
+                            newDate = `${parseInt(parts[1])}/${parseInt(parts[2])}`;
+                        }
+                    }
+
+                    participant.setDate = newDate;
+                    participant.setTime = newTime;
+
+                    // Airtable에 업데이트
+                    await updateAirtableRecord(participantId, 'setDate', newDate);
+                    await updateAirtableRecord(participantId, 'setTime', newTime);
+
+                    showNotification(
+                        `${participant.name}의 예약이 변경되었습니다.\n` +
+                        `${oldDate} ${oldTime} → ${newDate} ${newTime}`,
+                        'success'
+                    );
+
+                    // 테이블 새로고침
+                    loadParticipants();
+                } else if (success) {
+                    showNotification(`${participant.name}의 시간변경 옵션이 저장되었습니다.`, 'success');
+                }
+            }
+        }
+
         async function updateNotes(participantId, newNotes) {
             const participant = participantsData.find(p => p.ID === participantId);
             if (participant) {
@@ -1275,6 +1336,7 @@
                 status: 'Pending',  // 영어 기본값
                 requestDate: '',
                 confirmedDate: '',
+                changeTime: '',  // 시간변경 필드 추가
                 desc: document.getElementById('newNotes').value || ''
             };
 
@@ -1315,7 +1377,7 @@
                 document.getElementById('userInfo').textContent = `👤 ${currentUser.fullName} (${currentUser.role})`;
             }
 
-            document.getElementById('tableBody').innerHTML = '<tr><td colspan="14" class="loading-indicator">Airtable에서 데이터를 로드하는 중...</td></tr>';
+            document.getElementById('tableBody').innerHTML = '<tr><td colspan="15" class="loading-indicator">Airtable에서 데이터를 로드하는 중...</td></tr>';
             await fetchAirtableData();
             setupEventListeners();
         });
