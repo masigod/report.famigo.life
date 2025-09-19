@@ -831,7 +831,7 @@
                     body: JSON.stringify({
                         records: [{
                             fields: {
-                                ID: participant.ID,
+                                // ID는 Airtable에서 자동 생성되므로 제외
                                 name: participant.name,
                                 setDate: participant.setDate,
                                 setTime: participant.setTime,
@@ -859,7 +859,13 @@
 
                 const data = await response.json();
                 if (data.records && data.records.length > 0) {
-                    airtableRecords[participant.ID] = data.records[0].id;
+                    const createdRecord = data.records[0];
+                    // Airtable이 자동 생성한 ID를 가져옴
+                    if (createdRecord.fields.ID) {
+                        participant.ID = createdRecord.fields.ID;
+                    }
+                    // Record ID 저장
+                    airtableRecords[participant.ID] = createdRecord.id;
                 }
 
                 return true;
