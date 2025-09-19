@@ -288,12 +288,18 @@
 </head>
 <body>
     <div class="header">
-        <div class="container">
-            <h1>🎨 아모레퍼시픽 파운데이션 CLT 통합 관리 시스템 v5.2</h1>
-            <div style="font-size: 14px; opacity: 0.9;">
-                Foundation Color Matching CLT - Request/Confirm Date Management + Full Airtable Integration
-                <span id="storageIndicator" style="margin-left: 10px; padding: 4px 8px; background: rgba(255,255,255,0.2); border-radius: 4px;">💾 로컬 저장소</span>
-                <span id="syncStatus" style="margin-left: 10px; padding: 4px 8px; background: rgba(40,167,69,0.8); border-radius: 4px;">✅ 준비완료</span>
+        <div class="container" style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h1>🎨 아모레퍼시픽 파운데이션 CLT 통합 관리 시스템 v5.2</h1>
+                <div style="font-size: 14px; opacity: 0.9;">
+                    Foundation Color Matching CLT - Request/Confirm Date Management + Full Airtable Integration
+                    <span id="storageIndicator" style="margin-left: 10px; padding: 4px 8px; background: rgba(255,255,255,0.2); border-radius: 4px;">💾 로컬 저장소</span>
+                    <span id="syncStatus" style="margin-left: 10px; padding: 4px 8px; background: rgba(40,167,69,0.8); border-radius: 4px;">✅ 준비완료</span>
+                </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <span id="userInfo" style="font-size: 14px; color: white; opacity: 0.9;"></span>
+                <button onclick="logout()" style="padding: 8px 16px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); border-radius: 5px; color: white; cursor: pointer; font-weight: 500; transition: background 0.2s;">Logout</button>
             </div>
         </div>
     </div>
@@ -533,6 +539,39 @@
     </div>
 
     <script>
+        // 인증 체크
+        function checkAuth() {
+            const session = sessionStorage.getItem('clt_session');
+            if (!session) {
+                window.location.href = 'login.html';
+                return null;
+            }
+
+            const sessionData = JSON.parse(session);
+            if (sessionData.expires < Date.now()) {
+                sessionStorage.removeItem('clt_session');
+                window.location.href = 'login.html';
+                return null;
+            }
+
+            return sessionData;
+        }
+
+        // 로그아웃 함수
+        function logout() {
+            if (confirm('로그아웃 하시겠습니까?')) {
+                sessionStorage.removeItem('clt_session');
+                window.location.href = 'login.html';
+            }
+        }
+
+        // 세션 체크 (페이지 로드시)
+        const currentUser = checkAuth();
+        if (!currentUser) {
+            // 인증 실패시 페이지 중단
+            throw new Error('Authentication required');
+        }
+
         // Airtable 설정 (config.js에서 가져옴)
         const AIRTABLE_API_KEY = typeof AIRTABLE_CONFIG !== 'undefined' ? AIRTABLE_CONFIG.API_KEY : 'YOUR_API_KEY_HERE';
         const AIRTABLE_BASE_ID = typeof AIRTABLE_CONFIG !== 'undefined' ? AIRTABLE_CONFIG.BASE_ID : 'appZcPs57spwdoKQH';
@@ -1159,6 +1198,11 @@
 
         // 페이지 로드시 초기화
         document.addEventListener('DOMContentLoaded', async function() {
+            // 사용자 정보 표시
+            if (currentUser) {
+                document.getElementById('userInfo').textContent = `👤 ${currentUser.fullName} (${currentUser.role})`;
+            }
+
             document.getElementById('tableBody').innerHTML = '<tr><td colspan="14" class="loading-indicator">Airtable에서 데이터를 로드하는 중...</td></tr>';
             await fetchAirtableData();
             setupEventListeners();
