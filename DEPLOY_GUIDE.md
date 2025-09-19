@@ -21,6 +21,7 @@ Netlify 대시보드에서 다음 환경 변수를 설정해야 합니다:
 AIRTABLE_API_KEY = (별도 제공된 API 키 입력)
 AIRTABLE_BASE_ID = appZcPs57spwdoKQH
 AIRTABLE_TABLE_ID = tblxMzwX1wWJKIOhY
+AIRTABLE_ADMIN_TABLE_ID = tblFQ7ofZ9CXZcydm
 ```
 
 ⚠️ **중요**: API 키는 보안상 별도로 제공됩니다. config.js 파일을 확인하세요.
