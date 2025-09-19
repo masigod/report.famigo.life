@@ -359,6 +359,11 @@
                 <div class="value" style="font-size: 18px;" id="cancelledCount">0</div>
                 <div class="detail" style="font-size: 9px;" id="cancelledPercent">0%</div>
             </div>
+            <div class="stat-card" style="background: rgba(255,255,255,0.95); padding: 8px;">
+                <div class="label" style="font-size: 10px;">🔁 Duplicate</div>
+                <div class="value" style="font-size: 18px;" id="duplicateCount">0</div>
+                <div class="detail" style="font-size: 9px;" id="duplicatePercent">0%</div>
+            </div>
         </div>
 
         <!-- Filters -->
@@ -426,6 +431,7 @@
                     <option value="Confirmed">✅ Confirmed</option>
                     <option value="Requested">📝 Requested</option>
                     <option value="Cancelled">❌ Cancelled</option>
+                    <option value="Duplicate">🔁 Duplicate</option>
                 </select>
             </div>
             <div class="filter-group" style="flex: 1;">
@@ -955,6 +961,7 @@
                             <option value="Confirmed" ${p.status === 'Confirmed' || p.status === '확정' ? 'selected' : ''}>✅ Confirmed</option>
                             <option value="Requested" ${p.status === 'Requested' || p.status === '수정요청' ? 'selected' : ''}>📝 Requested</option>
                             <option value="Cancelled" ${p.status === 'Cancelled' || p.status === '취소' ? 'selected' : ''}>❌ Cancelled</option>
+                            <option value="Duplicate" ${p.status === 'Duplicate' ? 'selected' : ''}>🔁 Duplicate</option>
                         </select>
                     </td>
                     <td>
@@ -1031,6 +1038,7 @@
             const confirmedStatusCount = filtered.filter(p => p.status === 'Confirmed' || p.status === '확정').length;
             const requestedCount = filtered.filter(p => p.status === 'Requested' || p.status === '수정요청').length;
             const cancelledCount = filtered.filter(p => p.status === 'Cancelled' || p.status === '취소').length;
+            const duplicateCount = filtered.filter(p => p.status === 'Duplicate').length;
 
             // 기본 통계 업데이트
             document.getElementById('totalCount').textContent = total;
@@ -1083,6 +1091,9 @@
 
             document.getElementById('cancelledCount').textContent = cancelledCount;
             document.getElementById('cancelledPercent').textContent = total > 0 ? `${Math.round((cancelledCount / total) * 100)}%` : '0%';
+
+            document.getElementById('duplicateCount').textContent = duplicateCount;
+            document.getElementById('duplicatePercent').textContent = total > 0 ? `${Math.round((duplicateCount / total) * 100)}%` : '0%';
         }
 
         async function updateFeedbackStatus(participantId, newStatus) {

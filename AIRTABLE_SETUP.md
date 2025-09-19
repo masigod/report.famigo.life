@@ -8,13 +8,17 @@ Airtable에서 다음 옵션을 추가하세요:
 - 전송
 - 확정
 - 수정요청
+- 취소
+- 중복
 
-### 옵션 2: 영어 옵션 사용
+### 옵션 2: 영어 옵션 사용 (권장)
 만약 한글이 문제가 된다면:
 - Pending (대기)
 - Sent (전송)
 - Confirmed (확정)
-- Revision (수정요청)
+- Requested (수정요청)
+- Cancelled (취소)
+- Duplicate (중복)
 
 ### 옵션 3: Text 필드로 변경
 1. status 필드 타입을 "Single line text"로 변경
