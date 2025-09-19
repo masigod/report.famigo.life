@@ -839,11 +839,12 @@
                                 skinTone: participant.skinTone || '',
                                 phone: participant.phone || '',
                                 email: participant.email || '',
-                                reserveStatus: participant.예비여부,
+                                reserveStatus: participant.예비여부 ? true : false,
                                 'P-ID': participant.PID || '',
-                                status: participant.status || '대기',
-                                requestDate: participant.requestDate || '',
-                                confirmedDate: participant.confirmedDate || '',
+                                status: participant.status || 'Pending',
+                                requestDate: participant.requestDate || null,
+                                confirmedDate: participant.confirmedDate || null,
+                                changeTime: participant.changeTime || null,
                                 desc: participant.desc || ''
                             }
                         }]
@@ -851,7 +852,9 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    const errorText = await response.text();
+                    console.error('Airtable 응답 에러:', errorText);
+                    throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
                 }
 
                 const data = await response.json();
