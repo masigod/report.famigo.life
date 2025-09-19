@@ -1038,15 +1038,18 @@
                 return true;
             });
 
-            // 기본 통계 (필터된 데이터 기준)
-            const total = filtered.length;
-            const regular = filtered.filter(p => !p.예비여부).length;
-            const reserve = filtered.filter(p => p.예비여부).length;
-            const matched = filtered.filter(p => p.PID && p.PID !== '').length;
+            // Duplicate 상태를 제외한 데이터만 집계 대상
+            const nonDuplicateFiltered = filtered.filter(p => p.status !== 'Duplicate');
+
+            // 기본 통계 (Duplicate 제외)
+            const total = nonDuplicateFiltered.length;
+            const regular = nonDuplicateFiltered.filter(p => !p.예비여부).length;
+            const reserve = nonDuplicateFiltered.filter(p => p.예비여부).length;
+            const matched = nonDuplicateFiltered.filter(p => p.PID && p.PID !== '').length;
             const matchRate = total > 0 ? Math.round((matched / total) * 100) : 0;
 
-            const requestCount = filtered.filter(p => p.requestDate && p.requestDate.trim() !== '').length;
-            const confirmCount = filtered.filter(p => p.confirmedDate && p.confirmedDate.trim() !== '').length;
+            const requestCount = nonDuplicateFiltered.filter(p => p.requestDate && p.requestDate.trim() !== '').length;
+            const confirmCount = nonDuplicateFiltered.filter(p => p.confirmedDate && p.confirmedDate.trim() !== '').length;
 
             // 피드백 상태별 집계 (필터된 데이터 기준)
             const pendingCount = filtered.filter(p => p.status === 'Pending' || p.status === '대기').length;
@@ -1077,9 +1080,9 @@
                 document.getElementById('dateDistribution').textContent = dateFilter;
                 document.getElementById('dateDistributionDetail').textContent = `${total}명`;
             } else {
-                // 전체 날짜 분포 계산
+                // 전체 날짜 분포 계산 (Duplicate 제외)
                 const dateCounts = {};
-                filtered.forEach(p => {
+                nonDuplicateFiltered.forEach(p => {
                     if (p.setDate) {
                         dateCounts[p.setDate] = (dateCounts[p.setDate] || 0) + 1;
                     }
