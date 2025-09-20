@@ -493,6 +493,12 @@
         </div>
     </div>
 
+    <!-- Debug Log Area -->
+    <div id="debugLog" style="background: #000; padding: 15px; margin: 10px; border-radius: 8px; max-height: 300px; overflow-y: auto; font-family: monospace; font-size: 11px; color: #0f0; white-space: pre-wrap; word-break: break-all; border: 2px solid #0f0;">
+        <div style="font-weight: bold; margin-bottom: 10px; color: #0f0;">🔍 DEBUG LOG:</div>
+        <div id="debugContent"></div>
+    </div>
+
     <!-- Main Content -->
     <div id="mainView">
         <!-- Date Selector -->
@@ -654,6 +660,28 @@
         let bankbookImage = null;
         let currentUser = null;
         let airtableRecords = {};
+        let debugLog = [];
+
+        // Debug logger function
+        function addDebugLog(message, data = null) {
+            const timestamp = new Date().toLocaleTimeString('ko-KR');
+            const logEntry = `[${timestamp}] ${message}`;
+
+            debugLog.push(logEntry);
+            if (data) {
+                debugLog.push(JSON.stringify(data, null, 2));
+            }
+
+            // Update debug display
+            const debugContent = document.getElementById('debugContent');
+            if (debugContent) {
+                debugContent.innerHTML = debugLog.join('\n');
+                debugContent.scrollTop = debugContent.scrollHeight;
+            }
+
+            // Also log to console
+            console.log(logEntry, data || '');
+        }
 
         // Check authentication
         function checkAuth() {
@@ -706,21 +734,33 @@
                 const selectedDate = document.getElementById('dateFilter').value;
                 let filterFormula = '';
 
+                addDebugLog('=== loadParticipants 시작 ===');
+                addDebugLog('선택된 날짜:', selectedDate);
+
                 if (selectedDate) {
-                    // Format date as M/D for comparison with setDate
+                    // Format date as YYYY.M.DD or YYYY.MM.DD for comparison with setDate
                     const date = new Date(selectedDate);
+                    const year = date.getFullYear();
                     const month = date.getMonth() + 1;
                     const day = date.getDate();
-                    const formattedDate = `${month}/${day}`;
 
-                    // Also try with leading zeros
-                    const paddedMonth = String(month).padStart(2, '0');
-                    const paddedDay = String(day).padStart(2, '0');
-                    const paddedDate = `${paddedMonth}/${paddedDay}`;
+                    // Try multiple formats: YYYY.M.D, YYYY.MM.DD, M/D, MM/DD
+                    const format1 = `${year}.${month}.${day}`;  // 2025.9.22
+                    const format2 = `${year}.${String(month).padStart(2, '0')}.${String(day).padStart(2, '0')}`;  // 2025.09.22
+                    const format3 = `${month}/${day}`;  // 9/22
+                    const format4 = `${String(month).padStart(2, '0')}/${String(day).padStart(2, '0')}`;  // 09/22
 
-                    // Filter by setDate matching selected date (try both formats)
-                    filterFormula = `OR({setDate}='${formattedDate}', {setDate}='${paddedDate}')`;
-                    console.log('Filtering by dates:', formattedDate, 'or', paddedDate);
+                    // Filter by setDate matching selected date (try all formats)
+                    filterFormula = `OR({setDate}='${format1}', {setDate}='${format2}', {setDate}='${format3}', {setDate}='${format4}')`;
+                    addDebugLog('날짜 포맷 시도:', {
+                        format1: format1,
+                        format2: format2,
+                        format3: format3,
+                        format4: format4
+                    });
+                    addDebugLog('필터 포뮬라:', filterFormula);
+                } else {
+                    addDebugLog('날짜 필터 없음 - 전체 데이터 로드');
                 }
 
                 // Fetch all records with pagination
@@ -736,6 +776,8 @@
                         url += (url.includes('?') ? '&' : '?') + `offset=${offset}`;
                     }
 
+                    addDebugLog('API 요청 URL:', url);
+
                     const response = await fetch(url, {
                         headers: {
                             'Authorization': `Bearer ${AIRTABLE_API_KEY}`
@@ -743,25 +785,33 @@
                     });
 
                     if (!response.ok) {
-                        console.error('API response error:', response.status);
-                        throw new Error('Failed to load data');
+                        addDebugLog(`API 에러: ${response.status}`);
+                        throw new Error(`API Error: ${response.status}`);
                     }
 
                     const data = await response.json();
+                    addDebugLog(`페이지 로드: ${data.records.length}개 레코드`);
+
+                    if (data.records.length > 0) {
+                        addDebugLog('첫 번째 레코드 샘플:', data.records[0]);
+                    }
+
                     allRecords = allRecords.concat(data.records);
                     offset = data.offset;
                 } while (offset);
 
-                console.log('Total records loaded:', allRecords.length);
+                addDebugLog(`총 ${allRecords.length}개 레코드 로드 완료`);
 
-                participantsData = allRecords.map(record => {
+                participantsData = allRecords.map((record, index) => {
                     // Store mapping
                     if (record.fields.ID) {
                         airtableRecords[record.fields.ID] = record.id;
                     }
 
-                    // Log each record to see field names
-                    console.log('Record fields:', record.fields);
+                    // Log first 3 records to see field names
+                    if (index < 3) {
+                        addDebugLog(`레코드 ${index + 1} 필드:`, record.fields);
+                    }
 
                     return {
                         ...record.fields,
@@ -769,10 +819,9 @@
                     };
                 });
 
-                console.log('Loaded participants:', participantsData.length);
+                addDebugLog(`처리 완료: ${participantsData.length}개 참가자`);
                 if (participantsData.length > 0) {
-                    console.log('Sample participant data:', participantsData[0]);
-                    console.log('Available fields:', Object.keys(participantsData[0]));
+                    addDebugLog('사용 가능한 필드:', Object.keys(participantsData[0]));
                 }
 
                 // Sort by time only
@@ -782,20 +831,23 @@
                     return aTime.localeCompare(bTime);
                 });
 
+                addDebugLog('displayParticipants 호출...');
                 displayParticipants();
                 updateStats();
+                addDebugLog('=== loadParticipants 완료 ===');
             } catch (error) {
-                console.error('Error loading participants:', error);
+                addDebugLog('❌ 에러 발생:', error.message);
+                addDebugLog('에러 상세:', error.stack);
 
                 // Show more detailed error
-                if (error.message.includes('Failed to load data')) {
+                if (error.message.includes('API Error')) {
                     showNotification('API 연결 실패. 설정을 확인해주세요.', 'error');
                 } else {
                     showNotification(`데이터 로드 실패: ${error.message}`, 'error');
                 }
 
                 // Load test data as fallback
-                console.log('Loading test data as fallback...');
+                addDebugLog('⚠️ 테스트 데이터 로드 중...');
                 const today = new Date();
                 const testDate = `${today.getMonth() + 1}/${today.getDate()}`;
 
@@ -804,6 +856,8 @@
                     {ID: 102, name: '테스트 참가자 2', setDate: testDate, setTime: '13:30', skinColor: '3(LM)', phone: '010-2345-6789', attendanceStatus: 'Pending'},
                     {ID: 103, name: '테스트 참가자 3', setDate: testDate, setTime: '14:00', skinColor: '4(M)', phone: '010-3456-7890', attendanceStatus: 'Attended'},
                 ];
+
+                addDebugLog('테스트 데이터:', participantsData);
 
                 displayParticipants();
                 updateStats();
