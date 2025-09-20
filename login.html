@@ -345,6 +345,11 @@
 
                 const user = data.records[0].fields;
 
+                // Debug: Log user fields to check role/userType
+                console.log('User fields from Airtable:', user);
+                console.log('User role:', user.role);
+                console.log('User userType:', user.userType);
+
                 // Simple password check (In production, use proper hashing)
                 if (user.password !== password) {
                     throw new Error('Invalid username or password');
@@ -368,14 +373,15 @@
                     })
                 });
 
-                // Create session
+                // Create session with all possible role fields
+                const roleValue = user.role || user.userType || user.Role || user.UserType || 'admin';
                 const sessionData = {
                     userId: data.records[0].id,
                     username: user.username,
-                    fullName: user.fullName,
-                    role: user.role,
-                    email: user.email,
-                    userType: user.userType || user.role, // userType 필드 추가
+                    fullName: user.fullName || user.FullName || '',
+                    role: roleValue,  // Normalized role value
+                    email: user.email || user.Email || '',
+                    userType: roleValue, // Same as role for consistency
                     expires: Date.now() + (8 * 60 * 60 * 1000) // 8 hours
                 };
 
@@ -392,15 +398,25 @@
                 SecurityUtils.rateLimiter.reset(username);
 
                 // Role-based redirection
-                const userRole = user.role || user.userType;
-                if (userRole === 'staff') {
+                // Check all possible role field names
+                const userRole = user.role || user.userType || user.Role || user.UserType || 'admin';
+
+                console.log('Final userRole for redirection:', userRole);
+
+                // Normalize role to lowercase for comparison
+                const normalizedRole = userRole.toLowerCase();
+
+                if (normalizedRole === 'staff') {
                     // Staff 사용자는 모바일 페이지로 리다이렉트
+                    console.log('Redirecting to mobile-attendance.html');
                     window.location.href = 'mobile-attendance.html';
-                } else if (userRole === 'viewer') {
+                } else if (normalizedRole === 'viewer') {
                     // Viewer 사용자는 리포트 페이지로 리다이렉트
+                    console.log('Redirecting to report.html');
                     window.location.href = 'report.html';
                 } else {
                     // admin, manager는 메인 페이지로
+                    console.log('Redirecting to index.html');
                     window.location.href = 'index.html';
                 }
 

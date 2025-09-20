@@ -1129,22 +1129,60 @@
             return ErrorHandler.handle(async () => {
                 // Create record in AttendanceImages table using exact field names from CSV
                 const now = new Date();
+
+                // Format checkDate properly (convert 9/22 to 2025-09-22)
+                let formattedCheckDate = currentParticipant.setDate;
+                if (formattedCheckDate && !formattedCheckDate.includes('-')) {
+                    // Convert M/D to YYYY-MM-DD
+                    const [month, day] = formattedCheckDate.split('/');
+                    const year = new Date().getFullYear();
+                    formattedCheckDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                }
+
                 const attendanceData = {
-                    participantID: parseInt(currentParticipant.ID),
-                    participantName: SecurityUtils.sanitizeInput(currentParticipant.name, 'korean_name'),
+                    participantID: parseInt(currentParticipant.ID) || 0,
+                    participantName: currentParticipant.name || '',
                     checkinTime: now.toISOString(),
                     attendanceStatus: 'Attended',
-                    rewardType: SecurityUtils.sanitizeInput(selectedReward || 'None', 'alphanumeric'),
-                    staffName: SecurityUtils.sanitizeInput(currentUser.fullName, 'korean_name'),
-                    staffID: SecurityUtils.sanitizeInput(currentUser.username, 'id'),
-                    checkDate: SecurityUtils.sanitizeInput(currentParticipant.setDate, 'date'),
-                    checkTime: SecurityUtils.sanitizeInput(currentParticipant.setTime, 'time'),
-                    notes: SecurityUtils.sanitizeInput(`체크인 완료 - ${now.toLocaleString('ko-KR')}`, 'text')
+                    rewardType: selectedReward || 'None',
+                    staffName: currentUser.fullName || '',
+                    staffID: currentUser.username || '',
+                    checkDate: formattedCheckDate || '',
+                    checkTime: currentParticipant.setTime || '',
+                    notes: `체크인 완료 - ${now.toLocaleString('ko-KR')}`
                 };
+
+                // Add images if available
+                if (idCardImage) {
+                    // Convert blob to base64 for Airtable attachment
+                    const reader = new FileReader();
+                    const idCardBase64 = await new Promise((resolve) => {
+                        reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                        reader.readAsDataURL(idCardImage);
+                    });
+
+                    attendanceData.idCardImage = [{
+                        url: `data:image/jpeg;base64,${idCardBase64}`,
+                        filename: `id_card_${currentParticipant.ID}_${Date.now()}.jpg`
+                    }];
+                }
+
+                if (bankbookImage) {
+                    const reader = new FileReader();
+                    const bankbookBase64 = await new Promise((resolve) => {
+                        reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                        reader.readAsDataURL(bankbookImage);
+                    });
+
+                    attendanceData.bankbookImage = [{
+                        url: `data:image/jpeg;base64,${bankbookBase64}`,
+                        filename: `bankbook_${currentParticipant.ID}_${Date.now()}.jpg`
+                    }];
+                }
 
                 addDebugLog('AttendanceImages 테이블에 저장 시도:', {
                     table: ATTENDANCE_TABLE_ID,
-                    data: attendanceData
+                    data: { ...attendanceData, idCardImage: idCardImage ? '[이미지 있음]' : null, bankbookImage: bankbookImage ? '[이미지 있음]' : null }
                 });
 
                 const response = await ErrorHandler.fetchWithErrorHandling(
@@ -1160,7 +1198,7 @@
                                 fields: attendanceData
                             }]
                         }),
-                        timeout: 30000
+                        timeout: 60000  // Increase timeout for image uploads
                     }
                 );
 

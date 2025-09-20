@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Find AttendanceImages Table</title>
+    <script src="env-config.js"></script>
+    <script src="config-loader.js"></script>
+    <script src="config.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        pre { background: #f0f0f0; padding: 10px; border-radius: 5px; overflow-x: auto; }
+        .table-info { margin: 20px 0; padding: 15px; border: 2px solid #4CAF50; border-radius: 5px; background: #f0fff0; }
+        .highlight { background: yellow; font-weight: bold; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>Find AttendanceImages Table ID</h1>
+    <div id="result">Searching for AttendanceImages table...</div>
+
+    <script>
+        async function findAttendanceTable() {
+            const API_KEY = typeof AIRTABLE_CONFIG !== 'undefined' ? AIRTABLE_CONFIG.API_KEY : prompt('Enter Airtable API Key:');
+            const BASE_ID = typeof AIRTABLE_CONFIG !== 'undefined' ? AIRTABLE_CONFIG.BASE_ID : 'appZcPs57spwdoKQH';
+
+            const resultDiv = document.getElementById('result');
+
+            try {
+                // Try to get metadata for all tables
+                const metaResponse = await fetch(`https://api.airtable.com/v0/meta/bases/${BASE_ID}/tables`, {
+                    headers: {
+                        'Authorization': `Bearer ${API_KEY}`
+                    }
+                });
+
+                if (metaResponse.ok) {
+                    const metaData = await metaResponse.json();
+                    let html = '<h2>Tables in Base:</h2><ul>';
+                    let attendanceTableId = null;
+
+                    metaData.tables.forEach(table => {
+                        const isAttendance = table.name.toLowerCase().includes('attendance') ||
+                                           table.name.toLowerCase().includes('checkin') ||
+                                           table.name === 'AttendanceImages';
+
+                        html += `<li class="${isAttendance ? 'highlight' : ''}">`;
+                        html += `<strong>${table.name}</strong>: ${table.id}`;
+
+                        if (isAttendance) {
+                            html += ' ê This looks like the AttendanceImages table!';
+                            attendanceTableId = table.id;
+                        }
+                        html += '</li>';
+                    });
+
+                    html += '</ul>';
+
+                    if (attendanceTableId) {
+                        html += `<div class="table-info success">
+                            <h3> Found AttendanceImages Table!</h3>
+                            <p><strong>Table ID: ${attendanceTableId}</strong></p>
+                            <p>Add this to your config.js or environment variables:</p>
+                            <pre>ATTENDANCE_TABLE_ID: '${attendanceTableId}'</pre>
+                            <hr>
+                            <p>Testing the table structure...</p>
+                        </div>`;
+
+                        // Try to get a record from the table to see fields
+                        const testResponse = await fetch(
+                            `https://api.airtable.com/v0/${BASE_ID}/${attendanceTableId}?maxRecords=1`,
+                            {
+                                headers: {
+                                    'Authorization': `Bearer ${API_KEY}`
+                                }
+                            }
+                        );
+
+                        if (testResponse.ok) {
+                            const testData = await testResponse.json();
+                            if (testData.records.length > 0) {
+                                html += '<h3>Table Fields:</h3>';
+                                html += '<pre>' + JSON.stringify(testData.records[0].fields, null, 2) + '</pre>';
+                            } else {
+                                html += '<p>Table is empty. Expected fields based on CSV:</p>';
+                                html += '<pre>' + JSON.stringify({
+                                    participantID: 'number',
+                                    participantName: 'string',
+                                    checkinTime: 'datetime',
+                                    attendanceStatus: 'string',
+                                    rewardType: 'string',
+                                    idCardImage: 'attachment',
+                                    bankbookImage: 'attachment',
+                                    staffName: 'string',
+                                    staffID: 'string',
+                                    checkDate: 'string',
+                                    checkTime: 'string',
+                                    notes: 'string'
+                                }, null, 2) + '</pre>';
+                            }
+                        }
+                    } else {
+                        html += '<div class="table-info error">† AttendanceImages table not found. Please create it in Airtable.</div>';
+                    }
+
+                    resultDiv.innerHTML = html;
+                } else {
+                    // Metadata API failed, try known table IDs
+                    resultDiv.innerHTML = '<h2>Metadata API not available. Trying common patterns...</h2>';
+
+                    const possibleIds = [
+                        'tblAttendanceImages',
+                        'tblAttendance',
+                        'tblCheckin',
+                        'tbl' + Math.random().toString(36).substring(2, 15)
+                    ];
+
+                    for (const tableId of possibleIds) {
+                        try {
+                            const response = await fetch(
+                                `https://api.airtable.com/v0/${BASE_ID}/${tableId}?maxRecords=1`,
+                                {
+                                    headers: {
+                                        'Authorization': `Bearer ${API_KEY}`
+                                    }
+                                }
+                            );
+
+                            if (response.ok) {
+                                resultDiv.innerHTML += `<p class="success"> Found valid table: ${tableId}</p>`;
+                                break;
+                            }
+                        } catch (e) {
+                            // Continue trying
+                        }
+                    }
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <p>Error: ${error.message}</p>
+                        <p>Please check the table manually in Airtable:</p>
+                        <ol>
+                            <li>Go to https://airtable.com</li>
+                            <li>Open base: ${BASE_ID}</li>
+                            <li>Look for "AttendanceImages" or similar table</li>
+                            <li>Copy the table ID from the URL</li>
+                        </ol>
+                    </div>
+                `;
+            }
+        }
+
+        findAttendanceTable();
+    </script>
+</body>
+</html>

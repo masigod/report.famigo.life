@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Check Admin Table Fields</title>
+    <script src="env-config.js"></script>
+    <script src="config-loader.js"></script>
+    <script src="config.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        pre { background: #f0f0f0; padding: 10px; border-radius: 5px; overflow-x: auto; }
+        .field { margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+        .field-name { font-weight: bold; color: #333; }
+        .field-value { color: #666; }
+        .highlight { background: yellow; }
+    </style>
+</head>
+<body>
+    <h1>Admin Table Fields Check</h1>
+    <div id="result">Loading...</div>
+
+    <script>
+        async function checkAdminFields() {
+            const API_KEY = typeof AIRTABLE_CONFIG !== 'undefined' ? AIRTABLE_CONFIG.API_KEY : prompt('Enter Airtable API Key:');
+            const BASE_ID = typeof AIRTABLE_CONFIG !== 'undefined' ? AIRTABLE_CONFIG.BASE_ID : 'appZcPs57spwdoKQH';
+            const ADMIN_TABLE_ID = typeof AIRTABLE_CONFIG !== 'undefined' ? AIRTABLE_CONFIG.ADMIN_TABLE_ID : 'tblFQ7ofZ9CXZcydm';
+
+            try {
+                // Fetch first record to see field structure
+                const response = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${ADMIN_TABLE_ID}?maxRecords=1`, {
+                    headers: {
+                        'Authorization': `Bearer ${API_KEY}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                let html = '<h2>Admin Table Structure:</h2>';
+
+                if (data.records.length > 0) {
+                    const fields = data.records[0].fields;
+                    html += '<div class="field"><h3>Fields found in first record:</h3>';
+                    html += '<pre>' + JSON.stringify(fields, null, 2) + '</pre></div>';
+
+                    html += '<div class="field"><h3>Field Names:</h3><ul>';
+                    for (const fieldName in fields) {
+                        const isRoleField = fieldName.toLowerCase().includes('role') || fieldName.toLowerCase().includes('type');
+                        html += `<li class="${isRoleField ? 'highlight' : ''}">
+                            <span class="field-name">${fieldName}</span>:
+                            <span class="field-value">${typeof fields[fieldName]} (${fields[fieldName]})</span>
+                        </li>`;
+                    }
+                    html += '</ul></div>';
+
+                    // Check specifically for role-related fields
+                    html += '<div class="field"><h3>Role-related fields:</h3><ul>';
+                    for (const fieldName in fields) {
+                        if (fieldName.toLowerCase().includes('role') ||
+                            fieldName.toLowerCase().includes('type') ||
+                            fieldName.toLowerCase().includes('permission')) {
+                            html += `<li><strong>${fieldName}</strong>: ${fields[fieldName]}</li>`;
+                        }
+                    }
+                    html += '</ul></div>';
+                } else {
+                    html += '<p>No records found in admin table. Creating test user...</p>';
+
+                    // Try to create a test record to see required fields
+                    const testResponse = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${ADMIN_TABLE_ID}`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${API_KEY}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            records: [{
+                                fields: {
+                                    username: 'test_field_check',
+                                    password: 'test123',
+                                    fullName: 'Test Field Check',
+                                    email: 'test@example.com',
+                                    role: 'viewer',
+                                    userType: 'viewer',
+                                    isActive: true
+                                }
+                            }]
+                        })
+                    });
+
+                    if (testResponse.ok) {
+                        const testData = await testResponse.json();
+                        html += '<p>Test record created. Fields:</p>';
+                        html += '<pre>' + JSON.stringify(testData.records[0].fields, null, 2) + '</pre>';
+                    }
+                }
+
+                document.getElementById('result').innerHTML = html;
+            } catch (error) {
+                document.getElementById('result').innerHTML = `
+                    <p style="color: red;">Error: ${error.message}</p>
+                    <p>Please make sure:</p>
+                    <ul>
+                        <li>API Key is correct</li>
+                        <li>Admin Table ID is correct: ${ADMIN_TABLE_ID}</li>
+                        <li>You have access to the admin table</li>
+                    </ul>
+                `;
+            }
+        }
+
+        checkAdminFields();
+    </script>
+</body>
+</html>
