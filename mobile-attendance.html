@@ -729,8 +729,10 @@
                 filterAndDisplayParticipants();
 
                 // Load attendance data from AttendanceImages if table exists
-                if (ATTENDANCE_TABLE_ID) {
+                if (ATTENDANCE_TABLE_ID && ATTENDANCE_TABLE_ID !== '') {
                     await loadAttendanceData();
+                } else {
+                    addDebugLog('AttendanceImages 테이블 ID가 설정되지 않음 - 스킵');
                 }
 
                 // Setup event listeners
@@ -890,8 +892,24 @@
             addDebugLog('선택된 날짜:', selectedDate || '전체');
 
             if (selectedDate) {
-                // Filter by selected date
-                participantsData = allParticipantsData.filter(p => p.setDate === selectedDate);
+                // Convert selected date (YYYY-MM-DD) to M/D format for comparison
+                const [year, month, day] = selectedDate.split('-');
+                const selectedDateFormatted = `${parseInt(month)}/${parseInt(day)}`;
+
+                addDebugLog('비교용 날짜 형식:', selectedDateFormatted);
+                addDebugLog('첫 번째 참가자 setDate:', allParticipantsData[0]?.setDate);
+
+                // Filter by selected date (compare M/D format)
+                participantsData = allParticipantsData.filter(p => {
+                    // Handle both M/D and YYYY-MM-DD formats
+                    let pDate = p.setDate;
+                    if (pDate && pDate.includes('-')) {
+                        const [y, m, d] = pDate.split('-');
+                        pDate = `${parseInt(m)}/${parseInt(d)}`;
+                    }
+                    return pDate === selectedDateFormatted;
+                });
+
                 addDebugLog(`필터 결과: ${participantsData.length}개 (전체 ${allParticipantsData.length}개 중)`);
             } else {
                 // Show all

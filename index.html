@@ -805,10 +805,17 @@
 
                 console.log(`Airtable 업데이트 시작: Record ID=${recordId}, Field=${fieldName}, Value=${value}`);
 
-                // 날짜 필드에서 빈 값 처리
+                // 날짜 필드 처리 - Date 타입 필드는 YYYY-MM-DD 형식 필요
                 let fieldValue = value;
-                if ((fieldName === 'requestDate' || fieldName === 'confirmedDate' || fieldName === 'date') && (value === '' || value === null || value === undefined)) {
-                    fieldValue = null;
+                if (fieldName === 'requestDate' || fieldName === 'confirmedDate' || fieldName === 'setDate') {
+                    if (value === '' || value === null || value === undefined) {
+                        fieldValue = null;
+                    } else if (value && !value.includes('-')) {
+                        // M/D 형식을 YYYY-MM-DD로 변환
+                        const [month, day] = value.split('/');
+                        const year = new Date().getFullYear();
+                        fieldValue = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                    }
                 }
                 const response = await ErrorHandler.fetchWithErrorHandling(`${AIRTABLE_API_URL}/${recordId}`, {
                     method: 'PATCH',
@@ -848,7 +855,7 @@
                             fields: {
                                 // ID는 Airtable에서 자동 생성되므로 제외
                                 name: SecurityUtils.sanitizeInput(participant.name, 'korean_name'),
-                                setDate: SecurityUtils.sanitizeInput(participant.setDate, 'date'),
+                                setDate: participant.setDate,  // Date field expects YYYY-MM-DD format
                                 setTime: SecurityUtils.sanitizeInput(participant.setTime, 'time'),
                                 skinColor: SecurityUtils.sanitizeInput(participant.skinColor, 'alphanumeric'),
                                 skinTone: SecurityUtils.sanitizeInput(participant.skinTone || '', 'alphanumeric'),
@@ -1230,17 +1237,24 @@
                     const oldDate = participant.setDate;
                     const oldTime = participant.setTime;
 
-                    let newDate = participant.confirmedDate;
-                    participant.setDate = newDate;
+                    // confirmedDate를 YYYY-MM-DD 형식으로 변환
+                    let newDateForAirtable = participant.confirmedDate;
+                    if (newDateForAirtable && !newDateForAirtable.includes('-')) {
+                        const [month, day] = newDateForAirtable.split('/');
+                        const year = new Date().getFullYear();
+                        newDateForAirtable = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                    }
+
+                    participant.setDate = participant.confirmedDate;  // 표시용은 M/D 형식 유지
                     participant.setTime = newTime;
 
-                    // Airtable에 업데이트
-                    await updateAirtableRecord(participantId, 'setDate', newDate);
+                    // Airtable에 업데이트 (YYYY-MM-DD 형식으로)
+                    await updateAirtableRecord(participantId, 'setDate', newDateForAirtable);
                     await updateAirtableRecord(participantId, 'setTime', newTime);
 
                     ErrorHandler.showNotification(
                         `${participant.name}의 예약이 변경되었습니다.\n` +
-                        `${oldDate} ${oldTime} → ${newDate} ${newTime}`,
+                        `${oldDate} ${oldTime} → ${participant.confirmedDate} ${newTime}`,
                         'success'
                     );
 
