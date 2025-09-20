@@ -1210,14 +1210,10 @@
                     const oldDate = participant.setDate;
                     const oldTime = participant.setTime;
 
-                    // 날짜 형식 변환 (YYYY-MM-DD to M/D)
+                    // 날짜 형식 변환 - 년도 포함 (YYYY-MM-DD 그대로 유지)
                     let newDate = participant.confirmedDate;
-                    if (newDate.includes('-')) {
-                        const parts = newDate.split('-');
-                        if (parts.length === 3) {
-                            newDate = `${parseInt(parts[1])}/${parseInt(parts[2])}`;
-                        }
-                    }
+                    // confirmedDate는 이미 YYYY-MM-DD 형식이므로 그대로 사용
+                    // setDate도 데이터베이스에서 YYYY-MM-DD 형식 사용
 
                     participant.setDate = newDate;
                     participant.setTime = newTime;
@@ -1351,15 +1347,8 @@
             const maxId = Math.max(...participantsData.map(p => p.ID), 0);
             const newId = maxId + 1;
 
-            // 날짜 포맷 변환 (필요시)
-            let formattedDate = setDate;
-            if (setDate && setDate.includes('-')) {
-                // YYYY-MM-DD 형식을 M/D 형식으로 변환
-                const parts = setDate.split('-');
-                if (parts.length === 3) {
-                    formattedDate = `${parseInt(parts[1])}/${parseInt(parts[2])}`;
-                }
-            }
+            // 날짜는 YYYY-MM-DD 형식 그대로 사용 (데이터베이스와 일치)
+            const formattedDate = setDate;
 
             const newParticipant = {
                 ID: newId,

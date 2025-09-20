@@ -506,7 +506,7 @@
             <label style="display: block; font-size: 14px; color: #666; margin-bottom: 5px;">날짜 선택</label>
             <div style="display: flex; gap: 10px;">
                 <input type="date" id="dateFilter" style="flex: 1; padding: 10px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 16px;">
-                <button onclick="document.getElementById('dateFilter').value=''; loadParticipants();" style="padding: 10px 15px; background: #667eea; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">전체보기</button>
+                <button onclick="document.getElementById('dateFilter').value=''; filterAndDisplayParticipants();" style="padding: 10px 15px; background: #667eea; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">전체보기</button>
             </div>
         </div>
         <!-- Stats -->
@@ -654,7 +654,8 @@
         const ATTENDANCE_TABLE_ID = typeof AIRTABLE_CONFIG !== 'undefined' ? AIRTABLE_CONFIG.ATTENDANCE_TABLE_ID : '';
 
         // Global variables
-        let participantsData = [];
+        let allParticipantsData = [];  // Store all data
+        let participantsData = [];     // Filtered data
         let currentParticipant = null;
         let selectedReward = '';
         let idCardImage = null;
@@ -662,6 +663,7 @@
         let currentUser = null;
         let airtableRecords = {};
         let debugLog = [];
+        let lastLoadTime = 0;
 
         // Debug logger function
         function addDebugLog(message, data = null) {
@@ -715,62 +717,46 @@
             document.getElementById('dateFilter').value = today;
             addDebugLog('📅 오늘 날짜로 설정:', today);
 
-            // Load participants
-            await loadParticipants();
+            // Load all participants once
+            await loadAllParticipants(true);
+
+            // Filter and display based on selected date
+            filterAndDisplayParticipants();
 
             // Setup event listeners
             setupEventListeners();
 
             // Add date change listener
-            document.getElementById('dateFilter').addEventListener('change', async () => {
-                await loadParticipants();
+            document.getElementById('dateFilter').addEventListener('change', () => {
+                filterAndDisplayParticipants();
             });
         });
 
-        // Load participants from Airtable
-        async function loadParticipants() {
+        // Load all participants data (cached)
+        async function loadAllParticipants(forceReload = false) {
+            // Check if we should reload (every 5 minutes or forced)
+            const now = Date.now();
+            if (!forceReload && allParticipantsData.length > 0 && (now - lastLoadTime) < 300000) {
+                addDebugLog('⏱ 캐시된 데이터 사용');
+                return allParticipantsData;
+            }
+
             try {
-                // Show loading state
-                document.getElementById('participantList').innerHTML = '<div class="loading"><div class="spinner"></div><div>데이터를 불러오는 중...</div></div>';
+                addDebugLog('=== 전체 데이터 로드 시작 ===');
 
-                const selectedDate = document.getElementById('dateFilter').value;
-                let filterFormula = '';
-
-                addDebugLog('=== loadParticipants 시작 ===');
-                addDebugLog('선택된 날짜:', selectedDate);
-
-                if (selectedDate) {
-                    // Format date as YYYY-MM-DD (actual format in database)
-                    const date = new Date(selectedDate);
-                    const year = date.getFullYear();
-                    const month = String(date.getMonth() + 1).padStart(2, '0');
-                    const day = String(date.getDate()).padStart(2, '0');
-                    const formattedDate = `${year}-${month}-${day}`;  // 2025-09-22
-
-                    // Filter by setDate and exclude Cancelled and Duplicate status
-                    filterFormula = `AND({setDate}='${formattedDate}', {status}!='Cancelled', {status}!='Duplicate')`;
-                    addDebugLog('날짜 필터:', formattedDate);
-                    addDebugLog('필터 포뮬라:', filterFormula);
-                } else {
-                    // Load all except Cancelled and Duplicate
-                    filterFormula = `AND({status}!='Cancelled', {status}!='Duplicate')`;
-                    addDebugLog('전체 데이터 로드 (Cancelled, Duplicate 제외)');
-                }
+                // Always load all data (except Cancelled and Duplicate)
+                const filterFormula = `AND({status}!='Cancelled', {status}!='Duplicate')`;
 
                 // Fetch all records with pagination
                 let allRecords = [];
                 let offset = null;
 
                 do {
-                    let url = filterFormula
-                        ? `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}?filterByFormula=${encodeURIComponent(filterFormula)}`
-                        : `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}`;
+                    let url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}?filterByFormula=${encodeURIComponent(filterFormula)}`;
 
                     if (offset) {
-                        url += (url.includes('?') ? '&' : '?') + `offset=${offset}`;
+                        url += '&offset=' + offset;
                     }
-
-                    addDebugLog('API 요청 URL:', url);
 
                     const response = await fetch(url, {
                         headers: {
@@ -784,19 +770,13 @@
                     }
 
                     const data = await response.json();
-                    addDebugLog(`페이지 로드: ${data.records.length}개 레코드`);
-
-                    if (data.records.length > 0) {
-                        addDebugLog('첫 번째 레코드 샘플:', data.records[0]);
-                    }
-
                     allRecords = allRecords.concat(data.records);
                     offset = data.offset;
                 } while (offset);
 
                 addDebugLog(`총 ${allRecords.length}개 레코드 로드 완료`);
 
-                participantsData = allRecords.map((record, index) => {
+                allParticipantsData = allRecords.map((record, index) => {
                     // Store mapping
                     if (record.fields.ID) {
                         airtableRecords[record.fields.ID] = record.id;
@@ -819,33 +799,20 @@
                     };
                 });
 
-                addDebugLog(`처리 완료: ${participantsData.length}개 참가자`);
-                if (participantsData.length > 0) {
-                    addDebugLog('사용 가능한 필드:', Object.keys(participantsData[0]));
+                // Show available dates
+                const uniqueDates = [...new Set(allParticipantsData.map(p => p.setDate))].sort();
+                addDebugLog('📅 데이터가 있는 날짜들:', uniqueDates);
 
-                    // Show available dates
-                    const uniqueDates = [...new Set(participantsData.map(p => p.setDate))].sort();
-                    addDebugLog('📅 데이터가 있는 날짜들:', uniqueDates);
-                }
-
-                // Filter out Cancelled and Duplicate status if not already filtered
-                if (!filterFormula) {
-                    participantsData = participantsData.filter(p =>
-                        p.status !== 'Cancelled' && p.status !== 'Duplicate'
-                    );
-                }
-
-                // Sort by time only
-                participantsData.sort((a, b) => {
+                // Sort by time
+                allParticipantsData.sort((a, b) => {
                     const aTime = a.setTime || '';
                     const bTime = b.setTime || '';
                     return aTime.localeCompare(bTime);
                 });
 
-                addDebugLog('displayParticipants 호출...');
-                displayParticipants();
-                updateStats();
-                addDebugLog('=== loadParticipants 완료 ===');
+                lastLoadTime = now;
+                addDebugLog('=== 전체 데이터 로드 완료 ===');
+                return allParticipantsData;
             } catch (error) {
                 addDebugLog('❌ 에러 발생:', error.message);
                 addDebugLog('에러 상세:', error.stack);
@@ -858,21 +825,29 @@
                 }
 
                 // Load test data as fallback
-                addDebugLog('⚠️ 테스트 데이터 로드 중...');
-                const today = new Date();
-                const testDate = `${today.getMonth() + 1}/${today.getDate()}`;
-
-                participantsData = [
-                    {ID: 101, name: '테스트 참가자 1', setDate: testDate, setTime: '13:00', skinColor: '2(L)', phone: '010-1234-5678', attendanceStatus: 'Pending'},
-                    {ID: 102, name: '테스트 참가자 2', setDate: testDate, setTime: '13:30', skinColor: '3(LM)', phone: '010-2345-6789', attendanceStatus: 'Pending'},
-                    {ID: 103, name: '테스트 참가자 3', setDate: testDate, setTime: '14:00', skinColor: '4(M)', phone: '010-3456-7890', attendanceStatus: 'Attended'},
-                ];
-
-                addDebugLog('테스트 데이터:', participantsData);
-
-                displayParticipants();
-                updateStats();
+                return [];
             }
+        }
+
+        // Filter and display participants based on selected date
+        function filterAndDisplayParticipants() {
+            const selectedDate = document.getElementById('dateFilter').value;
+
+            addDebugLog('=== 필터링 시작 ===');
+            addDebugLog('선택된 날짜:', selectedDate || '전체');
+
+            if (selectedDate) {
+                // Filter by selected date
+                participantsData = allParticipantsData.filter(p => p.setDate === selectedDate);
+                addDebugLog(`필터 결과: ${participantsData.length}개 (전체 ${allParticipantsData.length}개 중)`);
+            } else {
+                // Show all
+                participantsData = [...allParticipantsData];
+                addDebugLog(`전체 표시: ${participantsData.length}개`);
+            }
+
+            displayParticipants();
+            updateStats();
         }
 
         // Display participants
