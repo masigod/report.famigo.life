@@ -506,7 +506,7 @@
             <label style="display: block; font-size: 14px; color: #666; margin-bottom: 5px;">날짜 선택</label>
             <div style="display: flex; gap: 10px;">
                 <input type="date" id="dateFilter" style="flex: 1; padding: 10px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 16px;">
-                <button onclick="document.getElementById('dateFilter').value=''; loadParticipants();" style="padding: 10px 15px; background: #f0f0f0; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 14px;">전체보기</button>
+                <button onclick="document.getElementById('dateFilter').value=''; loadParticipants();" style="padding: 10px 15px; background: #667eea; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">전체보기</button>
             </div>
         </div>
         <!-- Stats -->
@@ -710,12 +710,10 @@
             // Display staff info
             document.getElementById('staffInfo').textContent = `스태프: ${currentUser.fullName}`;
 
-            // Don't set date filter initially to see all data
-            // const today = new Date().toISOString().split('T')[0];
-            // document.getElementById('dateFilter').value = today;
-
-            // First load without filter to check data format
-            addDebugLog('🔍 데이터 형식 확인을 위해 "전체보기" 버튼을 클릭하세요');
+            // Set today's date as default
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('dateFilter').value = today;
+            addDebugLog('📅 오늘 날짜로 설정:', today);
 
             // Load participants
             await loadParticipants();
@@ -742,33 +740,21 @@
                 addDebugLog('선택된 날짜:', selectedDate);
 
                 if (selectedDate) {
-                    // Format date as YYYY.M.DD or YYYY.MM.DD for comparison with setDate
+                    // Format date as YYYY-MM-DD (actual format in database)
                     const date = new Date(selectedDate);
                     const year = date.getFullYear();
-                    const month = date.getMonth() + 1;
-                    const day = date.getDate();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const formattedDate = `${year}-${month}-${day}`;  // 2025-09-22
 
-                    // Try multiple formats: YYYY.M.D, YYYY.MM.DD, YYYY. M. D, M/D, MM/DD
-                    const format1 = `${year}.${month}.${day}`;  // 2025.9.22
-                    const format2 = `${year}.${String(month).padStart(2, '0')}.${String(day).padStart(2, '0')}`;  // 2025.09.22
-                    const format3 = `${year}. ${month}. ${day}`;  // 2025. 9. 22 (with spaces)
-                    const format4 = `${year}. ${String(month).padStart(2, '0')}. ${String(day).padStart(2, '0')}`;  // 2025. 09. 22
-                    const format5 = `${month}/${day}`;  // 9/22
-                    const format6 = `${String(month).padStart(2, '0')}/${String(day).padStart(2, '0')}`;  // 09/22
-
-                    // Filter by setDate matching selected date (try all formats)
-                    filterFormula = `OR({setDate}='${format1}', {setDate}='${format2}', {setDate}='${format3}', {setDate}='${format4}', {setDate}='${format5}', {setDate}='${format6}')`;
-                    addDebugLog('날짜 포맷 시도:', {
-                        format1: format1,
-                        format2: format2,
-                        format3: format3,
-                        format4: format4,
-                        format5: format5,
-                        format6: format6
-                    });
+                    // Filter by setDate and exclude Cancelled and Duplicate status
+                    filterFormula = `AND({setDate}='${formattedDate}', {status}!='Cancelled', {status}!='Duplicate')`;
+                    addDebugLog('날짜 필터:', formattedDate);
                     addDebugLog('필터 포뮬라:', filterFormula);
                 } else {
-                    addDebugLog('날짜 필터 없음 - 전체 데이터 로드');
+                    // Load all except Cancelled and Duplicate
+                    filterFormula = `AND({status}!='Cancelled', {status}!='Duplicate')`;
+                    addDebugLog('전체 데이터 로드 (Cancelled, Duplicate 제외)');
                 }
 
                 // Fetch all records with pagination
@@ -816,12 +802,15 @@
                         airtableRecords[record.fields.ID] = record.id;
                     }
 
-                    // Log first 5 records to see field names and date formats
-                    if (index < 5) {
-                        addDebugLog(`레코드 ${index + 1} 필드:`, record.fields);
-                        if (record.fields.setDate) {
-                            addDebugLog(`  -> setDate 형식: "${record.fields.setDate}"`);
-                        }
+                    // Log first 3 records to see field names
+                    if (index < 3) {
+                        addDebugLog(`레코드 ${index + 1}:`, {
+                            ID: record.fields.ID,
+                            name: record.fields.name,
+                            setDate: record.fields.setDate,
+                            setTime: record.fields.setTime,
+                            status: record.fields.status
+                        });
                     }
 
                     return {
@@ -833,6 +822,13 @@
                 addDebugLog(`처리 완료: ${participantsData.length}개 참가자`);
                 if (participantsData.length > 0) {
                     addDebugLog('사용 가능한 필드:', Object.keys(participantsData[0]));
+                }
+
+                // Filter out Cancelled and Duplicate status if not already filtered
+                if (!filterFormula) {
+                    participantsData = participantsData.filter(p =>
+                        p.status !== 'Cancelled' && p.status !== 'Duplicate'
+                    );
                 }
 
                 // Sort by time only
