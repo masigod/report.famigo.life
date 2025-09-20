@@ -495,6 +495,11 @@
 
     <!-- Main Content -->
     <div id="mainView">
+        <!-- Date Selector -->
+        <div style="padding: 15px 20px; background: white; border-bottom: 1px solid #e0e0e0;">
+            <label style="display: block; font-size: 14px; color: #666; margin-bottom: 5px;">날짜 선택</label>
+            <input type="date" id="dateFilter" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 16px;">
+        </div>
         <!-- Stats -->
         <div class="stats-container">
             <div class="stat-card">
@@ -525,7 +530,7 @@
 
         <!-- Search -->
         <div class="search-container" style="position: relative;">
-            <input type="text" class="search-input" id="searchInput" placeholder="이름 또는 P-ID로 검색...">
+            <input type="text" class="search-input" id="searchInput" placeholder="이름 또는 ID 번호로 검색...">
             <span class="search-icon">🔍</span>
         </div>
 
@@ -673,27 +678,72 @@
             // Display staff info
             document.getElementById('staffInfo').textContent = `스태프: ${currentUser.fullName}`;
 
+            // Set today's date as default
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('dateFilter').value = today;
+
             // Load participants
             await loadParticipants();
 
             // Setup event listeners
             setupEventListeners();
+
+            // Add date change listener
+            document.getElementById('dateFilter').addEventListener('change', async () => {
+                await loadParticipants();
+            });
         });
 
         // Load participants from Airtable
         async function loadParticipants() {
             try {
-                const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}`;
-                const response = await fetch(url, {
-                    headers: {
-                        'Authorization': `Bearer ${AIRTABLE_API_KEY}`
+                const selectedDate = document.getElementById('dateFilter').value;
+                let filterFormula = '';
+
+                if (selectedDate) {
+                    // Format date as M/D for comparison with setDate
+                    const date = new Date(selectedDate);
+                    const month = date.getMonth() + 1;
+                    const day = date.getDate();
+                    const formattedDate = `${month}/${day}`;
+
+                    // Filter by setDate matching selected date
+                    filterFormula = `{setDate}='${formattedDate}'`;
+                    console.log('Filtering by date:', formattedDate);
+                }
+
+                // Fetch all records with pagination
+                let allRecords = [];
+                let offset = null;
+
+                do {
+                    let url = filterFormula
+                        ? `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}?filterByFormula=${encodeURIComponent(filterFormula)}`
+                        : `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}`;
+
+                    if (offset) {
+                        url += (url.includes('?') ? '&' : '?') + `offset=${offset}`;
                     }
-                });
 
-                if (!response.ok) throw new Error('Failed to load data');
+                    const response = await fetch(url, {
+                        headers: {
+                            'Authorization': `Bearer ${AIRTABLE_API_KEY}`
+                        }
+                    });
 
-                const data = await response.json();
-                participantsData = data.records.map(record => {
+                    if (!response.ok) {
+                        console.error('API response error:', response.status);
+                        throw new Error('Failed to load data');
+                    }
+
+                    const data = await response.json();
+                    allRecords = allRecords.concat(data.records);
+                    offset = data.offset;
+                } while (offset);
+
+                console.log('Total records loaded:', allRecords.length);
+
+                participantsData = allRecords.map(record => {
                     airtableRecords[record.fields.ID] = record.id;
                     return {
                         ...record.fields,
@@ -701,11 +751,16 @@
                     };
                 });
 
-                // Sort by date and time
+                console.log('Loaded participants:', participantsData.length);
+                if (participantsData.length > 0) {
+                    console.log('Sample data:', participantsData[0]);
+                }
+
+                // Sort by time only
                 participantsData.sort((a, b) => {
-                    const dateCompare = (a.setDate || '').localeCompare(b.setDate || '');
-                    if (dateCompare !== 0) return dateCompare;
-                    return (a.setTime || '').localeCompare(b.setTime || '');
+                    const aTime = a.setTime || '';
+                    const bTime = b.setTime || '';
+                    return aTime.localeCompare(bTime);
                 });
 
                 displayParticipants();
@@ -726,20 +781,50 @@
                 if (timeFilter !== 'all' && p.setTime !== timeFilter) return false;
                 if (searchTerm) {
                     const matchName = p.name && p.name.toLowerCase().includes(searchTerm);
-                    const matchPID = p['P-ID'] && p['P-ID'].toLowerCase().includes(searchTerm);
-                    if (!matchName && !matchPID) return false;
+                    const matchID = p.ID && p.ID.toString().includes(searchTerm);
+                    const matchPID = p.ID && (`P-${p.ID}`).toLowerCase().includes(searchTerm.toLowerCase());
+                    if (!matchName && !matchID && !matchPID) return false;
                 }
                 return true;
             });
 
-            // Get today's date in M/D format
-            const today = new Date();
-            const todayStr = `${today.getMonth() + 1}/${today.getDate()}`;
+            // No need to filter by today since loadParticipants already filters by selected date
 
-            // Filter for today's participants only
-            filtered = filtered.filter(p => p.setDate === todayStr);
+            // Display date info if date is selected
+            const selectedDate = document.getElementById('dateFilter').value;
+            let dateHeader = '';
+            if (selectedDate) {
+                const date = new Date(selectedDate);
+                const dateStr = `${date.getMonth() + 1}월 ${date.getDate()}일`;
+                dateHeader = `
+                    <div style="padding: 10px 15px; background: var(--primary); color: white; margin: -20px -20px 15px; text-align: center; font-weight: bold; border-radius: 8px 8px 0 0;">
+                        📅 ${dateStr} 예약자 (${filtered.length}명)
+                    </div>
+                `;
+            }
 
-            const html = filtered.map(p => `
+            if (filtered.length === 0) {
+                if (selectedDate) {
+                    const date = new Date(selectedDate);
+                    const dateStr = `${date.getMonth() + 1}월 ${date.getDate()}일`;
+                    listContainer.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: #999;">
+                            <div style="font-size: 48px; margin-bottom: 10px;">📅</div>
+                            <div>${dateStr}에 예약된 참가자가 없습니다</div>
+                        </div>
+                    `;
+                } else {
+                    listContainer.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: #999;">
+                            <div style="font-size: 48px; margin-bottom: 10px;">🔍</div>
+                            <div>검색 결과가 없습니다</div>
+                        </div>
+                    `;
+                }
+                return;
+            }
+
+            const html = dateHeader + filtered.map(p => `
                 <div class="participant-card" onclick="openCheckinModal(${p.ID})">
                     <div class="participant-header">
                         <div class="participant-name">${p.name || '이름 없음'}</div>
@@ -748,9 +833,9 @@
                         </div>
                     </div>
                     <div class="participant-info">
-                        <div>📅 ${p.setDate} ${p.setTime}</div>
+                        <div>📅 ${p.setDate || ''} ${p.setTime || ''}</div>
                         <div>🎨 ${p.skinColor || ''}</div>
-                        <div>🆔 ${p['P-ID'] || 'ID 없음'}</div>
+                        <div>🆔 P-${p.ID || 'ID 없음'}</div>
                         <div>📞 ${p.phone || '연락처 없음'}</div>
                     </div>
                     ${p.attendanceStatus !== 'Attended' ?
@@ -762,7 +847,7 @@
                 </div>
             `).join('');
 
-            listContainer.innerHTML = html || '<div class="loading">오늘 참가자가 없습니다</div>';
+            listContainer.innerHTML = html;
         }
 
         // Get status class
@@ -808,8 +893,8 @@
             document.getElementById('checkinInfo').innerHTML = `
                 <div style="font-weight: 600; font-size: 18px; margin-bottom: 8px;">${currentParticipant.name}</div>
                 <div style="color: var(--text-light); font-size: 14px;">
-                    <div>🆔 ${currentParticipant['P-ID'] || 'ID 없음'}</div>
-                    <div>📅 ${currentParticipant.setDate} ${currentParticipant.setTime}</div>
+                    <div>🆔 P-${currentParticipant.ID || 'ID 없음'}</div>
+                    <div>📅 ${currentParticipant.setDate || ''} ${currentParticipant.setTime || ''}</div>
                     <div>📞 ${currentParticipant.phone || '연락처 없음'}</div>
                 </div>
             `;
