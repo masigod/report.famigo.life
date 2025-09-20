@@ -1079,7 +1079,18 @@
                     hasBankbook: selectedReward === 'cash'
                 };
 
-                const recordId = airtableRecords[currentParticipant.ID];
+                const recordId = airtableRecords[currentParticipant.ID] || currentParticipant.recordId;
+
+                if (!recordId) {
+                    throw new Error('Record ID not found');
+                }
+
+                addDebugLog('체크인 시도:', {
+                    participantID: currentParticipant.ID,
+                    recordId: recordId,
+                    updateData: updateData
+                });
+
                 const response = await fetch(
                     `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}/${recordId}`,
                     {
@@ -1094,19 +1105,30 @@
                     }
                 );
 
-                if (!response.ok) throw new Error('Failed to update record');
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    addDebugLog('API 에러 응답:', errorData);
+                    throw new Error(`API Error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
+                }
 
                 // Update local data
                 Object.assign(currentParticipant, updateData);
 
+                // Also update in allParticipantsData
+                const index = allParticipantsData.findIndex(p => p.ID === currentParticipant.ID);
+                if (index !== -1) {
+                    Object.assign(allParticipantsData[index], updateData);
+                }
+
                 showNotification('체크인 완료!', 'success');
                 closeCheckinModal();
-                displayParticipants();
+                filterAndDisplayParticipants();
                 updateStats();
 
             } catch (error) {
                 console.error('Check-in error:', error);
-                showNotification('체크인 실패', 'error');
+                addDebugLog('체크인 에러:', error.message);
+                showNotification(`체크인 실패: ${error.message}`, 'error');
             } finally {
                 document.getElementById('submitBtn').disabled = false;
                 document.getElementById('submitBtn').textContent = '체크인 완료';
