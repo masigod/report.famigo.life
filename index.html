@@ -614,12 +614,23 @@
             }
         }
 
-        // 세션 체크 (페이지 로드시)
+        // 세션 체크 및 role 기반 리디렉션 (페이지 로드시)
         const currentUser = checkAuth();
         if (!currentUser) {
             // 인증 실패시 페이지 중단
             throw new Error('Authentication required');
         }
+
+        // Role-based redirection
+        const userRole = currentUser.role || currentUser.userType;
+        if (userRole === 'staff') {
+            // Staff 사용자는 모바일 페이지로 리다이렉트
+            window.location.href = 'mobile-attendance.html';
+        } else if (userRole === 'viewer') {
+            // Viewer 사용자는 리포트 페이지로 리다이렉트
+            window.location.href = 'report.html';
+        }
+        // admin, manager는 현재 페이지 유지
 
         // Airtable 설정 (config.js에서 가져옴)
         const AIRTABLE_API_KEY = typeof AIRTABLE_CONFIG !== 'undefined' ? AIRTABLE_CONFIG.API_KEY : 'YOUR_API_KEY_HERE';

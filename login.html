@@ -351,12 +351,16 @@
                     localStorage.removeItem('clt_remembered');
                 }
 
-                // Check if user is staff and redirect accordingly
-                if (user.username && user.username.toLowerCase().includes('staff')) {
+                // Role-based redirection
+                const userRole = user.role || user.userType;
+                if (userRole === 'staff') {
                     // Staff 사용자는 모바일 페이지로 리다이렉트
                     window.location.href = 'mobile-attendance.html';
+                } else if (userRole === 'viewer') {
+                    // Viewer 사용자는 리포트 페이지로 리다이렉트
+                    window.location.href = 'report.html';
                 } else {
-                    // 일반 관리자는 메인 페이지로
+                    // admin, manager는 메인 페이지로
                     window.location.href = 'index.html';
                 }
 

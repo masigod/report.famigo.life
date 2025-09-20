@@ -1127,38 +1127,38 @@
             document.getElementById('submitBtn').textContent = '처리 중...';
 
             try {
-                // Update main table
-                const updateData = {
+                // Create record in AttendanceImages table using exact field names from CSV
+                const now = new Date();
+                const attendanceData = {
+                    participantID: parseInt(currentParticipant.ID),
+                    participantName: currentParticipant.name,
+                    checkinTime: now.toISOString(),
                     attendanceStatus: 'Attended',
-                    checkinTime: new Date().toISOString(),
-                    rewardType: selectedReward === 'mobile' ? 'MobileVoucher' : 'Cash',
-                    checkinStaff: currentUser.fullName,
-                    hasIDCard: true,
-                    hasBankbook: selectedReward === 'cash'
+                    rewardType: selectedReward || 'None',
+                    staffName: currentUser.fullName,
+                    staffID: currentUser.username,
+                    checkDate: currentParticipant.setDate,
+                    checkTime: currentParticipant.setTime,
+                    notes: `체크인 완료 - ${now.toLocaleString('ko-KR')}`
                 };
 
-                const recordId = airtableRecords[currentParticipant.ID] || currentParticipant.recordId;
-
-                if (!recordId) {
-                    throw new Error('Record ID not found');
-                }
-
-                addDebugLog('체크인 시도:', {
-                    participantID: currentParticipant.ID,
-                    recordId: recordId,
-                    updateData: updateData
+                addDebugLog('AttendanceImages 테이블에 저장 시도:', {
+                    table: ATTENDANCE_TABLE_ID,
+                    data: attendanceData
                 });
 
                 const response = await fetch(
-                    `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}/${recordId}`,
+                    `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${ATTENDANCE_TABLE_ID}`,
                     {
-                        method: 'PATCH',
+                        method: 'POST',
                         headers: {
                             'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
-                            fields: updateData
+                            records: [{
+                                fields: attendanceData
+                            }]
                         })
                     }
                 );
@@ -1169,7 +1169,17 @@
                     throw new Error(`API Error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
                 }
 
-                // Update local data
+                const result = await response.json();
+                addDebugLog('AttendanceImages 레코드 생성 성공:', result);
+
+                // Update local participant data
+                const updateData = {
+                    attendanceStatus: 'Attended',
+                    checkinTime: now.toISOString(),
+                    rewardType: selectedReward || 'None',
+                    checkinStaff: currentUser.fullName
+                };
+
                 Object.assign(currentParticipant, updateData);
 
                 // Also update in allParticipantsData
