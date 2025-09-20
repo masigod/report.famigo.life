@@ -535,6 +535,7 @@
             <button class="time-btn" data-time="15:00">15:00</button>
             <button class="time-btn" data-time="15:30">15:30</button>
             <button class="time-btn" data-time="16:00">16:00</button>
+            <button class="time-btn" data-time="16:30">16:30</button>
         </div>
 
         <!-- Search -->
@@ -709,9 +710,12 @@
             // Display staff info
             document.getElementById('staffInfo').textContent = `스태프: ${currentUser.fullName}`;
 
-            // Set today's date as default
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('dateFilter').value = today;
+            // Don't set date filter initially to see all data
+            // const today = new Date().toISOString().split('T')[0];
+            // document.getElementById('dateFilter').value = today;
+
+            // First load without filter to check data format
+            addDebugLog('🔍 데이터 형식 확인을 위해 "전체보기" 버튼을 클릭하세요');
 
             // Load participants
             await loadParticipants();
@@ -744,19 +748,23 @@
                     const month = date.getMonth() + 1;
                     const day = date.getDate();
 
-                    // Try multiple formats: YYYY.M.D, YYYY.MM.DD, M/D, MM/DD
+                    // Try multiple formats: YYYY.M.D, YYYY.MM.DD, YYYY. M. D, M/D, MM/DD
                     const format1 = `${year}.${month}.${day}`;  // 2025.9.22
                     const format2 = `${year}.${String(month).padStart(2, '0')}.${String(day).padStart(2, '0')}`;  // 2025.09.22
-                    const format3 = `${month}/${day}`;  // 9/22
-                    const format4 = `${String(month).padStart(2, '0')}/${String(day).padStart(2, '0')}`;  // 09/22
+                    const format3 = `${year}. ${month}. ${day}`;  // 2025. 9. 22 (with spaces)
+                    const format4 = `${year}. ${String(month).padStart(2, '0')}. ${String(day).padStart(2, '0')}`;  // 2025. 09. 22
+                    const format5 = `${month}/${day}`;  // 9/22
+                    const format6 = `${String(month).padStart(2, '0')}/${String(day).padStart(2, '0')}`;  // 09/22
 
                     // Filter by setDate matching selected date (try all formats)
-                    filterFormula = `OR({setDate}='${format1}', {setDate}='${format2}', {setDate}='${format3}', {setDate}='${format4}')`;
+                    filterFormula = `OR({setDate}='${format1}', {setDate}='${format2}', {setDate}='${format3}', {setDate}='${format4}', {setDate}='${format5}', {setDate}='${format6}')`;
                     addDebugLog('날짜 포맷 시도:', {
                         format1: format1,
                         format2: format2,
                         format3: format3,
-                        format4: format4
+                        format4: format4,
+                        format5: format5,
+                        format6: format6
                     });
                     addDebugLog('필터 포뮬라:', filterFormula);
                 } else {
@@ -808,9 +816,12 @@
                         airtableRecords[record.fields.ID] = record.id;
                     }
 
-                    // Log first 3 records to see field names
-                    if (index < 3) {
+                    // Log first 5 records to see field names and date formats
+                    if (index < 5) {
                         addDebugLog(`레코드 ${index + 1} 필드:`, record.fields);
+                        if (record.fields.setDate) {
+                            addDebugLog(`  -> setDate 형식: "${record.fields.setDate}"`);
+                        }
                     }
 
                     return {
