@@ -822,6 +822,10 @@
                 addDebugLog(`처리 완료: ${participantsData.length}개 참가자`);
                 if (participantsData.length > 0) {
                     addDebugLog('사용 가능한 필드:', Object.keys(participantsData[0]));
+
+                    // Show available dates
+                    const uniqueDates = [...new Set(participantsData.map(p => p.setDate))].sort();
+                    addDebugLog('📅 데이터가 있는 날짜들:', uniqueDates);
                 }
 
                 // Filter out Cancelled and Duplicate status if not already filtered
@@ -918,6 +922,7 @@
                         <div style="text-align: center; padding: 40px; color: #999;">
                             <div style="font-size: 48px; margin-bottom: 10px;">📅</div>
                             <div>${dateStr}에 예약된 참가자가 없습니다</div>
+                            <div style="font-size: 12px; margin-top: 10px; color: #667eea;">💡 전체보기를 눌러 다른 날짜를 확인하세요</div>
                         </div>
                     `;
                 } else {
