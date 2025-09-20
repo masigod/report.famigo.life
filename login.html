@@ -338,6 +338,7 @@
                     fullName: user.fullName,
                     role: user.role,
                     email: user.email,
+                    userType: user.userType || user.role, // userType 필드 추가
                     expires: Date.now() + (8 * 60 * 60 * 1000) // 8 hours
                 };
 
@@ -350,8 +351,14 @@
                     localStorage.removeItem('clt_remembered');
                 }
 
-                // Redirect to main page
-                window.location.href = 'index.html';
+                // Check if user is staff and redirect accordingly
+                if (user.username && user.username.toLowerCase().includes('staff')) {
+                    // Staff 사용자는 모바일 페이지로 리다이렉트
+                    window.location.href = 'mobile-attendance.html';
+                } else {
+                    // 일반 관리자는 메인 페이지로
+                    window.location.href = 'index.html';
+                }
 
             } catch (error) {
                 loadingDiv.style.display = 'none';

@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>CLT 현장 출석 관리</title>
+    <script src="config.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --primary: #667eea;
+            --primary-dark: #5a67d8;
+            --success: #48bb78;
+            --danger: #f56565;
+            --warning: #ed8936;
+            --bg: #f7fafc;
+            --card: #ffffff;
+            --text: #2d3748;
+            --text-light: #718096;
+            --border: #e2e8f0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .logout-btn {
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 6px;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        /* Stats Cards */
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            padding: 15px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-top: 4px;
+        }
+
+        /* Time Filter */
+        .time-filter {
+            padding: 0 15px 15px;
+            overflow-x: auto;
+            white-space: nowrap;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .time-filter::-webkit-scrollbar {
+            display: none;
+        }
+
+        .time-btn {
+            display: inline-block;
+            padding: 8px 16px;
+            margin-right: 8px;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            font-size: 14px;
+            color: var(--text);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .time-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* Search Bar */
+        .search-container {
+            padding: 0 15px 15px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 40px 12px 16px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 16px;
+            background: white;
+        }
+
+        .search-icon {
+            position: absolute;
+            right: 30px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-light);
+        }
+
+        /* Participant List */
+        .participant-list {
+            padding: 0 15px 80px;
+        }
+
+        .participant-card {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            transition: transform 0.2s;
+        }
+
+        .participant-card:active {
+            transform: scale(0.98);
+        }
+
+        .participant-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .participant-name {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .participant-status {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-pending {
+            background: #fef5e7;
+            color: #f39c12;
+        }
+
+        .status-attended {
+            background: #e8f8f5;
+            color: #27ae60;
+        }
+
+        .status-noshow {
+            background: #fee;
+            color: #e74c3c;
+        }
+
+        .participant-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            font-size: 14px;
+            color: var(--text-light);
+            margin-bottom: 10px;
+        }
+
+        .checkin-btn {
+            width: 100%;
+            padding: 12px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .checkin-btn:active {
+            background: var(--primary-dark);
+        }
+
+        .checkin-btn:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+        }
+
+        /* Bottom Tab Bar */
+        .tab-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 1px solid var(--border);
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            padding: 8px 0 env(safe-area-inset-bottom);
+            z-index: 100;
+        }
+
+        .tab-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px;
+            cursor: pointer;
+            color: var(--text-light);
+            transition: color 0.2s;
+        }
+
+        .tab-item.active {
+            color: var(--primary);
+        }
+
+        .tab-icon {
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+
+        .tab-label {
+            font-size: 11px;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            animation: fadeIn 0.2s;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            width: 100%;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s;
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            width: 30px;
+            height: 30px;
+            border: none;
+            background: var(--bg);
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            color: var(--text-light);
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .reward-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .reward-option {
+            padding: 15px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .reward-option.selected {
+            border-color: var(--primary);
+            background: #f0f4ff;
+        }
+
+        .reward-icon {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .camera-container {
+            position: relative;
+            margin-bottom: 15px;
+        }
+
+        .camera-preview {
+            width: 100%;
+            border-radius: 10px;
+            border: 2px dashed var(--border);
+            min-height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg);
+            overflow: hidden;
+        }
+
+        .camera-preview img {
+            width: 100%;
+            height: auto;
+        }
+
+        .camera-btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            background: var(--primary);
+            color: white;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            background: var(--success);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        .submit-btn:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-light);
+        }
+
+        .spinner {
+            border: 3px solid var(--border);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 2000;
+            animation: slideDown 0.3s;
+            display: none;
+        }
+
+        .notification.show {
+            display: block;
+        }
+
+        .notification.success {
+            background: var(--success);
+            color: white;
+        }
+
+        .notification.error {
+            background: var(--danger);
+            color: white;
+        }
+
+        @keyframes slideDown {
+            from { transform: translate(-50%, -20px); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-content">
+            <div>
+                <h1>CLT 현장 출석</h1>
+                <div style="font-size: 12px; opacity: 0.9;" id="staffInfo">Loading...</div>
+            </div>
+            <button class="logout-btn" onclick="logout()">로그아웃</button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div id="mainView">
+        <!-- Stats -->
+        <div class="stats-container">
+            <div class="stat-card">
+                <div class="stat-value" id="totalCount">0</div>
+                <div class="stat-label">전체</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="attendedCount">0</div>
+                <div class="stat-label">출석</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="pendingCount">0</div>
+                <div class="stat-label">대기</div>
+            </div>
+        </div>
+
+        <!-- Time Filter -->
+        <div class="time-filter" id="timeFilter">
+            <button class="time-btn active" data-time="all">전체</button>
+            <button class="time-btn" data-time="13:00">13:00</button>
+            <button class="time-btn" data-time="13:30">13:30</button>
+            <button class="time-btn" data-time="14:00">14:00</button>
+            <button class="time-btn" data-time="14:30">14:30</button>
+            <button class="time-btn" data-time="15:00">15:00</button>
+            <button class="time-btn" data-time="15:30">15:30</button>
+            <button class="time-btn" data-time="16:00">16:00</button>
+        </div>
+
+        <!-- Search -->
+        <div class="search-container" style="position: relative;">
+            <input type="text" class="search-input" id="searchInput" placeholder="이름 또는 P-ID로 검색...">
+            <span class="search-icon">🔍</span>
+        </div>
+
+        <!-- Participant List -->
+        <div class="participant-list" id="participantList">
+            <div class="loading">
+                <div class="spinner"></div>
+                <div>데이터를 불러오는 중...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- No-show View -->
+    <div id="noshowView" style="display: none;">
+        <div class="participant-list" id="noshowList">
+            <!-- No-show participants will be loaded here -->
+        </div>
+    </div>
+
+    <!-- Stats View -->
+    <div id="statsView" style="display: none; padding: 20px;">
+        <h2 style="margin-bottom: 20px;">오늘의 통계</h2>
+        <div class="stats-detail">
+            <!-- Detailed statistics will be shown here -->
+        </div>
+    </div>
+
+    <!-- Bottom Tab Bar -->
+    <div class="tab-bar">
+        <div class="tab-item active" onclick="switchTab('main')">
+            <div class="tab-icon">✓</div>
+            <div class="tab-label">출석체크</div>
+        </div>
+        <div class="tab-item" onclick="switchTab('noshow')">
+            <div class="tab-icon">✗</div>
+            <div class="tab-label">노쇼</div>
+        </div>
+        <div class="tab-item" onclick="switchTab('stats')">
+            <div class="tab-icon">📊</div>
+            <div class="tab-label">통계</div>
+        </div>
+    </div>
+
+    <!-- Check-in Modal -->
+    <div class="modal" id="checkinModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">체크인</h3>
+                <button class="modal-close" onclick="closeCheckinModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="checkinInfo" style="margin-bottom: 20px; padding: 15px; background: var(--bg); border-radius: 10px;">
+                    <!-- Participant info will be shown here -->
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">리워드 방식</label>
+                    <div class="reward-options">
+                        <div class="reward-option" onclick="selectReward('mobile')" data-reward="mobile">
+                            <div class="reward-icon">📱</div>
+                            <div>모바일 상품권</div>
+                        </div>
+                        <div class="reward-option" onclick="selectReward('cash')" data-reward="cash">
+                            <div class="reward-icon">💵</div>
+                            <div>현금</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">신분증 촬영 (필수)</label>
+                    <div class="camera-container">
+                        <div class="camera-preview" id="idPreview">
+                            <span style="color: var(--text-light);">📷 사진 없음</span>
+                        </div>
+                        <input type="file" id="idCardInput" accept="image/*" capture="camera" style="display: none;">
+                        <button class="camera-btn" onclick="document.getElementById('idCardInput').click()">
+                            신분증 촬영
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group" id="bankbookGroup" style="display: none;">
+                    <label class="form-label">통장사본 촬영</label>
+                    <div class="camera-container">
+                        <div class="camera-preview" id="bankbookPreview">
+                            <span style="color: var(--text-light);">📷 사진 없음</span>
+                        </div>
+                        <input type="file" id="bankbookInput" accept="image/*" capture="camera" style="display: none;">
+                        <button class="camera-btn" onclick="document.getElementById('bankbookInput').click()">
+                            통장사본 촬영
+                        </button>
+                    </div>
+                </div>
+
+                <button class="submit-btn" id="submitBtn" onclick="submitCheckin()" disabled>
+                    체크인 완료
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div class="notification" id="notification"></div>
+
+    <script>
+        // Configuration
+        const AIRTABLE_API_KEY = typeof AIRTABLE_CONFIG !== 'undefined' ? AIRTABLE_CONFIG.API_KEY : '';
+        const AIRTABLE_BASE_ID = typeof AIRTABLE_CONFIG !== 'undefined' ? AIRTABLE_CONFIG.BASE_ID : 'appZcPs57spwdoKQH';
+        const AIRTABLE_TABLE_ID = typeof AIRTABLE_CONFIG !== 'undefined' ? AIRTABLE_CONFIG.TABLE_ID : 'tblxMzwX1wWJKIOhY';
+        const ATTENDANCE_TABLE_ID = typeof AIRTABLE_CONFIG !== 'undefined' ? AIRTABLE_CONFIG.ATTENDANCE_TABLE_ID : '';
+
+        // Global variables
+        let participantsData = [];
+        let currentParticipant = null;
+        let selectedReward = '';
+        let idCardImage = null;
+        let bankbookImage = null;
+        let currentUser = null;
+        let airtableRecords = {};
+
+        // Check authentication
+        function checkAuth() {
+            const session = sessionStorage.getItem('clt_session');
+            if (!session) {
+                window.location.href = 'login.html';
+                return null;
+            }
+
+            const sessionData = JSON.parse(session);
+            if (sessionData.expires < Date.now()) {
+                sessionStorage.removeItem('clt_session');
+                window.location.href = 'login.html';
+                return null;
+            }
+
+            return sessionData;
+        }
+
+        // Initialize
+        window.addEventListener('DOMContentLoaded', async () => {
+            currentUser = checkAuth();
+            if (!currentUser) return;
+
+            // Display staff info
+            document.getElementById('staffInfo').textContent = `스태프: ${currentUser.fullName}`;
+
+            // Load participants
+            await loadParticipants();
+
+            // Setup event listeners
+            setupEventListeners();
+        });
+
+        // Load participants from Airtable
+        async function loadParticipants() {
+            try {
+                const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}`;
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${AIRTABLE_API_KEY}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Failed to load data');
+
+                const data = await response.json();
+                participantsData = data.records.map(record => {
+                    airtableRecords[record.fields.ID] = record.id;
+                    return {
+                        ...record.fields,
+                        recordId: record.id
+                    };
+                });
+
+                // Sort by date and time
+                participantsData.sort((a, b) => {
+                    const dateCompare = (a.setDate || '').localeCompare(b.setDate || '');
+                    if (dateCompare !== 0) return dateCompare;
+                    return (a.setTime || '').localeCompare(b.setTime || '');
+                });
+
+                displayParticipants();
+                updateStats();
+            } catch (error) {
+                console.error('Error loading participants:', error);
+                showNotification('데이터 로드 실패', 'error');
+            }
+        }
+
+        // Display participants
+        function displayParticipants() {
+            const timeFilter = document.querySelector('.time-btn.active').dataset.time;
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const listContainer = document.getElementById('participantList');
+
+            let filtered = participantsData.filter(p => {
+                if (timeFilter !== 'all' && p.setTime !== timeFilter) return false;
+                if (searchTerm) {
+                    const matchName = p.name && p.name.toLowerCase().includes(searchTerm);
+                    const matchPID = p['P-ID'] && p['P-ID'].toLowerCase().includes(searchTerm);
+                    if (!matchName && !matchPID) return false;
+                }
+                return true;
+            });
+
+            // Get today's date in M/D format
+            const today = new Date();
+            const todayStr = `${today.getMonth() + 1}/${today.getDate()}`;
+
+            // Filter for today's participants only
+            filtered = filtered.filter(p => p.setDate === todayStr);
+
+            const html = filtered.map(p => `
+                <div class="participant-card" onclick="openCheckinModal(${p.ID})">
+                    <div class="participant-header">
+                        <div class="participant-name">${p.name || '이름 없음'}</div>
+                        <div class="participant-status status-${getStatusClass(p.attendanceStatus)}">
+                            ${getStatusText(p.attendanceStatus)}
+                        </div>
+                    </div>
+                    <div class="participant-info">
+                        <div>📅 ${p.setDate} ${p.setTime}</div>
+                        <div>🎨 ${p.skinColor || ''}</div>
+                        <div>🆔 ${p['P-ID'] || 'ID 없음'}</div>
+                        <div>📞 ${p.phone || '연락처 없음'}</div>
+                    </div>
+                    ${p.attendanceStatus !== 'Attended' ?
+                        '<button class="checkin-btn">체크인</button>' :
+                        `<div style="text-align: center; color: var(--success); font-size: 14px;">
+                            ✓ ${p.checkinTime ? new Date(p.checkinTime).toLocaleTimeString('ko-KR', {hour: '2-digit', minute: '2-digit'}) : ''} 체크인 완료
+                        </div>`
+                    }
+                </div>
+            `).join('');
+
+            listContainer.innerHTML = html || '<div class="loading">오늘 참가자가 없습니다</div>';
+        }
+
+        // Get status class
+        function getStatusClass(status) {
+            if (status === 'Attended') return 'attended';
+            if (status === 'No-show') return 'noshow';
+            return 'pending';
+        }
+
+        // Get status text
+        function getStatusText(status) {
+            if (status === 'Attended') return '출석';
+            if (status === 'No-show') return '노쇼';
+            return '대기';
+        }
+
+        // Update statistics
+        function updateStats() {
+            const today = new Date();
+            const todayStr = `${today.getMonth() + 1}/${today.getDate()}`;
+
+            const todayParticipants = participantsData.filter(p => p.setDate === todayStr);
+            const attended = todayParticipants.filter(p => p.attendanceStatus === 'Attended').length;
+            const pending = todayParticipants.filter(p => !p.attendanceStatus || p.attendanceStatus === 'Pending').length;
+
+            document.getElementById('totalCount').textContent = todayParticipants.length;
+            document.getElementById('attendedCount').textContent = attended;
+            document.getElementById('pendingCount').textContent = pending;
+        }
+
+        // Open check-in modal
+        function openCheckinModal(participantId) {
+            currentParticipant = participantsData.find(p => p.ID === participantId);
+            if (!currentParticipant) return;
+
+            // Skip if already attended
+            if (currentParticipant.attendanceStatus === 'Attended') {
+                showNotification('이미 체크인 완료된 참가자입니다', 'error');
+                return;
+            }
+
+            // Display participant info
+            document.getElementById('checkinInfo').innerHTML = `
+                <div style="font-weight: 600; font-size: 18px; margin-bottom: 8px;">${currentParticipant.name}</div>
+                <div style="color: var(--text-light); font-size: 14px;">
+                    <div>🆔 ${currentParticipant['P-ID'] || 'ID 없음'}</div>
+                    <div>📅 ${currentParticipant.setDate} ${currentParticipant.setTime}</div>
+                    <div>📞 ${currentParticipant.phone || '연락처 없음'}</div>
+                </div>
+            `;
+
+            // Reset form
+            selectedReward = '';
+            idCardImage = null;
+            bankbookImage = null;
+            document.querySelectorAll('.reward-option').forEach(el => el.classList.remove('selected'));
+            document.getElementById('idPreview').innerHTML = '<span style="color: var(--text-light);">📷 사진 없음</span>';
+            document.getElementById('bankbookPreview').innerHTML = '<span style="color: var(--text-light);">📷 사진 없음</span>';
+            document.getElementById('bankbookGroup').style.display = 'none';
+            document.getElementById('submitBtn').disabled = true;
+
+            // Show modal
+            document.getElementById('checkinModal').classList.add('active');
+        }
+
+        // Close check-in modal
+        function closeCheckinModal() {
+            document.getElementById('checkinModal').classList.remove('active');
+            currentParticipant = null;
+        }
+
+        // Select reward type
+        function selectReward(type) {
+            selectedReward = type;
+            document.querySelectorAll('.reward-option').forEach(el => {
+                el.classList.remove('selected');
+            });
+            document.querySelector(`[data-reward="${type}"]`).classList.add('selected');
+
+            // Show/hide bankbook section
+            document.getElementById('bankbookGroup').style.display = type === 'cash' ? 'block' : 'none';
+
+            checkFormComplete();
+        }
+
+        // Check if form is complete
+        function checkFormComplete() {
+            const hasReward = selectedReward !== '';
+            const hasIdCard = idCardImage !== null;
+            const hasBankbook = selectedReward === 'cash' ? bankbookImage !== null : true;
+
+            document.getElementById('submitBtn').disabled = !(hasReward && hasIdCard && hasBankbook);
+        }
+
+        // Image compression
+        function compressImage(file, maxWidth = 800, quality = 0.7) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > maxWidth) {
+                            height = (maxWidth / width) * height;
+                            width = maxWidth;
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        canvas.toBlob((blob) => {
+                            resolve(blob);
+                        }, 'image/jpeg', quality);
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Submit check-in
+        async function submitCheckin() {
+            if (!currentParticipant) return;
+
+            document.getElementById('submitBtn').disabled = true;
+            document.getElementById('submitBtn').textContent = '처리 중...';
+
+            try {
+                // Update main table
+                const updateData = {
+                    attendanceStatus: 'Attended',
+                    checkinTime: new Date().toISOString(),
+                    rewardType: selectedReward === 'mobile' ? 'MobileVoucher' : 'Cash',
+                    checkinStaff: currentUser.fullName,
+                    hasIDCard: true,
+                    hasBankbook: selectedReward === 'cash'
+                };
+
+                const recordId = airtableRecords[currentParticipant.ID];
+                const response = await fetch(
+                    `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}/${recordId}`,
+                    {
+                        method: 'PATCH',
+                        headers: {
+                            'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            fields: updateData
+                        })
+                    }
+                );
+
+                if (!response.ok) throw new Error('Failed to update record');
+
+                // Update local data
+                Object.assign(currentParticipant, updateData);
+
+                showNotification('체크인 완료!', 'success');
+                closeCheckinModal();
+                displayParticipants();
+                updateStats();
+
+            } catch (error) {
+                console.error('Check-in error:', error);
+                showNotification('체크인 실패', 'error');
+            } finally {
+                document.getElementById('submitBtn').disabled = false;
+                document.getElementById('submitBtn').textContent = '체크인 완료';
+            }
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Time filter
+            document.querySelectorAll('.time-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    displayParticipants();
+                });
+            });
+
+            // Search
+            document.getElementById('searchInput').addEventListener('input', displayParticipants);
+
+            // ID card input
+            document.getElementById('idCardInput').addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    idCardImage = await compressImage(file);
+                    const url = URL.createObjectURL(idCardImage);
+                    document.getElementById('idPreview').innerHTML = `<img src="${url}" alt="ID Card">`;
+                    checkFormComplete();
+                }
+            });
+
+            // Bankbook input
+            document.getElementById('bankbookInput').addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    bankbookImage = await compressImage(file);
+                    const url = URL.createObjectURL(bankbookImage);
+                    document.getElementById('bankbookPreview').innerHTML = `<img src="${url}" alt="Bankbook">`;
+                    checkFormComplete();
+                }
+            });
+        }
+
+        // Switch tabs
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-item').forEach(item => item.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+
+            document.getElementById('mainView').style.display = tab === 'main' ? 'block' : 'none';
+            document.getElementById('noshowView').style.display = tab === 'noshow' ? 'block' : 'none';
+            document.getElementById('statsView').style.display = tab === 'stats' ? 'block' : 'none';
+
+            if (tab === 'noshow') {
+                displayNoShows();
+            } else if (tab === 'stats') {
+                displayStats();
+            }
+        }
+
+        // Display no-shows
+        function displayNoShows() {
+            const today = new Date();
+            const todayStr = `${today.getMonth() + 1}/${today.getDate()}`;
+
+            const noShows = participantsData.filter(p =>
+                p.setDate === todayStr && p.attendanceStatus === 'No-show'
+            );
+
+            const html = noShows.map(p => `
+                <div class="participant-card">
+                    <div class="participant-header">
+                        <div class="participant-name">${p.name || '이름 없음'}</div>
+                        <div class="participant-status status-noshow">노쇼</div>
+                    </div>
+                    <div class="participant-info">
+                        <div>📅 ${p.setDate} ${p.setTime}</div>
+                        <div>📞 ${p.phone || '연락처 없음'}</div>
+                    </div>
+                    <button class="checkin-btn" onclick="changeToAttended(${p.ID})" style="background: var(--success);">
+                        출석으로 변경
+                    </button>
+                </div>
+            `).join('');
+
+            document.getElementById('noshowList').innerHTML = html ||
+                '<div class="loading">노쇼 참가자가 없습니다</div>';
+        }
+
+        // Display statistics
+        function displayStats() {
+            const today = new Date();
+            const todayStr = `${today.getMonth() + 1}/${today.getDate()}`;
+
+            const todayParticipants = participantsData.filter(p => p.setDate === todayStr);
+            const attended = todayParticipants.filter(p => p.attendanceStatus === 'Attended');
+            const pending = todayParticipants.filter(p => !p.attendanceStatus || p.attendanceStatus === 'Pending');
+            const noshow = todayParticipants.filter(p => p.attendanceStatus === 'No-show');
+
+            const mobileCount = attended.filter(p => p.rewardType === 'MobileVoucher').length;
+            const cashCount = attended.filter(p => p.rewardType === 'Cash').length;
+
+            const html = `
+                <div style="background: white; border-radius: 10px; padding: 20px; margin-bottom: 15px;">
+                    <h3 style="margin-bottom: 15px;">출석 현황</h3>
+                    <div style="display: grid; gap: 10px;">
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>전체 참가자</span>
+                            <strong>${todayParticipants.length}명</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>출석</span>
+                            <strong style="color: var(--success);">${attended.length}명</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>대기</span>
+                            <strong style="color: var(--warning);">${pending.length}명</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>노쇼</span>
+                            <strong style="color: var(--danger);">${noshow.length}명</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="background: white; border-radius: 10px; padding: 20px;">
+                    <h3 style="margin-bottom: 15px;">리워드 현황</h3>
+                    <div style="display: grid; gap: 10px;">
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>모바일 상품권</span>
+                            <strong>${mobileCount}명</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>현금</span>
+                            <strong>${cashCount}명</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px; text-align: center;">
+                    <div style="font-size: 12px; color: var(--text-light);">
+                        출석률: ${todayParticipants.length > 0 ?
+                            Math.round((attended.length / todayParticipants.length) * 100) : 0}%
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('statsView').innerHTML = `
+                <h2 style="margin-bottom: 20px;">오늘의 통계</h2>
+                ${html}
+            `;
+        }
+
+        // Change no-show to attended
+        async function changeToAttended(participantId) {
+            // Implementation similar to submitCheckin
+            showNotification('상태 변경 기능 구현 예정', 'info');
+        }
+
+        // Show notification
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification show ${type}`;
+
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Logout
+        function logout() {
+            if (confirm('로그아웃 하시겠습니까?')) {
+                sessionStorage.removeItem('clt_session');
+                window.location.href = 'login.html';
+            }
+        }
+    </script>
+</body>
+</html>
