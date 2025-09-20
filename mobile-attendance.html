@@ -498,7 +498,10 @@
         <!-- Date Selector -->
         <div style="padding: 15px 20px; background: white; border-bottom: 1px solid #e0e0e0;">
             <label style="display: block; font-size: 14px; color: #666; margin-bottom: 5px;">날짜 선택</label>
-            <input type="date" id="dateFilter" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 16px;">
+            <div style="display: flex; gap: 10px;">
+                <input type="date" id="dateFilter" style="flex: 1; padding: 10px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 16px;">
+                <button onclick="document.getElementById('dateFilter').value=''; loadParticipants();" style="padding: 10px 15px; background: #f0f0f0; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 14px;">전체보기</button>
+            </div>
         </div>
         <!-- Stats -->
         <div class="stats-container">
@@ -697,6 +700,9 @@
         // Load participants from Airtable
         async function loadParticipants() {
             try {
+                // Show loading state
+                document.getElementById('participantList').innerHTML = '<div class="loading"><div class="spinner"></div><div>데이터를 불러오는 중...</div></div>';
+
                 const selectedDate = document.getElementById('dateFilter').value;
                 let filterFormula = '';
 
@@ -707,9 +713,14 @@
                     const day = date.getDate();
                     const formattedDate = `${month}/${day}`;
 
-                    // Filter by setDate matching selected date
-                    filterFormula = `{setDate}='${formattedDate}'`;
-                    console.log('Filtering by date:', formattedDate);
+                    // Also try with leading zeros
+                    const paddedMonth = String(month).padStart(2, '0');
+                    const paddedDay = String(day).padStart(2, '0');
+                    const paddedDate = `${paddedMonth}/${paddedDay}`;
+
+                    // Filter by setDate matching selected date (try both formats)
+                    filterFormula = `OR({setDate}='${formattedDate}', {setDate}='${paddedDate}')`;
+                    console.log('Filtering by dates:', formattedDate, 'or', paddedDate);
                 }
 
                 // Fetch all records with pagination
@@ -744,7 +755,14 @@
                 console.log('Total records loaded:', allRecords.length);
 
                 participantsData = allRecords.map(record => {
-                    airtableRecords[record.fields.ID] = record.id;
+                    // Store mapping
+                    if (record.fields.ID) {
+                        airtableRecords[record.fields.ID] = record.id;
+                    }
+
+                    // Log each record to see field names
+                    console.log('Record fields:', record.fields);
+
                     return {
                         ...record.fields,
                         recordId: record.id
@@ -753,7 +771,8 @@
 
                 console.log('Loaded participants:', participantsData.length);
                 if (participantsData.length > 0) {
-                    console.log('Sample data:', participantsData[0]);
+                    console.log('Sample participant data:', participantsData[0]);
+                    console.log('Available fields:', Object.keys(participantsData[0]));
                 }
 
                 // Sort by time only
@@ -767,7 +786,27 @@
                 updateStats();
             } catch (error) {
                 console.error('Error loading participants:', error);
-                showNotification('데이터 로드 실패', 'error');
+
+                // Show more detailed error
+                if (error.message.includes('Failed to load data')) {
+                    showNotification('API 연결 실패. 설정을 확인해주세요.', 'error');
+                } else {
+                    showNotification(`데이터 로드 실패: ${error.message}`, 'error');
+                }
+
+                // Load test data as fallback
+                console.log('Loading test data as fallback...');
+                const today = new Date();
+                const testDate = `${today.getMonth() + 1}/${today.getDate()}`;
+
+                participantsData = [
+                    {ID: 101, name: '테스트 참가자 1', setDate: testDate, setTime: '13:00', skinColor: '2(L)', phone: '010-1234-5678', attendanceStatus: 'Pending'},
+                    {ID: 102, name: '테스트 참가자 2', setDate: testDate, setTime: '13:30', skinColor: '3(LM)', phone: '010-2345-6789', attendanceStatus: 'Pending'},
+                    {ID: 103, name: '테스트 참가자 3', setDate: testDate, setTime: '14:00', skinColor: '4(M)', phone: '010-3456-7890', attendanceStatus: 'Attended'},
+                ];
+
+                displayParticipants();
+                updateStats();
             }
         }
 
@@ -796,6 +835,13 @@
             if (selectedDate) {
                 const date = new Date(selectedDate);
                 const dateStr = `${date.getMonth() + 1}월 ${date.getDate()}일`;
+                const filterDate = `${date.getMonth() + 1}/${date.getDate()}`;
+
+                // Log filtering info
+                console.log('Display filter - Selected date:', filterDate);
+                console.log('Display filter - Filtered count:', filtered.length);
+                console.log('Display filter - Total participants:', participantsData.length);
+
                 dateHeader = `
                     <div style="padding: 10px 15px; background: var(--primary); color: white; margin: -20px -20px 15px; text-align: center; font-weight: bold; border-radius: 8px 8px 0 0;">
                         📅 ${dateStr} 예약자 (${filtered.length}명)
