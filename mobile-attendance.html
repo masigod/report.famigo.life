@@ -723,6 +723,11 @@
             // Filter and display based on selected date
             filterAndDisplayParticipants();
 
+            // Load attendance data from AttendanceImages if table exists
+            if (ATTENDANCE_TABLE_ID) {
+                await loadAttendanceData();
+            }
+
             // Setup event listeners
             setupEventListeners();
 
@@ -826,6 +831,54 @@
 
                 // Load test data as fallback
                 return [];
+            }
+        }
+
+        // Load attendance data from AttendanceImages table
+        async function loadAttendanceData() {
+            try {
+                addDebugLog('=== AttendanceImages 출석 데이터 로드 ===');
+
+                const response = await fetch(
+                    `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${ATTENDANCE_TABLE_ID}`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${AIRTABLE_API_KEY}`
+                        }
+                    }
+                );
+
+                if (!response.ok) {
+                    addDebugLog('AttendanceImages 로드 실패:', response.status);
+                    return;
+                }
+
+                const data = await response.json();
+                addDebugLog(`AttendanceImages 레코드 ${data.records.length}개 로드`);
+
+                // Update participants with attendance data
+                data.records.forEach(record => {
+                    const fields = record.fields;
+                    const participantID = fields.participantID;
+
+                    if (participantID) {
+                        // Find participant in allParticipantsData
+                        const participant = allParticipantsData.find(p => p.ID === participantID);
+                        if (participant) {
+                            participant.attendanceStatus = fields.attendanceStatus || 'Attended';
+                            participant.checkinTime = fields.checkinTime;
+                            participant.rewardType = fields.rewardType;
+                            participant.checkinStaff = fields.staffName;
+                            addDebugLog(`참가자 ${participantID} 출석 상태 업데이트: ${fields.attendanceStatus}`);
+                        }
+                    }
+                });
+
+                // Refresh display
+                filterAndDisplayParticipants();
+
+            } catch (error) {
+                addDebugLog('AttendanceImages 로드 에러:', error.message);
             }
         }
 
@@ -953,14 +1006,19 @@
 
         // Update statistics
         function updateStats() {
-            const today = new Date();
-            const todayStr = `${today.getMonth() + 1}/${today.getDate()}`;
+            // Use currently filtered participants data
+            const total = participantsData.length;
+            const attended = participantsData.filter(p => p.attendanceStatus === 'Attended').length;
+            const pending = participantsData.filter(p => !p.attendanceStatus || p.attendanceStatus === 'Pending' || p.attendanceStatus === 'Confirmed').length;
 
-            const todayParticipants = participantsData.filter(p => p.setDate === todayStr);
-            const attended = todayParticipants.filter(p => p.attendanceStatus === 'Attended').length;
-            const pending = todayParticipants.filter(p => !p.attendanceStatus || p.attendanceStatus === 'Pending').length;
+            addDebugLog('통계 업데이트:', {
+                total: total,
+                attended: attended,
+                pending: pending,
+                filteredData: participantsData.map(p => ({ID: p.ID, name: p.name, status: p.attendanceStatus}))
+            });
 
-            document.getElementById('totalCount').textContent = todayParticipants.length;
+            document.getElementById('totalCount').textContent = total;
             document.getElementById('attendedCount').textContent = attended;
             document.getElementById('pendingCount').textContent = pending;
         }
