@@ -4,6 +4,7 @@
 
 # Config files with sensitive data
 config.js
+env-config.js
 
 # OS files
 .DS_Store

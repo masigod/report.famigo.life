@@ -4,7 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CLT 일자별 출석 현황 리포트</title>
+    <script src="env-config.js"></script>
+    <script src="config-loader.js"></script>
     <script src="config.js"></script>
+    <script src="security-utils.js"></script>
+    <script src="error-handler.js"></script>
     <style>
         * {
             margin: 0;
@@ -390,21 +394,26 @@
 
         // Initialize
         window.addEventListener('DOMContentLoaded', () => {
-            currentUser = checkAuth();
-            if (!currentUser) return;
+            return ErrorHandler.handle(async () => {
+                currentUser = checkAuth();
+                if (!currentUser) return;
 
-            // Display user info
-            document.getElementById('userInfo').textContent = `${currentUser.fullName} (${currentUser.role || 'viewer'})`;
+                // Display user info (sanitized)
+                document.getElementById('userInfo').textContent = `${SecurityUtils.sanitizeHTML(currentUser.fullName)} (${SecurityUtils.sanitizeHTML(currentUser.role || 'viewer')})`;
 
-            // Set today's date as default
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('dateFilter').value = today;
+                // Set today's date as default
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('dateFilter').value = today;
 
-            // Setup time filter buttons
-            setupTimeFilters();
+                // Setup time filter buttons
+                setupTimeFilters();
 
-            // Load initial data
-            loadData();
+                // Load initial data
+                await loadData();
+            }, {
+                showNotification: true,
+                logError: true
+            });
         });
 
         // Setup time filter buttons
@@ -420,7 +429,7 @@
 
         // Load data from Airtable
         async function loadData() {
-            try {
+            return ErrorHandler.handle(async () => {
                 document.getElementById('reportContent').innerHTML = '<div class="loading">데이터를 불러오는 중...</div>';
 
                 const selectedDate = document.getElementById('dateFilter').value;
@@ -431,18 +440,16 @@
                 console.log('Loading data for date:', selectedDate);
 
                 // Load participants data
-                const response = await fetch(
+                const response = await ErrorHandler.fetchWithErrorHandling(
                     `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}`,
                     {
                         headers: {
                             'Authorization': `Bearer ${AIRTABLE_API_KEY}`
-                        }
+                        },
+                        timeout: 30000
                     }
                 );
 
-                if (!response.ok) {
-                    throw new Error(`API Error: ${response.status}`);
-                }
 
                 const data = await response.json();
                 console.log('Loaded participants:', data.records.length);
@@ -468,29 +475,31 @@
 
                 // Display data
                 filterAndDisplayData();
-
-            } catch (error) {
-                console.error('Data loading error:', error);
+            }, {
+                showNotification: true,
+                logError: true
+            }).catch(error => {
+                ErrorHandler.logError(error, { context: 'loadData' });
                 document.getElementById('reportContent').innerHTML =
                     `<div class="empty-state">데이터 로드 실패: ${error.message}</div>`;
-            }
+            });
         }
 
         // Load attendance data from AttendanceImages table
         async function loadAttendanceData() {
-            try {
+            return ErrorHandler.handle(async () => {
                 if (!ATTENDANCE_TABLE_ID) return;
 
-                const response = await fetch(
+                const response = await ErrorHandler.fetchWithErrorHandling(
                     `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${ATTENDANCE_TABLE_ID}`,
                     {
                         headers: {
                             'Authorization': `Bearer ${AIRTABLE_API_KEY}`
-                        }
+                        },
+                        timeout: 30000
                     }
                 );
 
-                if (!response.ok) return;
 
                 const data = await response.json();
                 console.log('Loaded attendance records:', data.records.length);
@@ -510,10 +519,12 @@
                         }
                     }
                 });
-
-            } catch (error) {
-                console.error('Attendance data loading error:', error);
-            }
+            }, {
+                showNotification: false,
+                logError: true
+            }).catch(error => {
+                ErrorHandler.logError(error, { context: 'loadAttendanceData' });
+            });
         }
 
         // Filter and display data
@@ -588,13 +599,13 @@
 
                             return `
                                 <tr>
-                                    <td>${participant.ID || '-'}</td>
-                                    <td>${participant.name || '-'}</td>
-                                    <td>${participant.setTime || '-'}</td>
-                                    <td>${participant.phoneNumber || '-'}</td>
+                                    <td>${SecurityUtils.sanitizeHTML(participant.ID || '-')}</td>
+                                    <td>${SecurityUtils.sanitizeHTML(participant.name || '-')}</td>
+                                    <td>${SecurityUtils.sanitizeHTML(participant.setTime || '-')}</td>
+                                    <td>${SecurityUtils.sanitizeHTML(participant.phoneNumber || participant.phone || '-')}</td>
                                     <td><span class="status-badge status-${statusClass}">${statusText}</span></td>
                                     <td>${checkinTime}</td>
-                                    <td>${participant.checkinStaff || '-'}</td>
+                                    <td>${SecurityUtils.sanitizeHTML(participant.checkinStaff || '-')}</td>
                                 </tr>
                             `;
                         }).join('')}

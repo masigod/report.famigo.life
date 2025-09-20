@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CLT Management System - Login</title>
+    <script src="env-config.js"></script>
+    <script src="config-loader.js"></script>
     <script src="config.js"></script>
+    <script src="security-utils.js"></script>
     <style>
         * {
             margin: 0;
@@ -275,6 +278,38 @@
             const errorDiv = document.getElementById('errorMessage');
             const loadingDiv = document.getElementById('loading');
 
+            // Input validation using SecurityUtils
+            const schema = {
+                username: {
+                    required: true,
+                    type: 'alphanumeric',
+                    minLength: 3,
+                    maxLength: 50,
+                    label: 'Username'
+                },
+                password: {
+                    required: true,
+                    type: 'text',
+                    minLength: 6,
+                    label: 'Password'
+                }
+            };
+
+            const validation = SecurityUtils.validateFormData({ username, password }, schema);
+            if (!validation.isValid) {
+                errorDiv.textContent = Object.values(validation.errors)[0];
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            // Check rate limiting
+            const rateLimitCheck = SecurityUtils.rateLimiter.checkLimit(username);
+            if (!rateLimitCheck.allowed) {
+                errorDiv.textContent = rateLimitCheck.message;
+                errorDiv.style.display = 'block';
+                return;
+            }
+
             errorDiv.style.display = 'none';
             loadingDiv.style.display = 'block';
 
@@ -286,8 +321,10 @@
                     ADMIN_TABLE_ID: ADMIN_TABLE_ID
                 });
 
+                // Use sanitized username for API call
+                const sanitizedUsername = SecurityUtils.sanitizeInput(username, 'alphanumeric');
                 // Fetch admin users from Airtable
-                const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${ADMIN_TABLE_ID}?filterByFormula={username}='${username}'`;
+                const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${ADMIN_TABLE_ID}?filterByFormula={username}='${sanitizedUsername}'`;
                 console.log('Fetching from:', url);
 
                 const response = await fetch(url, {
@@ -350,6 +387,9 @@
                 } else {
                     localStorage.removeItem('clt_remembered');
                 }
+
+                // Reset rate limiter on successful login
+                SecurityUtils.rateLimiter.reset(username);
 
                 // Role-based redirection
                 const userRole = user.role || user.userType;

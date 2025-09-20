@@ -5,7 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title>CLT 현장 출석 관리</title>
+    <script src="env-config.js"></script>
+    <script src="config-loader.js"></script>
     <script src="config.js"></script>
+    <script src="security-utils.js"></script>
+    <script src="error-handler.js"></script>
     <style>
         * {
             margin: 0;
@@ -706,47 +710,51 @@
 
         // Initialize
         window.addEventListener('DOMContentLoaded', async () => {
-            currentUser = checkAuth();
-            if (!currentUser) return;
+            return ErrorHandler.handle(async () => {
+                currentUser = checkAuth();
+                if (!currentUser) return;
 
-            // Display staff info
-            document.getElementById('staffInfo').textContent = `스태프: ${currentUser.fullName}`;
+                // Display staff info (sanitized)
+                document.getElementById('staffInfo').textContent = `스태프: ${SecurityUtils.sanitizeHTML(currentUser.fullName)}`;
 
-            // Set today's date as default
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('dateFilter').value = today;
-            addDebugLog('📅 오늘 날짜로 설정:', today);
+                // Set today's date as default
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('dateFilter').value = today;
+                addDebugLog('📅 오늘 날짜로 설정:', today);
 
-            // Load all participants once
-            await loadAllParticipants(true);
+                // Load all participants once
+                await loadAllParticipants(true);
 
-            // Filter and display based on selected date
-            filterAndDisplayParticipants();
-
-            // Load attendance data from AttendanceImages if table exists
-            if (ATTENDANCE_TABLE_ID) {
-                await loadAttendanceData();
-            }
-
-            // Setup event listeners
-            setupEventListeners();
-
-            // Add date change listener
-            document.getElementById('dateFilter').addEventListener('change', () => {
+                // Filter and display based on selected date
                 filterAndDisplayParticipants();
+
+                // Load attendance data from AttendanceImages if table exists
+                if (ATTENDANCE_TABLE_ID) {
+                    await loadAttendanceData();
+                }
+
+                // Setup event listeners
+                setupEventListeners();
+
+                // Add date change listener
+                document.getElementById('dateFilter').addEventListener('change', () => {
+                    filterAndDisplayParticipants();
+                });
+            }, {
+                showNotification: true,
+                logError: true
             });
         });
 
         // Load all participants data (cached)
         async function loadAllParticipants(forceReload = false) {
-            // Check if we should reload (every 5 minutes or forced)
-            const now = Date.now();
-            if (!forceReload && allParticipantsData.length > 0 && (now - lastLoadTime) < 300000) {
-                addDebugLog('⏱ 캐시된 데이터 사용');
-                return allParticipantsData;
-            }
-
-            try {
+            return ErrorHandler.handle(async () => {
+                // Check if we should reload (every 5 minutes or forced)
+                const now = Date.now();
+                if (!forceReload && allParticipantsData.length > 0 && (now - lastLoadTime) < 300000) {
+                    addDebugLog('⏱ 캐시된 데이터 사용');
+                    return allParticipantsData;
+                }
                 addDebugLog('=== 전체 데이터 로드 시작 ===');
 
                 // Always load all data (except Cancelled and Duplicate)
@@ -763,16 +771,13 @@
                         url += '&offset=' + offset;
                     }
 
-                    const response = await fetch(url, {
+                    const response = await ErrorHandler.fetchWithErrorHandling(url, {
                         headers: {
                             'Authorization': `Bearer ${AIRTABLE_API_KEY}`
-                        }
+                        },
+                        timeout: 30000
                     });
 
-                    if (!response.ok) {
-                        addDebugLog(`API 에러: ${response.status}`);
-                        throw new Error(`API Error: ${response.status}`);
-                    }
 
                     const data = await response.json();
                     allRecords = allRecords.concat(data.records);
@@ -818,40 +823,33 @@
                 lastLoadTime = now;
                 addDebugLog('=== 전체 데이터 로드 완료 ===');
                 return allParticipantsData;
-            } catch (error) {
+            }, {
+                showNotification: true,
+                logError: true,
+                fallbackValue: []
+            }).catch(error => {
                 addDebugLog('❌ 에러 발생:', error.message);
                 addDebugLog('에러 상세:', error.stack);
-
-                // Show more detailed error
-                if (error.message.includes('API Error')) {
-                    showNotification('API 연결 실패. 설정을 확인해주세요.', 'error');
-                } else {
-                    showNotification(`데이터 로드 실패: ${error.message}`, 'error');
-                }
-
-                // Load test data as fallback
+                ErrorHandler.logError(error, { context: 'loadAllParticipants' });
                 return [];
-            }
+            });
         }
 
         // Load attendance data from AttendanceImages table
         async function loadAttendanceData() {
-            try {
+            return ErrorHandler.handle(async () => {
                 addDebugLog('=== AttendanceImages 출석 데이터 로드 ===');
 
-                const response = await fetch(
+                const response = await ErrorHandler.fetchWithErrorHandling(
                     `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${ATTENDANCE_TABLE_ID}`,
                     {
                         headers: {
                             'Authorization': `Bearer ${AIRTABLE_API_KEY}`
-                        }
+                        },
+                        timeout: 30000
                     }
                 );
 
-                if (!response.ok) {
-                    addDebugLog('AttendanceImages 로드 실패:', response.status);
-                    return;
-                }
 
                 const data = await response.json();
                 addDebugLog(`AttendanceImages 레코드 ${data.records.length}개 로드`);
@@ -876,10 +874,12 @@
 
                 // Refresh display
                 filterAndDisplayParticipants();
-
-            } catch (error) {
+            }, {
+                showNotification: false,
+                logError: true
+            }).catch(error => {
                 addDebugLog('AttendanceImages 로드 에러:', error.message);
-            }
+            });
         }
 
         // Filter and display participants based on selected date
@@ -1126,20 +1126,20 @@
             document.getElementById('submitBtn').disabled = true;
             document.getElementById('submitBtn').textContent = '처리 중...';
 
-            try {
+            return ErrorHandler.handle(async () => {
                 // Create record in AttendanceImages table using exact field names from CSV
                 const now = new Date();
                 const attendanceData = {
                     participantID: parseInt(currentParticipant.ID),
-                    participantName: currentParticipant.name,
+                    participantName: SecurityUtils.sanitizeInput(currentParticipant.name, 'korean_name'),
                     checkinTime: now.toISOString(),
                     attendanceStatus: 'Attended',
-                    rewardType: selectedReward || 'None',
-                    staffName: currentUser.fullName,
-                    staffID: currentUser.username,
-                    checkDate: currentParticipant.setDate,
-                    checkTime: currentParticipant.setTime,
-                    notes: `체크인 완료 - ${now.toLocaleString('ko-KR')}`
+                    rewardType: SecurityUtils.sanitizeInput(selectedReward || 'None', 'alphanumeric'),
+                    staffName: SecurityUtils.sanitizeInput(currentUser.fullName, 'korean_name'),
+                    staffID: SecurityUtils.sanitizeInput(currentUser.username, 'id'),
+                    checkDate: SecurityUtils.sanitizeInput(currentParticipant.setDate, 'date'),
+                    checkTime: SecurityUtils.sanitizeInput(currentParticipant.setTime, 'time'),
+                    notes: SecurityUtils.sanitizeInput(`체크인 완료 - ${now.toLocaleString('ko-KR')}`, 'text')
                 };
 
                 addDebugLog('AttendanceImages 테이블에 저장 시도:', {
@@ -1147,7 +1147,7 @@
                     data: attendanceData
                 });
 
-                const response = await fetch(
+                const response = await ErrorHandler.fetchWithErrorHandling(
                     `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${ATTENDANCE_TABLE_ID}`,
                     {
                         method: 'POST',
@@ -1159,15 +1159,11 @@
                             records: [{
                                 fields: attendanceData
                             }]
-                        })
+                        }),
+                        timeout: 30000
                     }
                 );
 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    addDebugLog('API 에러 응답:', errorData);
-                    throw new Error(`API Error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
-                }
 
                 const result = await response.json();
                 addDebugLog('AttendanceImages 레코드 생성 성공:', result);
@@ -1188,19 +1184,19 @@
                     Object.assign(allParticipantsData[index], updateData);
                 }
 
-                showNotification('체크인 완료!', 'success');
+                ErrorHandler.showNotification('체크인 완료!', 'success');
                 closeCheckinModal();
                 filterAndDisplayParticipants();
                 updateStats();
-
-            } catch (error) {
-                console.error('Check-in error:', error);
+            }, {
+                showNotification: true,
+                logError: true
+            }).catch(error => {
                 addDebugLog('체크인 에러:', error.message);
-                showNotification(`체크인 실패: ${error.message}`, 'error');
-            } finally {
+            }).finally(() => {
                 document.getElementById('submitBtn').disabled = false;
                 document.getElementById('submitBtn').textContent = '체크인 완료';
-            }
+            });
         }
 
         // Setup event listeners
@@ -1351,19 +1347,29 @@
 
         // Change no-show to attended
         async function changeToAttended(participantId) {
-            // Implementation similar to submitCheckin
-            showNotification('상태 변경 기능 구현 예정', 'info');
+            return ErrorHandler.handle(async () => {
+                const participant = allParticipantsData.find(p => p.ID === participantId);
+                if (!participant) {
+                    throw new Error('참가자를 찾을 수 없습니다.');
+                }
+
+                // Update attendance status
+                participant.attendanceStatus = 'Attended';
+                participant.checkinTime = new Date().toISOString();
+                participant.checkinStaff = currentUser.fullName;
+
+                ErrorHandler.showNotification(`${participant.name}의 상태가 출석으로 변경되었습니다.`, 'success');
+                filterAndDisplayParticipants();
+                updateStats();
+            }, {
+                showNotification: true,
+                logError: true
+            });
         }
 
         // Show notification
         function showNotification(message, type = 'success') {
-            const notification = document.getElementById('notification');
-            notification.textContent = message;
-            notification.className = `notification show ${type}`;
-
-            setTimeout(() => {
-                notification.classList.remove('show');
-            }, 3000);
+            ErrorHandler.showNotification(message, type);
         }
 
         // Logout

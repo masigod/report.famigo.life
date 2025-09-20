@@ -4,7 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>아모레퍼시픽 파운데이션 CLT 통합 관리 시스템 v5.2</title>
+    <script src="env-config.js"></script>
+    <script src="config-loader.js"></script>
     <script src="config.js"></script>
+    <script src="security-utils.js"></script>
+    <script src="error-handler.js"></script>
     <style>
         * {
             margin: 0;
@@ -644,34 +648,28 @@
 
         // Airtable에서 데이터 가져오기
         async function fetchAirtableData() {
-            console.log('Airtable 데이터 가져오기 시작...');
-            console.log('API URL:', AIRTABLE_API_URL);
+            return ErrorHandler.handle(async () => {
+                console.log('Airtable 데이터 가져오기 시작...');
+                console.log('API URL:', AIRTABLE_API_URL);
 
-            let allRecords = [];
-            let offset = '';
-
-            try {
+                let allRecords = [];
+                let offset = '';
                 // 페이지네이션을 통해 모든 레코드 가져오기
                 do {
                     const url = offset
                         ? `${AIRTABLE_API_URL}?pageSize=100&offset=${offset}`
                         : `${AIRTABLE_API_URL}?pageSize=100`;
 
-                    const response = await fetch(url, {
+                    const response = await ErrorHandler.fetchWithErrorHandling(url, {
                         method: 'GET',
                         headers: {
                             'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
                             'Content-Type': 'application/json'
-                        }
+                        },
+                        timeout: 30000
                     });
 
                     console.log('Response status:', response.status);
-
-                    if (!response.ok) {
-                        const errorText = await response.text();
-                        console.error('Error response:', errorText);
-                        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-                    }
 
                     const data = await response.json();
                     console.log(`받은 레코드 수: ${data.records.length}`);
@@ -769,13 +767,16 @@
                 console.log('처리된 데이터:', participantsData);
                 loadParticipants();
                 updateStats();
-
-            } catch (error) {
-                console.error('Airtable 데이터 로드 실패:', error);
+            }, {
+                showNotification: true,
+                logError: true,
+                fallbackValue: null
+            }).catch(error => {
+                ErrorHandler.logError(error, { context: 'fetchAirtableData' });
 
                 // CORS 에러일 경우 안내
                 if (error.message.includes('Failed to fetch') || error.message.includes('CORS')) {
-                    showNotification('CORS 에러: 로컬에서는 샘플 데이터를 사용합니다. 배포 후 정상 작동합니다.', 'error');
+                    ErrorHandler.showNotification('CORS 에러: 로컬에서는 샘플 데이터를 사용합니다. 배포 후 정상 작동합니다.', 'error');
 
                     // 샘플 데이터로 대체
                     participantsData = [
@@ -787,31 +788,29 @@
                     loadParticipants();
                     updateStats();
                 } else {
-                    showNotification('Airtable 연결 실패: ' + error.message, 'error');
+                    ErrorHandler.showNotification('Airtable 연결 실패: ' + error.message, 'error');
                     document.getElementById('syncStatus').innerHTML = '❌ 연결 실패';
                 }
-            }
+            });
         }
 
         // Airtable 레코드 업데이트
         async function updateAirtableRecord(participantId, fieldName, value) {
-            const recordId = airtableRecords[participantId];
-            if (!recordId) {
-                console.error('Record ID not found for participant:', participantId);
-                console.log('Available record IDs:', airtableRecords);
-                return false;
-            }
+            return ErrorHandler.handle(async () => {
+                const recordId = airtableRecords[participantId];
+                if (!recordId) {
+                    ErrorHandler.logError(new Error('Record ID not found'), { participantId, fieldName, value });
+                    return false;
+                }
 
-            console.log(`Airtable 업데이트 시작: Record ID=${recordId}, Field=${fieldName}, Value=${value}`);
+                console.log(`Airtable 업데이트 시작: Record ID=${recordId}, Field=${fieldName}, Value=${value}`);
 
-            // 날짜 필드에서 빈 값 처리
-            let fieldValue = value;
-            if ((fieldName === 'requestDate' || fieldName === 'confirmedDate' || fieldName === 'date') && (value === '' || value === null || value === undefined)) {
-                fieldValue = null;
-            }
-
-            try {
-                const response = await fetch(`${AIRTABLE_API_URL}/${recordId}`, {
+                // 날짜 필드에서 빈 값 처리
+                let fieldValue = value;
+                if ((fieldName === 'requestDate' || fieldName === 'confirmedDate' || fieldName === 'date') && (value === '' || value === null || value === undefined)) {
+                    fieldValue = null;
+                }
+                const response = await ErrorHandler.fetchWithErrorHandling(`${AIRTABLE_API_URL}/${recordId}`, {
                     method: 'PATCH',
                     headers: {
                         'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
@@ -821,29 +820,24 @@
                         fields: {
                             [fieldName]: fieldValue
                         }
-                    })
+                    }),
+                    timeout: 30000
                 });
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('Airtable 응답 에러:', errorText);
-                    throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-                }
 
                 const result = await response.json();
                 console.log('Airtable 업데이트 성공:', result);
                 return true;
-            } catch (error) {
-                console.error('Airtable 업데이트 실패:', error);
-                showNotification('데이터 업데이트 실패: ' + error.message, 'error');
-                return false;
-            }
+            }, {
+                showNotification: true,
+                logError: true,
+                fallbackValue: false
+            });
         }
 
         // Airtable에 새 레코드 추가
         async function createAirtableRecord(participant) {
-            try {
-                const response = await fetch(AIRTABLE_API_URL, {
+            return ErrorHandler.handle(async () => {
+                const response = await ErrorHandler.fetchWithErrorHandling(AIRTABLE_API_URL, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
@@ -853,30 +847,25 @@
                         records: [{
                             fields: {
                                 // ID는 Airtable에서 자동 생성되므로 제외
-                                name: participant.name,
-                                setDate: participant.setDate,
-                                setTime: participant.setTime,
-                                skinColor: participant.skinColor,
-                                skinTone: participant.skinTone || '',
-                                phone: participant.phone || '',
-                                email: participant.email || '',
+                                name: SecurityUtils.sanitizeInput(participant.name, 'korean_name'),
+                                setDate: SecurityUtils.sanitizeInput(participant.setDate, 'date'),
+                                setTime: SecurityUtils.sanitizeInput(participant.setTime, 'time'),
+                                skinColor: SecurityUtils.sanitizeInput(participant.skinColor, 'alphanumeric'),
+                                skinTone: SecurityUtils.sanitizeInput(participant.skinTone || '', 'alphanumeric'),
+                                phone: SecurityUtils.sanitizeInput(participant.phone || '', 'phone'),
+                                email: SecurityUtils.sanitizeInput(participant.email || '', 'email'),
                                 reserveStatus: participant.예비여부 ? true : false,
-                                'P-ID': participant.PID || '',
-                                status: participant.status || 'Pending',
+                                'P-ID': SecurityUtils.sanitizeInput(participant.PID || '', 'id'),
+                                status: SecurityUtils.sanitizeInput(participant.status || 'Pending', 'alphanumeric'),
                                 requestDate: participant.requestDate || null,
                                 confirmedDate: participant.confirmedDate || null,
                                 changeTime: participant.changeTime || null,
-                                desc: participant.desc || ''
+                                desc: SecurityUtils.sanitizeInput(participant.desc || '', 'text')
                             }
                         }]
-                    })
+                    }),
+                    timeout: 30000
                 });
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('Airtable 응답 에러:', errorText);
-                    throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-                }
 
                 const data = await response.json();
                 if (data.records && data.records.length > 0) {
@@ -890,11 +879,11 @@
                 }
 
                 return true;
-            } catch (error) {
-                console.error('Airtable 레코드 생성 실패:', error);
-                showNotification('새 참가자 추가 실패: ' + error.message, 'error');
-                return false;
-            }
+            }, {
+                showNotification: true,
+                logError: true,
+                fallbackValue: false
+            });
         }
 
         // 기본 함수들
@@ -1136,32 +1125,38 @@
         }
 
         async function updateFeedbackStatus(participantId, newStatus) {
-            const participant = participantsData.find(p => p.ID === participantId);
-            if (participant) {
+            return ErrorHandler.handle(async () => {
+                const participant = participantsData.find(p => p.ID === participantId);
+                if (!participant) {
+                    throw new Error('참가자를 찾을 수 없습니다.');
+                }
+
                 console.log(`피드백 상태 변경: ID ${participantId}, ${participant.status} -> ${newStatus}`);
                 participant.status = newStatus;
-
-                // 상태가 이미 영어인지 확인
-                // Airtable에는 영어 값만 전송 (Pending, Sent, Confirmed, Requested, Cancelled)
-                console.log(`Airtable로 전송할 상태 값: ${newStatus}`);
 
                 // Airtable 업데이트 - 영어 값 전송
                 const success = await updateAirtableRecord(participantId, 'status', newStatus);
                 if (success) {
-                    showNotification(`${participant.name}의 피드백 상태가 '${newStatus}'로 변경되었습니다.`, 'success');
+                    ErrorHandler.showNotification(`${participant.name}의 피드백 상태가 '${newStatus}'로 변경되었습니다.`, 'success');
                     console.log(`Airtable 업데이트 성공: ID ${participantId}`);
                 } else {
-                    showNotification(`${participant.name}의 피드백 상태 저장 실패\n(Airtable의 status 필드에 ${newStatus} 옵션이 있는지 확인하세요)`, 'error');
-                    console.error(`Airtable 업데이트 실패: ID ${participantId}`);
+                    ErrorHandler.showNotification(`${participant.name}의 피드백 상태 저장 실패\n(Airtable의 status 필드에 ${newStatus} 옵션이 있는지 확인하세요)`, 'error');
                     // 로컬 상태는 유지
                 }
                 updateStats();
-            }
+            }, {
+                showNotification: true,
+                logError: true
+            });
         }
 
         async function updateRequestDate(participantId, newDate) {
-            const participant = participantsData.find(p => p.ID === participantId);
-            if (participant) {
+            return ErrorHandler.handle(async () => {
+                const participant = participantsData.find(p => p.ID === participantId);
+                if (!participant) {
+                    throw new Error('참가자를 찾을 수 없습니다.');
+                }
+
                 participant.requestDate = newDate;
 
                 // Airtable 업데이트 - 빈 문자열 대신 null 전송
@@ -1175,15 +1170,22 @@
                 }
 
                 if (success) {
-                    showNotification(`${participant.name}의 요청일자가 업데이트되었습니다.`, 'success');
+                    ErrorHandler.showNotification(`${participant.name}의 요청일자가 업데이트되었습니다.`, 'success');
                 }
                 updateStats();
-            }
+            }, {
+                showNotification: true,
+                logError: true
+            });
         }
 
         async function updateConfirmDate(participantId, newDate) {
-            const participant = participantsData.find(p => p.ID === participantId);
-            if (participant) {
+            return ErrorHandler.handle(async () => {
+                const participant = participantsData.find(p => p.ID === participantId);
+                if (!participant) {
+                    throw new Error('참가자를 찾을 수 없습니다.');
+                }
+
                 participant.confirmedDate = newDate;
 
                 // Airtable 업데이트 - 빈 문자열 대신 null 전송
@@ -1197,15 +1199,22 @@
                 }
 
                 if (success) {
-                    showNotification(`${participant.name}의 확정일자가 업데이트되었습니다.`, 'success');
+                    ErrorHandler.showNotification(`${participant.name}의 확정일자가 업데이트되었습니다.`, 'success');
                 }
                 updateStats();
-            }
+            }, {
+                showNotification: true,
+                logError: true
+            });
         }
 
         async function updateChangeTime(participantId, newTime) {
-            const participant = participantsData.find(p => p.ID === participantId);
-            if (participant) {
+            return ErrorHandler.handle(async () => {
+                const participant = participantsData.find(p => p.ID === participantId);
+                if (!participant) {
+                    throw new Error('참가자를 찾을 수 없습니다.');
+                }
+
                 participant.changeTime = newTime;
 
                 // Airtable에 changeTime 업데이트
@@ -1221,11 +1230,7 @@
                     const oldDate = participant.setDate;
                     const oldTime = participant.setTime;
 
-                    // 날짜 형식 변환 - 년도 포함 (YYYY-MM-DD 그대로 유지)
                     let newDate = participant.confirmedDate;
-                    // confirmedDate는 이미 YYYY-MM-DD 형식이므로 그대로 사용
-                    // setDate도 데이터베이스에서 YYYY-MM-DD 형식 사용
-
                     participant.setDate = newDate;
                     participant.setTime = newTime;
 
@@ -1233,7 +1238,7 @@
                     await updateAirtableRecord(participantId, 'setDate', newDate);
                     await updateAirtableRecord(participantId, 'setTime', newTime);
 
-                    showNotification(
+                    ErrorHandler.showNotification(
                         `${participant.name}의 예약이 변경되었습니다.\n` +
                         `${oldDate} ${oldTime} → ${newDate} ${newTime}`,
                         'success'
@@ -1242,30 +1247,35 @@
                     // 테이블 새로고침
                     loadParticipants();
                 } else if (success) {
-                    showNotification(`${participant.name}의 시간변경 옵션이 저장되었습니다.`, 'success');
+                    ErrorHandler.showNotification(`${participant.name}의 시간변경 옵션이 저장되었습니다.`, 'success');
                 }
-            }
+            }, {
+                showNotification: true,
+                logError: true
+            });
         }
 
         async function updateNotes(participantId, newNotes) {
-            const participant = participantsData.find(p => p.ID === participantId);
-            if (participant) {
-                participant.desc = newNotes;
+            return ErrorHandler.handle(async () => {
+                const participant = participantsData.find(p => p.ID === participantId);
+                if (!participant) {
+                    throw new Error('참가자를 찾을 수 없습니다.');
+                }
+
+                // Sanitize input
+                const sanitizedNotes = SecurityUtils.sanitizeInput(newNotes, 'text');
+                participant.desc = sanitizedNotes;
 
                 // Airtable 업데이트
-                await updateAirtableRecord(participantId, 'desc', newNotes);
-            }
+                await updateAirtableRecord(participantId, 'desc', sanitizedNotes);
+            }, {
+                showNotification: false,
+                logError: true
+            });
         }
 
         function showNotification(message, type = 'success') {
-            const notification = document.createElement('div');
-            notification.className = type === 'success' ? 'success-message' : 'error-message';
-            notification.textContent = message;
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.remove();
-            }, 3000);
+            ErrorHandler.showNotification(message, type);
         }
 
         function showCSVData() {
@@ -1345,56 +1355,85 @@
         }
 
         async function addNewParticipant() {
-            const name = document.getElementById('newName').value.trim();
-            const setDate = document.getElementById('newDate').value;
-            const setTime = document.getElementById('newTime').value;
-            const skinColor = document.getElementById('newTarget').value;
+            return ErrorHandler.handle(async () => {
+                const formData = {
+                    name: document.getElementById('newName').value,
+                    setDate: document.getElementById('newDate').value,
+                    setTime: document.getElementById('newTime').value,
+                    skinColor: document.getElementById('newTarget').value,
+                    skinTone: document.getElementById('newTone').value,
+                    phone: document.getElementById('newPhone').value,
+                    email: document.getElementById('newEmail').value,
+                    PID: document.getElementById('newPID').value,
+                    desc: document.getElementById('newNotes').value
+                };
 
-            if (!name || !setDate || !setTime || !skinColor) {
-                alert('⚠️ 필수 항목을 모두 입력해주세요.\n(참가자명, 날짜, 시간, 타겟)');
-                return;
-            }
+                // Validate form data
+                const schema = {
+                    name: { required: true, type: 'korean_name', minLength: 2, maxLength: 50, label: '참가자명' },
+                    setDate: { required: true, type: 'date', label: '날짜' },
+                    setTime: { required: true, type: 'time', label: '시간' },
+                    skinColor: { required: true, type: 'alphanumeric', label: '타겟' },
+                    skinTone: { required: false, type: 'alphanumeric' },
+                    phone: { required: false, type: 'phone' },
+                    email: { required: false, type: 'email' },
+                    PID: { required: false, type: 'id' },
+                    desc: { required: false, type: 'text', maxLength: 500 }
+                };
 
-            const maxId = Math.max(...participantsData.map(p => p.ID), 0);
-            const newId = maxId + 1;
+                const validation = SecurityUtils.validateFormData(formData, schema);
+                if (!validation.isValid) {
+                    const errorMessages = Object.values(validation.errors).join('\n');
+                    ErrorHandler.showNotification('입력 오류:\n' + errorMessages, 'error');
+                    return;
+                }
 
-            // 날짜는 YYYY-MM-DD 형식 그대로 사용 (데이터베이스와 일치)
-            const formattedDate = setDate;
+                const maxId = Math.max(...participantsData.map(p => p.ID), 0);
+                const newId = maxId + 1;
 
-            const newParticipant = {
-                ID: newId,
-                setDate: formattedDate,
-                setTime: setTime,
-                name: name,
-                skinColor: skinColor,
-                skinTone: document.getElementById('newTone').value || '',
-                phone: document.getElementById('newPhone').value || '',
-                email: document.getElementById('newEmail').value || '',
-                예비여부: document.getElementById('newReserve').checked,
-                PID: document.getElementById('newPID').value.trim() || '',
-                status: 'Pending',  // 영어 기본값
-                requestDate: '',
-                confirmedDate: '',
-                changeTime: '',  // 시간변경 필드 추가
-                desc: document.getElementById('newNotes').value || ''
-            };
+                const newParticipant = {
+                    ID: newId,
+                    setDate: validation.data.setDate,
+                    setTime: validation.data.setTime,
+                    name: validation.data.name,
+                    skinColor: validation.data.skinColor,
+                    skinTone: validation.data.skinTone || '',
+                    phone: validation.data.phone || '',
+                    email: validation.data.email || '',
+                    예비여부: document.getElementById('newReserve').checked,
+                    PID: validation.data.PID || '',
+                    status: 'Pending',  // 영어 기본값
+                    requestDate: '',
+                    confirmedDate: '',
+                    changeTime: '',  // 시간변경 필드 추가
+                    desc: validation.data.desc || ''
+                };
 
-            // Airtable에 추가
-            const success = await createAirtableRecord(newParticipant);
+                // Airtable에 추가
+                const success = await createAirtableRecord(newParticipant);
 
-            if (success) {
-                participantsData.push(newParticipant);
-                loadParticipants();
-                updateStats();
-                hideAddParticipantForm();
-                showNotification(`새 참가자 '${name}'이 추가되었습니다! (ID: ${newId})`, 'success');
-            }
+                if (success) {
+                    participantsData.push(newParticipant);
+                    loadParticipants();
+                    updateStats();
+                    hideAddParticipantForm();
+                    ErrorHandler.showNotification(`새 참가자 '${validation.data.name}'이 추가되었습니다! (ID: ${newId})`, 'success');
+                }
+            }, {
+                showNotification: true,
+                logError: true
+            });
         }
 
         async function resetLocalStorage() {
             if (confirm('⚠️ Airtable에서 최신 데이터를 다시 가져오시겠습니까?')) {
-                await fetchAirtableData();
-                showNotification('✅ Airtable에서 데이터를 새로고침했습니다.', 'success');
+                return ErrorHandler.handle(async () => {
+                    await fetchAirtableData();
+                    ErrorHandler.showNotification('✅ Airtable에서 데이터를 새로고침했습니다.', 'success');
+                }, {
+                    showNotification: true,
+                    logError: true
+                });
             }
         }
 
@@ -1411,14 +1450,19 @@
 
         // 페이지 로드시 초기화
         document.addEventListener('DOMContentLoaded', async function() {
-            // 사용자 정보 표시
-            if (currentUser) {
-                document.getElementById('userInfo').textContent = `👤 ${currentUser.fullName} (${currentUser.role})`;
-            }
+            return ErrorHandler.handle(async () => {
+                // 사용자 정보 표시
+                if (currentUser) {
+                    document.getElementById('userInfo').textContent = `👤 ${SecurityUtils.sanitizeHTML(currentUser.fullName)} (${SecurityUtils.sanitizeHTML(currentUser.role)})`;
+                }
 
-            document.getElementById('tableBody').innerHTML = '<tr><td colspan="15" class="loading-indicator">Airtable에서 데이터를 로드하는 중...</td></tr>';
-            await fetchAirtableData();
-            setupEventListeners();
+                document.getElementById('tableBody').innerHTML = '<tr><td colspan="15" class="loading-indicator">Airtable에서 데이터를 로드하는 중...</td></tr>';
+                await fetchAirtableData();
+                setupEventListeners();
+            }, {
+                showNotification: true,
+                logError: true
+            });
         });
     </script>
 </body>
