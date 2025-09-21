@@ -1285,6 +1285,9 @@
                     data: attendanceData
                 });
 
+                // Log the exact data being sent
+                console.log('Sending to Airtable - Full attendanceData:', attendanceData);
+
                 // IMPORTANT: Only POST to AttendanceImages, never PATCH to Participants
                 const apiUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${ATTENDANCE_TABLE_ID}`;
                 const requestBody = {
@@ -1293,6 +1296,8 @@
                     }]
                 };
 
+                console.log('Request Body:', JSON.stringify(requestBody, null, 2));
+
                 addDebugLog('API 요청 정보:', {
                     url: apiUrl,
                     method: 'POST',
@@ -1300,19 +1305,35 @@
                     fields: Object.keys(attendanceData)
                 });
 
-                const response = await ErrorHandler.fetchWithErrorHandling(apiUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(requestBody),
-                    timeout: 60000
-                });
+                let response;
+                try {
+                    response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(requestBody)
+                    });
 
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        console.error('Airtable API Error:', errorData);
+                        addDebugLog('API 오류 상세:', errorData);
 
-                const result = await response.json();
-                addDebugLog('AttendanceImages 레코드 생성 성공:', result);
+                        if (errorData.error && errorData.error.message) {
+                            throw new Error(`Airtable: ${errorData.error.type} - ${errorData.error.message}`);
+                        } else {
+                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        }
+                    }
+
+                    const result = await response.json();
+                    addDebugLog('AttendanceImages 레코드 생성 성공:', result);
+                } catch (error) {
+                    console.error('Fetch error:', error);
+                    throw error;
+                }
 
                 // Update local participant data
                 const updateData = {
