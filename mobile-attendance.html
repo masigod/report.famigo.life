@@ -719,8 +719,21 @@
 
                 // Set today's date as default
                 const today = new Date().toISOString().split('T')[0];
-                document.getElementById('dateFilter').value = today;
-                addDebugLog('📅 오늘 날짜로 설정:', today);
+                const dateFilter = document.getElementById('dateFilter');
+                if (dateFilter) {
+                    dateFilter.value = today;
+                    // Set min and max attributes for better UX
+                    const oneYearAgo = new Date();
+                    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+                    const oneYearLater = new Date();
+                    oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+
+                    dateFilter.min = oneYearAgo.toISOString().split('T')[0];
+                    dateFilter.max = oneYearLater.toISOString().split('T')[0];
+                    addDebugLog('📅 오늘 날짜로 설정:', today);
+                } else {
+                    addDebugLog('⚠️ dateFilter 엘리먼트를 찾을 수 없음');
+                }
 
                 // Load all participants once
                 await loadAllParticipants(true);
@@ -1224,55 +1237,63 @@
                     notes: `체크인 완료 - ${now.toLocaleString('ko-KR')}`
                 };
 
-                // Add images if available
-                if (idCardImage) {
-                    // Convert blob to base64 for Airtable attachment
-                    const reader = new FileReader();
-                    const idCardBase64 = await new Promise((resolve) => {
-                        reader.onloadend = () => resolve(reader.result.split(',')[1]);
-                        reader.readAsDataURL(idCardImage);
-                    });
+                // Note: Airtable Attachment fields require external URLs or need to be uploaded separately
+                // For now, we'll store image indicators in notes field
+                if (idCardImage || bankbookImage) {
+                    let imageNote = '이미지 첨부: ';
+                    if (idCardImage) imageNote += '신분증 ';
+                    if (bankbookImage) imageNote += '통장사본';
+                    attendanceData.notes += `\n${imageNote}`;
 
-                    attendanceData.idCardImage = [{
-                        url: `data:image/jpeg;base64,${idCardBase64}`,
-                        filename: `id_card_${currentParticipant.ID}_${Date.now()}.jpg`
-                    }];
+                    // Store images locally for future upload implementation
+                    // Airtable doesn't support direct base64 upload in attachment fields
+                    addDebugLog('이미지 업로드 기능은 별도 구현 필요 (Airtable API 제한)');
                 }
 
-                if (bankbookImage) {
-                    const reader = new FileReader();
-                    const bankbookBase64 = await new Promise((resolve) => {
-                        reader.onloadend = () => resolve(reader.result.split(',')[1]);
-                        reader.readAsDataURL(bankbookImage);
-                    });
+                // Debug: Check participant record ID
+                const participantRecordId = currentParticipant.recordId || currentParticipant._recordId;
+                const updateData = {
+                    participantID: parseInt(currentParticipant.ID) || 0,
+                    recordId: participantRecordId,
+                    updateData: attendanceData
+                };
 
-                    attendanceData.bankbookImage = [{
-                        url: `data:image/jpeg;base64,${bankbookBase64}`,
-                        filename: `bankbook_${currentParticipant.ID}_${Date.now()}.jpg`
-                    }];
+                addDebugLog('체크인 시도:', updateData);
+
+                // Only save to AttendanceImages table, DO NOT update Participants table
+                if (!ATTENDANCE_TABLE_ID || ATTENDANCE_TABLE_ID === '') {
+                    throw new Error('AttendanceImages 테이블 ID가 설정되지 않았습니다.');
                 }
 
                 addDebugLog('AttendanceImages 테이블에 저장 시도:', {
                     table: ATTENDANCE_TABLE_ID,
-                    data: { ...attendanceData, idCardImage: idCardImage ? '[이미지 있음]' : null, bankbookImage: bankbookImage ? '[이미지 있음]' : null }
+                    data: attendanceData
                 });
 
-                const response = await ErrorHandler.fetchWithErrorHandling(
-                    `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${ATTENDANCE_TABLE_ID}`,
-                    {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            records: [{
-                                fields: attendanceData
-                            }]
-                        }),
-                        timeout: 60000  // Increase timeout for image uploads
-                    }
-                );
+                // IMPORTANT: Only POST to AttendanceImages, never PATCH to Participants
+                const apiUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${ATTENDANCE_TABLE_ID}`;
+                const requestBody = {
+                    records: [{
+                        fields: attendanceData
+                    }]
+                };
+
+                addDebugLog('API 요청 정보:', {
+                    url: apiUrl,
+                    method: 'POST',
+                    table: ATTENDANCE_TABLE_ID,
+                    fields: Object.keys(attendanceData)
+                });
+
+                const response = await ErrorHandler.fetchWithErrorHandling(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody),
+                    timeout: 60000
+                });
 
 
                 const result = await response.json();
@@ -1311,6 +1332,23 @@
 
         // Setup event listeners
         function setupEventListeners() {
+            // Date filter change event
+            const dateFilter = document.getElementById('dateFilter');
+            if (dateFilter) {
+                dateFilter.addEventListener('change', () => {
+                    filterAndDisplayParticipants();
+                });
+
+                // Ensure today's date is set if the field is empty when focused
+                dateFilter.addEventListener('focus', () => {
+                    if (!dateFilter.value) {
+                        const today = new Date().toISOString().split('T')[0];
+                        dateFilter.value = today;
+                        addDebugLog('📅 빈 날짜 필드에 오늘 날짜 설정:', today);
+                    }
+                });
+            }
+
             // Time filter
             document.querySelectorAll('.time-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
