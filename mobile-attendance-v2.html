@@ -1240,12 +1240,20 @@
                     formattedCheckDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
                 }
 
+                // Map reward type to Airtable values
+                let rewardTypeValue = 'None';
+                if (selectedReward === 'mobile') {
+                    rewardTypeValue = 'MobileVoucher';
+                } else if (selectedReward === 'cash') {
+                    rewardTypeValue = 'Cash';
+                }
+
                 const attendanceData = {
                     participantID: parseInt(currentParticipant.ID) || 0,
                     participantName: currentParticipant.name || '',
                     checkinTime: now.toISOString(),
                     attendanceStatus: 'Attended',
-                    rewardType: selectedReward || 'None',
+                    rewardType: rewardTypeValue,
                     staffName: currentUser.fullName || '',
                     staffID: currentUser.username || '',
                     checkDate: formattedCheckDate || '',
@@ -1339,7 +1347,7 @@
                 const updateData = {
                     attendanceStatus: 'Attended',
                     checkinTime: now.toISOString(),
-                    rewardType: selectedReward || 'None',
+                    rewardType: rewardTypeValue,
                     checkinStaff: currentUser.fullName
                 };
 
