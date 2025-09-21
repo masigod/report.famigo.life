@@ -1248,10 +1248,22 @@
                     rewardTypeValue = 'Cash';
                 }
 
+                // Format datetime for Airtable
+                // Try different format: YYYY-MM-DDTHH:mm:ss without milliseconds
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const seconds = String(now.getSeconds()).padStart(2, '0');
+
+                // Try format without timezone indicator
+                const checkinTimeFormatted = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+
                 const attendanceData = {
                     participantID: parseInt(currentParticipant.ID) || 0,
                     participantName: currentParticipant.name || '',
-                    checkinTime: now.toISOString(),
+                    checkinTime: checkinTimeFormatted,
                     attendanceStatus: 'Attended',
                     rewardType: rewardTypeValue,
                     staffName: currentUser.fullName || '',
@@ -1295,6 +1307,8 @@
 
                 // Log the exact data being sent
                 console.log('Sending to Airtable - Full attendanceData:', attendanceData);
+                console.log('checkinTime format:', checkinTimeFormatted);
+                console.log('checkDate format:', formattedCheckDate);
 
                 // IMPORTANT: Only POST to AttendanceImages, never PATCH to Participants
                 const apiUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${ATTENDANCE_TABLE_ID}`;
