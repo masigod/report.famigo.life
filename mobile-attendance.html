@@ -657,6 +657,14 @@
         const AIRTABLE_TABLE_ID = typeof AIRTABLE_CONFIG !== 'undefined' ? AIRTABLE_CONFIG.TABLE_ID : 'tblxMzwX1wWJKIOhY';
         const ATTENDANCE_TABLE_ID = typeof AIRTABLE_CONFIG !== 'undefined' ? AIRTABLE_CONFIG.ATTENDANCE_TABLE_ID : '';
 
+        // Debug: Log configuration on load
+        console.log('Configuration loaded:', {
+            BASE_ID: AIRTABLE_BASE_ID,
+            TABLE_ID: AIRTABLE_TABLE_ID,
+            ATTENDANCE_TABLE_ID: ATTENDANCE_TABLE_ID,
+            HAS_API_KEY: !!AIRTABLE_API_KEY
+        });
+
         // Global variables
         let allParticipantsData = [];  // Store all data
         let participantsData = [];     // Filtered data
@@ -1206,7 +1214,15 @@
 
         // Submit check-in
         async function submitCheckin() {
-            if (!currentParticipant) return;
+            console.log('=== submitCheckin 함수 시작 ===');
+            console.log('Current participant:', currentParticipant);
+            console.log('ATTENDANCE_TABLE_ID:', ATTENDANCE_TABLE_ID);
+            console.log('This function should only POST to AttendanceImages table');
+
+            if (!currentParticipant) {
+                console.error('No participant selected');
+                return;
+            }
 
             document.getElementById('submitBtn').disabled = true;
             document.getElementById('submitBtn').textContent = '처리 중...';
