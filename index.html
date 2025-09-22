@@ -439,9 +439,9 @@
                 <label>출석상태</label>
                 <select id="attendanceStatusFilter">
                     <option value="">전체</option>
-                    <option value="Attended">✓ Attended</option>
-                    <option value="No-show">✗ No-show</option>
-                    <option value="Pending">⏳ Pending</option>
+                    <option value="Attended">Attended</option>
+                    <option value="No-show">No-show</option>
+                    <option value="Pending">Pending</option>
                 </select>
             </div>
             <div class="filter-group">
@@ -1072,15 +1072,15 @@
             });
 
             const html = filtered.map(p => {
-                // 출석 상태에 따른 배지 스타일 결정 - 톤 배지와 동일한 스타일
+                // 출석 상태에 따른 배지 스타일 결정 - 톤 배지와 동일한 스타일, 부드러운 색상
                 let attendanceBadge = '';
                 if (p.attendanceStatus === 'Attended') {
-                    attendanceBadge = '<span style="display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; background: #28a745; color: white;">✓ Attended</span>';
+                    attendanceBadge = '<span style="display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; background: #5cb85c; color: white;">Attended</span>';
                 } else if (p.attendanceStatus === 'No-show') {
-                    attendanceBadge = '<span style="display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; background: #dc3545; color: white;">✗ No-show</span>';
+                    attendanceBadge = '<span style="display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; background: #d9534f; color: white;">No-show</span>';
                 } else {
                     // Pending이거나 값이 없는 경우 모두 Pending으로 표시
-                    attendanceBadge = '<span style="display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; background: #ffc107; color: #000;">⏳ Pending</span>';
+                    attendanceBadge = '<span style="display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; background: #f0ad4e; color: white;">Pending</span>';
                 }
 
                 return `
