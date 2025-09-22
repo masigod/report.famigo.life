@@ -1269,18 +1269,20 @@
                 // Airtable Date field requires YYYY-MM-DD format (date only, no time)
                 const todayDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-                // Prepare data without problematic checkinTime field first
+                // Prepare data matching exact Airtable schema
+                // checkinTime is Date type in Airtable (date only, no time)
+                const checkinDateOnly = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
                 const attendanceData = {
                     participantID: parseInt(currentParticipant.ID) || 0,
                     participantName: currentParticipant.name || '',
-                    // checkinTime field removed - causing validation errors
+                    checkinTime: checkinDateOnly,  // Date field - YYYY-MM-DD format
                     attendanceStatus: 'Attended',
                     rewardType: rewardTypeValue,
                     staffName: currentUser.fullName || '',
                     staffID: currentUser.username || '',
                     checkDate: formattedCheckDate || '',  // Date when appointment was scheduled
                     checkTime: currentParticipant.setTime || '',  // Time slot (Single line text)
-                    actualCheckinTime: now.toLocaleTimeString('ko-KR', {hour: '2-digit', minute: '2-digit'}),  // Actual check-in time as text
                     notes: `체크인 완료 - ${now.toLocaleString('ko-KR')}`
                 };
 
@@ -1288,13 +1290,13 @@
                 console.log('=== ATTENDANCE DATA DEBUG ===');
                 console.log('participantID:', attendanceData.participantID, typeof attendanceData.participantID);
                 console.log('participantName:', attendanceData.participantName, typeof attendanceData.participantName);
+                console.log('checkinTime:', attendanceData.checkinTime, typeof attendanceData.checkinTime);
                 console.log('attendanceStatus:', attendanceData.attendanceStatus, typeof attendanceData.attendanceStatus);
                 console.log('rewardType:', attendanceData.rewardType, typeof attendanceData.rewardType);
                 console.log('staffName:', attendanceData.staffName, typeof attendanceData.staffName);
                 console.log('staffID:', attendanceData.staffID, typeof attendanceData.staffID);
                 console.log('checkDate:', attendanceData.checkDate, typeof attendanceData.checkDate);
                 console.log('checkTime:', attendanceData.checkTime, typeof attendanceData.checkTime);
-                console.log('actualCheckinTime:', attendanceData.actualCheckinTime, typeof attendanceData.actualCheckinTime);
                 console.log('notes:', attendanceData.notes, typeof attendanceData.notes);
                 console.log('=== END DEBUG ===');
 
