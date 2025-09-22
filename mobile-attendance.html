@@ -1770,6 +1770,59 @@
                 document.querySelector(`[data-reward="${selectedReward}"]`).classList.add('selected');
             }
 
+            // Load existing images from localStorage
+            const imageKeys = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith(`images_${participantId}_`)) {
+                    imageKeys.push(key);
+                }
+            }
+
+            // Clear previous images
+            idCardImage = null;
+            bankbookImage = null;
+            document.getElementById('idPreview').innerHTML = '<span style="color: var(--text-light);">📷 사진 없음</span>';
+            document.getElementById('bankbookPreview').innerHTML = '<span style="color: var(--text-light);">📷 사진 없음</span>';
+
+            if (imageKeys.length > 0) {
+                // Get the latest image set
+                const latestKey = imageKeys.sort().pop();
+                const imageData = JSON.parse(localStorage.getItem(latestKey));
+
+                // Display existing images
+                if (imageData.idCard) {
+                    document.getElementById('idPreview').innerHTML = `
+                        <img src="${imageData.idCard}" alt="ID Card" style="width: 100%; height: auto;">
+                        <div style="text-align: center; font-size: 12px; color: var(--success); margin-top: 5px;">
+                            ✓ 기존 이미지 로드됨
+                        </div>
+                    `;
+                    // Convert base64 back to blob for potential re-upload
+                    fetch(imageData.idCard)
+                        .then(res => res.blob())
+                        .then(blob => { idCardImage = blob; });
+                }
+
+                if (imageData.bankbook) {
+                    document.getElementById('bankbookPreview').innerHTML = `
+                        <img src="${imageData.bankbook}" alt="Bankbook" style="width: 100%; height: auto;">
+                        <div style="text-align: center; font-size: 12px; color: var(--success); margin-top: 5px;">
+                            ✓ 기존 이미지 로드됨
+                        </div>
+                    `;
+                    // Convert base64 back to blob for potential re-upload
+                    fetch(imageData.bankbook)
+                        .then(res => res.blob())
+                        .then(blob => { bankbookImage = blob; });
+                }
+
+                // Show bankbook group if cash was selected
+                if (selectedReward === 'cash') {
+                    document.getElementById('bankbookGroup').style.display = 'block';
+                }
+            }
+
             // Update button text
             document.getElementById('submitBtn').textContent = '수정 완료';
             document.getElementById('submitBtn').disabled = false;
