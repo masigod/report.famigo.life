@@ -331,6 +331,16 @@
                 <div class="value" id="requestConfirmCount">0/0</div>
                 <div class="detail" id="requestConfirmDetail">요청: 0건 | 확정: 0건</div>
             </div>
+            <div class="stat-card">
+                <div class="label">출석 현황</div>
+                <div class="value" id="attendanceCount">0/0</div>
+                <div class="detail" id="attendanceDetail">체크인: 0 | 미참석: 0</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">A-ID 발급</div>
+                <div class="value" id="aidCount">0</div>
+                <div class="detail" id="aidDetail">발급률: 0%</div>
+            </div>
         </div>
 
         <!-- Feedback Status Summary -->
@@ -463,6 +473,7 @@
                         <tr>
                             <th width="40">ID</th>
                             <th width="80">P-ID</th>
+                            <th width="80">A-ID</th>
                             <th width="80">날짜</th>
                             <th width="80">시간</th>
                             <th>이름</th>
@@ -471,6 +482,7 @@
                             <th>전화번호</th>
                             <th>이메일</th>
                             <th width="60">예비여부</th>
+                            <th width="100">출석상태</th>
                             <th width="120">피드백상태</th>
                             <th width="120">요청일자</th>
                             <th width="120">확정일자</th>
@@ -480,7 +492,7 @@
                     </thead>
                     <tbody id="tableBody">
                         <tr>
-                            <td colspan="15" class="loading-indicator">데이터를 로드하는 중...</td>
+                            <td colspan="17" class="loading-indicator">데이터를 로드하는 중...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -638,11 +650,68 @@
         const AIRTABLE_API_KEY = typeof AIRTABLE_CONFIG !== 'undefined' ? AIRTABLE_CONFIG.API_KEY : 'YOUR_API_KEY_HERE';
         const AIRTABLE_BASE_ID = typeof AIRTABLE_CONFIG !== 'undefined' ? AIRTABLE_CONFIG.BASE_ID : 'appZcPs57spwdoKQH';
         const AIRTABLE_TABLE_ID = typeof AIRTABLE_CONFIG !== 'undefined' ? AIRTABLE_CONFIG.TABLE_ID : 'tblxMzwX1wWJKIOhY';
+        const AIRTABLE_ATTENDANCE_TABLE_ID = typeof AIRTABLE_CONFIG !== 'undefined' ? AIRTABLE_CONFIG.ATTENDANCE_TABLE_ID : 'tblUnxGfJXHp2qSHp';
         const AIRTABLE_API_URL = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}`;
+        const AIRTABLE_ATTENDANCE_API_URL = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_ATTENDANCE_TABLE_ID}`;
 
         // 전역 변수
         let participantsData = [];
+        let attendanceData = {}; // AttendanceImages data by participant ID
         let airtableRecords = {}; // Record ID 저장용
+
+        // AttendanceImages 테이블에서 데이터 가져오기
+        async function fetchAttendanceData() {
+            return ErrorHandler.handle(async () => {
+                console.log('AttendanceImages 데이터 가져오기 시작...');
+
+                let allRecords = [];
+                let offset = '';
+
+                do {
+                    const url = offset
+                        ? `${AIRTABLE_ATTENDANCE_API_URL}?pageSize=100&offset=${offset}`
+                        : `${AIRTABLE_ATTENDANCE_API_URL}?pageSize=100`;
+
+                    const response = await ErrorHandler.fetchWithErrorHandling(url, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+                            'Content-Type': 'application/json'
+                        },
+                        timeout: 30000
+                    });
+
+                    const data = await response.json();
+                    console.log(`AttendanceImages 받은 레코드 수: ${data.records.length}`);
+
+                    allRecords = allRecords.concat(data.records);
+                    offset = data.offset || '';
+
+                } while (offset);
+
+                console.log(`AttendanceImages 전체 받은 데이터: ${allRecords.length}개`);
+
+                // AttendanceImages 데이터를 participant ID를 키로 하는 객체로 변환
+                attendanceData = {};
+                allRecords.forEach(record => {
+                    const participantID = record.fields.participantID;
+                    if (participantID) {
+                        attendanceData[participantID] = {
+                            'A-ID': record.fields['A-ID'] || '',
+                            attendanceStatus: record.fields.attendanceStatus || '',
+                            checkinTime: record.fields.checkinTime || '',
+                            actualCheckinTime: record.fields.actualCheckinTime || ''
+                        };
+                    }
+                });
+
+                console.log('AttendanceImages 데이터 처리 완료:', attendanceData);
+            }).catch(error => {
+                console.warn('AttendanceImages 데이터 로드 실패:', error.message);
+                // AttendanceImages 로드 실패는 경고만 하고 계속 진행
+                attendanceData = {};
+            });
+        }
 
         // Airtable에서 데이터 가져오기
         async function fetchAirtableData() {
@@ -763,6 +832,21 @@
                 }
 
                 console.log('처리된 데이터:', participantsData);
+
+                // AttendanceImages 데이터 로드 후 병합
+                await fetchAttendanceData();
+
+                // AttendanceImages 데이터를 participantsData에 병합
+                participantsData.forEach(participant => {
+                    const attendance = attendanceData[participant.ID];
+                    if (attendance) {
+                        participant['A-ID'] = attendance['A-ID'];
+                        participant.attendanceStatus = attendance.attendanceStatus;
+                        participant.checkinTime = attendance.checkinTime;
+                        participant.actualCheckinTime = attendance.actualCheckinTime;
+                    }
+                });
+
                 loadParticipants();
                 updateStats();
             }, {
@@ -963,10 +1047,22 @@
                 return (a.ID || 0) - (b.ID || 0);
             });
 
-            const html = filtered.map(p => `
+            const html = filtered.map(p => {
+                // 출석 상태에 따른 배지 스타일 결정
+                let attendanceBadge = '';
+                if (p.attendanceStatus === 'Checked-In') {
+                    attendanceBadge = '<span style="background: #28a745; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px;">✓ Checked-In</span>';
+                } else if (p.attendanceStatus === 'No-Show') {
+                    attendanceBadge = '<span style="background: #dc3545; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px;">✗ No-Show</span>';
+                } else {
+                    attendanceBadge = '<span style="background: #6c757d; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px;">- Pending</span>';
+                }
+
+                return `
                 <tr class="${p.예비여부 ? 'reserve-row' : ''}">
                     <td>${p.ID}</td>
                     <td><span class="pid-badge">${p.PID || '대기'}</span></td>
+                    <td><span style="font-weight: bold; color: #1976d2;">${p['A-ID'] || '-'}</span></td>
                     <td>${p.setDate}</td>
                     <td>${p.setTime}</td>
                     <td>
@@ -978,6 +1074,7 @@
                     <td>${p.phone?.substring(0, 15) || '-'}</td>
                     <td>${p.email?.substring(0, 25) || '-'}</td>
                     <td>${p.예비여부 ? '예비' : '정규'}</td>
+                    <td>${attendanceBadge}</td>
                     <td>
                         <select onchange="updateFeedbackStatus(${p.ID}, this.value)" style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
                             <option value="Pending" ${p.status === 'Pending' || p.status === '대기' ? 'selected' : ''}>🔄 Pending</option>
@@ -1012,9 +1109,10 @@
                         <input type="text" value="${p.desc || ''}" onchange="updateNotes(${p.ID}, this.value)" placeholder="비고..." style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; width: 160px;">
                     </td>
                 </tr>
-            `).join('');
+                `;
+            }).join('');
 
-            tbody.innerHTML = html || '<tr><td colspan="15" style="text-align: center; padding: 40px;">필터 조건에 맞는 데이터가 없습니다</td></tr>';
+            tbody.innerHTML = html || '<tr><td colspan="17" style="text-align: center; padding: 40px;">필터 조건에 맞는 데이터가 없습니다</td></tr>';
 
             document.getElementById('displayCount').textContent = filtered.length;
             document.getElementById('totalParticipants').textContent = participantsData.length;
@@ -1061,6 +1159,12 @@
             const requestCount = nonDuplicateFiltered.filter(p => p.requestDate && p.requestDate.trim() !== '').length;
             const confirmCount = nonDuplicateFiltered.filter(p => p.confirmedDate && p.confirmedDate.trim() !== '').length;
 
+            // 출석 통계 추가
+            const checkedInCount = nonDuplicateFiltered.filter(p => p.attendanceStatus === 'Checked-In').length;
+            const noShowCount = nonDuplicateFiltered.filter(p => p.attendanceStatus === 'No-Show').length;
+            const aidIssuedCount = nonDuplicateFiltered.filter(p => p['A-ID'] && p['A-ID'] !== '').length;
+            const aidRate = total > 0 ? Math.round((aidIssuedCount / total) * 100) : 0;
+
             // 피드백 상태별 집계 (필터된 데이터 기준)
             const pendingCount = filtered.filter(p => p.status === 'Pending' || p.status === '대기').length;
             const ongoingCount = filtered.filter(p => p.status === 'Ongoing' || p.status === '진행중').length;
@@ -1077,6 +1181,12 @@
             document.getElementById('matchRate').textContent = `${matchRate}%`;
             document.getElementById('requestConfirmCount').textContent = `${requestCount}/${confirmCount}`;
             document.getElementById('requestConfirmDetail').textContent = `요청: ${requestCount}건 | 확정: ${confirmCount}건`;
+
+            // 출석 통계 업데이트
+            document.getElementById('attendanceCount').textContent = `${checkedInCount}/${total}`;
+            document.getElementById('attendanceDetail').textContent = `체크인: ${checkedInCount} | 미참석: ${noShowCount}`;
+            document.getElementById('aidCount').textContent = aidIssuedCount;
+            document.getElementById('aidDetail').textContent = `발급률: ${aidRate}%`;
 
             // 선택된 날짜 표시
             if (dateFilter) {
@@ -1297,11 +1407,70 @@
         }
 
         function showCSVData() {
-            const headers = ['ID', 'name', 'setDate', 'setTime', 'skinColor', 'skinTone', 'phone', 'email', 'reserveStatus', 'P-ID', 'status', 'requestDate', 'confirmedDate', 'desc'];
-            
+            // 현재 필터 조건 가져오기
+            const dateFilter = document.getElementById('dateFilter').value;
+            const timeFilter = document.getElementById('timeFilter').value;
+            const targetFilter = document.getElementById('targetFilter').value;
+            const toneFilter = document.getElementById('toneFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+            const feedbackFilter = document.getElementById('feedbackFilter').value;
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+
+            // 필터 적용
+            let filtered = participantsData.filter(p => {
+                if (dateFilter && p.setDate !== dateFilter) return false;
+                if (timeFilter && p.setTime !== timeFilter) return false;
+                if (targetFilter && p.skinColor !== targetFilter) return false;
+                if (toneFilter && p.skinTone !== toneFilter) return false;
+                if (statusFilter) {
+                    if (statusFilter === 'regular' && p.예비여부) return false;
+                    if (statusFilter === 'reserve' && !p.예비여부) return false;
+                }
+                if (feedbackFilter && p.status !== feedbackFilter) return false;
+                if (searchTerm && !p.name.toLowerCase().includes(searchTerm)) return false;
+                return true;
+            });
+
+            // 날짜, 시간, ID 순으로 정렬
+            filtered.sort((a, b) => {
+                const parseDate = (dateStr) => {
+                    if (!dateStr) return 99999;
+                    const parts = dateStr.split('/');
+                    if (parts.length === 2) {
+                        const month = parseInt(parts[0]);
+                        const day = parseInt(parts[1]);
+                        return month * 100 + day;
+                    }
+                    return 99999;
+                };
+
+                const parseTime = (timeStr) => {
+                    if (!timeStr) return 9999;
+                    const timeParts = timeStr.split(':');
+                    if (timeParts.length === 2) {
+                        const hour = parseInt(timeParts[0]) || 0;
+                        const minute = parseInt(timeParts[1]) || 0;
+                        return hour * 100 + minute;
+                    }
+                    return 9999;
+                };
+
+                const dateA = parseDate(a.setDate);
+                const dateB = parseDate(b.setDate);
+                if (dateA !== dateB) return dateA - dateB;
+
+                const timeA = parseTime(a.setTime);
+                const timeB = parseTime(b.setTime);
+                if (timeA !== timeB) return timeA - timeB;
+
+                return (a.ID || 0) - (b.ID || 0);
+            });
+
+            const headers = ['ID', 'name', 'setDate', 'setTime', 'skinColor', 'skinTone', 'phone', 'email', 'reserveStatus', 'P-ID', 'A-ID', 'attendanceStatus', 'status', 'requestDate', 'confirmedDate', 'desc'];
+
             let csvContent = headers.join(',') + '\n';
-            
-            participantsData.forEach(p => {
+
+            filtered.forEach(p => {
                 const row = [
                     p.ID || '',
                     `"${p.name || ''}"`,
@@ -1313,6 +1482,8 @@
                     p.email || '',
                     p.예비여부 ? 'TRUE' : 'FALSE',
                     p.PID || '',
+                    p['A-ID'] || '',
+                    p.attendanceStatus || '',
                     p.status || '대기',
                     p.requestDate || '',
                     p.confirmedDate || '',
@@ -1331,7 +1502,7 @@
             
             content.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h2 style="margin: 0;">📄 CSV 데이터 (${participantsData.length}명)</h2>
+                    <h2 style="margin: 0;">📄 CSV 데이터 (필터링된 ${filtered.length}명)</h2>
                     <button onclick="this.parentElement.parentElement.parentElement.remove()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #999;">×</button>
                 </div>
                 <textarea readonly style="width: 100%; height: 400px; font-family: monospace; font-size: 12px; border: 2px solid #e0e0e0; border-radius: 8px; padding: 10px;">${csvContent}</textarea>
@@ -1489,7 +1660,7 @@
                     document.getElementById('userInfo').textContent = `👤 ${SecurityUtils.sanitizeHTML(currentUser.fullName)} (${SecurityUtils.sanitizeHTML(currentUser.role)})`;
                 }
 
-                document.getElementById('tableBody').innerHTML = '<tr><td colspan="15" class="loading-indicator">Airtable에서 데이터를 로드하는 중...</td></tr>';
+                document.getElementById('tableBody').innerHTML = '<tr><td colspan="17" class="loading-indicator">Airtable에서 데이터를 로드하는 중...</td></tr>';
                 await fetchAirtableData();
                 setupEventListeners();
             }, {
