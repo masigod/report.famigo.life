@@ -1269,21 +1269,34 @@
                 // Airtable Date field requires YYYY-MM-DD format (date only, no time)
                 const todayDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
+                // Prepare data without problematic checkinTime field first
                 const attendanceData = {
                     participantID: parseInt(currentParticipant.ID) || 0,
                     participantName: currentParticipant.name || '',
-                    checkinTime: todayDate,  // Date field needs YYYY-MM-DD format only
+                    // checkinTime field removed - causing validation errors
                     attendanceStatus: 'Attended',
                     rewardType: rewardTypeValue,
                     staffName: currentUser.fullName || '',
                     staffID: currentUser.username || '',
-                    checkDate: formattedCheckDate || '',
-                    checkTime: currentParticipant.setTime || '',  // This is Single line text
+                    checkDate: formattedCheckDate || '',  // Date when appointment was scheduled
+                    checkTime: currentParticipant.setTime || '',  // Time slot (Single line text)
+                    actualCheckinTime: now.toLocaleTimeString('ko-KR', {hour: '2-digit', minute: '2-digit'}),  // Actual check-in time as text
                     notes: `체크인 완료 - ${now.toLocaleString('ko-KR')}`
                 };
 
-                // Log to see if checkinTime field is the problem
-                console.log('Attempting without checkinTime field to test if that is causing the error');
+                // Detailed logging for debugging
+                console.log('=== ATTENDANCE DATA DEBUG ===');
+                console.log('participantID:', attendanceData.participantID, typeof attendanceData.participantID);
+                console.log('participantName:', attendanceData.participantName, typeof attendanceData.participantName);
+                console.log('attendanceStatus:', attendanceData.attendanceStatus, typeof attendanceData.attendanceStatus);
+                console.log('rewardType:', attendanceData.rewardType, typeof attendanceData.rewardType);
+                console.log('staffName:', attendanceData.staffName, typeof attendanceData.staffName);
+                console.log('staffID:', attendanceData.staffID, typeof attendanceData.staffID);
+                console.log('checkDate:', attendanceData.checkDate, typeof attendanceData.checkDate);
+                console.log('checkTime:', attendanceData.checkTime, typeof attendanceData.checkTime);
+                console.log('actualCheckinTime:', attendanceData.actualCheckinTime, typeof attendanceData.actualCheckinTime);
+                console.log('notes:', attendanceData.notes, typeof attendanceData.notes);
+                console.log('=== END DEBUG ===');
 
                 // Note: Airtable Attachment fields require external URLs or need to be uploaded separately
                 // For now, we'll store image indicators in notes field
@@ -1336,13 +1349,12 @@
                     }]
                 };
 
-                console.log('Request Body:', JSON.stringify(requestBody, null, 2));
-
                 addDebugLog('API 요청 정보:', {
                     url: apiUrl,
                     method: 'POST',
                     table: ATTENDANCE_TABLE_ID,
-                    fields: Object.keys(attendanceData)
+                    fields: Object.keys(attendanceData),
+                    data: attendanceData
                 });
 
                 let response;
@@ -1363,10 +1375,10 @@
 
                         // Log specific field error details
                         if (errorData.error && errorData.error.type === 'INVALID_VALUE_FOR_COLUMN') {
-                            console.error('Field validation error - checkinTime value:', checkinTimeFormatted);
                             console.error('Field validation error - full data:', attendanceData);
-                            addDebugLog('필드 검증 실패 - checkinTime:', checkinTimeFormatted);
+                            console.error('Error details:', errorData);
                             addDebugLog('필드 검증 실패 - 전체 데이터:', attendanceData);
+                            addDebugLog('에러 상세:', errorData);
                         }
 
                         if (errorData.error && errorData.error.message) {
