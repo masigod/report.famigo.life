@@ -1077,9 +1077,14 @@
                             <div style="color: var(--success); font-size: 14px; margin-bottom: 8px;">
                                 ✓ ${p.checkinTime ? new Date(p.checkinTime).toLocaleTimeString('ko-KR', {hour: '2-digit', minute: '2-digit'}) : ''} 체크인 완료
                             </div>
-                            <button class="checkin-btn" onclick="editAttendance(${p.ID})" style="background: #718096; font-size: 12px; padding: 8px;">
-                                수정하기
-                            </button>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="checkin-btn" onclick="editAttendance(${p.ID})" style="background: #718096; font-size: 12px; padding: 8px; flex: 1;">
+                                    수정하기
+                                </button>
+                                <button class="checkin-btn" onclick="viewImages(${p.ID})" style="background: #4a5568; font-size: 12px; padding: 8px; flex: 1;">
+                                    이미지 보기
+                                </button>
+                            </div>
                         </div>`
                     }
                 </div>
@@ -1305,17 +1310,70 @@
                 console.log('notes:', attendanceData.notes, typeof attendanceData.notes);
                 console.log('=== END DEBUG ===');
 
-                // Note: Airtable Attachment fields require external URLs or need to be uploaded separately
-                // For now, we'll store image indicators in notes field
+                // Handle image data
                 if (idCardImage || bankbookImage) {
                     let imageNote = '이미지 첨부: ';
-                    if (idCardImage) imageNote += '신분증 ';
-                    if (bankbookImage) imageNote += '통장사본';
-                    attendanceData.notes += `\n${imageNote}`;
 
-                    // Store images locally for future upload implementation
-                    // Airtable doesn't support direct base64 upload in attachment fields
-                    addDebugLog('이미지 업로드 기능은 별도 구현 필요 (Airtable API 제한)');
+                    // Convert images to base64 for temporary storage in notes
+                    const imageDataPromises = [];
+
+                    if (idCardImage) {
+                        imageNote += '신분증 ';
+                        imageDataPromises.push(
+                            new Promise((resolve) => {
+                                const reader = new FileReader();
+                                reader.onloadend = () => {
+                                    // Store base64 data in notes temporarily
+                                    // Note: This is a temporary solution - consider external storage for production
+                                    resolve(`[신분증 이미지 크기: ${(reader.result.length / 1024).toFixed(2)}KB]`);
+                                };
+                                reader.readAsDataURL(idCardImage);
+                            })
+                        );
+                    }
+
+                    if (bankbookImage) {
+                        imageNote += '통장사본';
+                        imageDataPromises.push(
+                            new Promise((resolve) => {
+                                const reader = new FileReader();
+                                reader.onloadend = () => {
+                                    resolve(`[통장사본 이미지 크기: ${(reader.result.length / 1024).toFixed(2)}KB]`);
+                                };
+                                reader.readAsDataURL(bankbookImage);
+                            })
+                        );
+                    }
+
+                    const imageSizes = await Promise.all(imageDataPromises);
+                    attendanceData.notes += `\n${imageNote}\n${imageSizes.join('\n')}`;
+
+                    // Store images in localStorage temporarily (for demo/testing)
+                    // In production, use proper image hosting service
+                    try {
+                        const imageKey = `images_${currentParticipant.ID}_${Date.now()}`;
+                        const imageData = {
+                            participantID: currentParticipant.ID,
+                            timestamp: new Date().toISOString(),
+                            idCard: idCardImage ? await blobToBase64(idCardImage) : null,
+                            bankbook: bankbookImage ? await blobToBase64(bankbookImage) : null
+                        };
+                        localStorage.setItem(imageKey, JSON.stringify(imageData));
+                        attendanceData.notes += `\n이미지 저장 키: ${imageKey}`;
+
+                        addDebugLog('이미지 임시 저장 완료:', imageKey);
+                    } catch (e) {
+                        addDebugLog('이미지 저장 실패:', e.message);
+                    }
+                }
+
+                // Helper function to convert blob to base64
+                async function blobToBase64(blob) {
+                    return new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(reader.result);
+                        reader.readAsDataURL(blob);
+                    });
                 }
 
                 // Debug: Log attempt (DO NOT use recordId for anything)
@@ -1741,6 +1799,59 @@
                 showNotification: true,
                 logError: true
             });
+        }
+
+        // View stored images
+        function viewImages(participantId) {
+            // Find all image keys for this participant
+            const imageKeys = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith(`images_${participantId}_`)) {
+                    imageKeys.push(key);
+                }
+            }
+
+            if (imageKeys.length === 0) {
+                showNotification('저장된 이미지가 없습니다', 'error');
+                return;
+            }
+
+            // Get the latest image set
+            const latestKey = imageKeys.sort().pop();
+            const imageData = JSON.parse(localStorage.getItem(latestKey));
+
+            // Create modal to display images
+            const modal = document.createElement('div');
+            modal.className = 'modal active';
+            modal.style.zIndex = '2000';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 600px;">
+                    <div class="modal-header">
+                        <h3 class="modal-title">저장된 이미지</h3>
+                        <button class="modal-close" onclick="this.closest('.modal').remove()">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <div style="margin-bottom: 10px; font-size: 12px; color: var(--text-light);">
+                            참가자 ID: ${imageData.participantID}<br>
+                            저장 시간: ${new Date(imageData.timestamp).toLocaleString('ko-KR')}
+                        </div>
+                        ${imageData.idCard ? `
+                            <div style="margin-bottom: 15px;">
+                                <h4 style="margin-bottom: 8px;">신분증</h4>
+                                <img src="${imageData.idCard}" style="width: 100%; border-radius: 8px; border: 1px solid var(--border);">
+                            </div>
+                        ` : ''}
+                        ${imageData.bankbook ? `
+                            <div>
+                                <h4 style="margin-bottom: 8px;">통장사본</h4>
+                                <img src="${imageData.bankbook}" style="width: 100%; border-radius: 8px; border: 1px solid var(--border);">
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
         }
 
         // Show notification
