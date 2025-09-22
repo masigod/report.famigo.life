@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>피부 타입별 고객 분포 대시보드 - 2025년 9월 22일</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.2em;
+        }
+
+        .stats-container {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+
+        .stat-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            min-width: 150px;
+            text-align: center;
+            margin: 10px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s;
+        }
+
+        .stat-box:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+        }
+
+        .stat-label {
+            font-size: 1em;
+            margin-top: 5px;
+            opacity: 0.9;
+        }
+
+        .matrix-container {
+            overflow-x: auto;
+            margin-bottom: 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 5px;
+            margin: 20px 0;
+        }
+
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 10px;
+            text-align: center;
+            font-weight: 600;
+            border-radius: 10px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        th.row-header {
+            text-align: left;
+            padding-left: 20px;
+            min-width: 200px;
+        }
+
+        td {
+            padding: 15px;
+            text-align: center;
+            background: #f8f9fa;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            min-width: 100px;
+        }
+
+        td.row-header {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            font-weight: 600;
+            text-align: left;
+            padding-left: 20px;
+            cursor: default;
+            min-width: 200px;
+        }
+
+        .skin-color-box {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            margin-right: 8px;
+            vertical-align: middle;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .skin-label {
+            font-size: 0.95em;
+            color: #333;
+        }
+
+        .skin-desc {
+            font-size: 0.8em;
+            color: #666;
+            font-weight: normal;
+            margin-top: 3px;
+        }
+
+        td.has-data {
+            background: white;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        td.has-data:hover {
+            background: linear-gradient(135deg, #e6e9ff 0%, #f0e6ff 100%);
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        td.total-cell {
+            background: linear-gradient(135deg, #ffd93d 0%, #ffb347 100%);
+            font-weight: bold;
+            color: #333;
+            font-size: 1.2em;
+        }
+
+        td.total-cell:hover {
+            transform: scale(1.02);
+        }
+
+        .cell-count {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 3px;
+        }
+
+        .cell-label {
+            font-size: 0.85em;
+            color: #999;
+        }
+
+        .empty-cell {
+            color: #ddd;
+            font-size: 1.2em;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: white;
+            margin: 10% auto;
+            padding: 30px;
+            border-radius: 20px;
+            max-width: 600px;
+            max-height: 70vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.3s;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .modal-title {
+            font-size: 1.5em;
+            color: #333;
+        }
+
+        .close {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        .close:hover {
+            color: #667eea;
+        }
+
+        .person-item {
+            background: #f8f9fa;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+            transition: all 0.3s;
+        }
+
+        .person-item:hover {
+            background: #e6e9ff;
+            transform: translateX(5px);
+        }
+
+        .person-name {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .person-aid {
+            color: #667eea;
+            font-weight: 500;
+        }
+
+        .total-row {
+            background: linear-gradient(135deg, #fff5e6 0%, #ffe4cc 100%);
+        }
+
+        .grand-total {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%);
+            color: white !important;
+            font-size: 1.5em !important;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            table {
+                font-size: 0.9em;
+            }
+
+            td {
+                padding: 10px;
+                min-width: 80px;
+            }
+
+            .skin-desc {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 피부 타입별 고객 분포 대시보드</h1>
+            <p>2025년 9월 22일 - 출석 완료 고객 분석</p>
+        </div>
+
+        <div class="stats-container">
+            <div class="stat-box">
+                <div class="stat-number">36</div>
+                <div class="stat-label">총 고객 수</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number">6</div>
+                <div class="stat-label">피부색 타입</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number">4</div>
+                <div class="stat-label">피부톤 타입</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number">100%</div>
+                <div class="stat-label">출석률</div>
+            </div>
+        </div>
+
+        <div class="matrix-container">
+            <table id="dataTable">
+                <thead>
+                    <tr>
+                        <th class="row-header">피부색 타입</th>
+                        <th>Cool<br><span style="font-weight: normal; font-size: 0.85em;">차가운 톤</span></th>
+                        <th>Neutral<br><span style="font-weight: normal; font-size: 0.85em;">중간 톤</span></th>
+                        <th>Olive<br><span style="font-weight: normal; font-size: 0.85em;">올리브 톤</span></th>
+                        <th>Warm<br><span style="font-weight: normal; font-size: 0.85em;">따뜻한 톤</span></th>
+                        <th style="background: linear-gradient(135deg, #ffd93d 0%, #ffb347 100%);">Total<br><span style="font-weight: normal; font-size: 0.85em;">합계</span></th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- JavaScript로 동적 생성 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="myModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="modalTitle">상세 정보</div>
+                <span class="close">&times;</span>
+            </div>
+            <div id="modalBody">
+                <!-- 동적으로 내용 추가 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 데이터 정의 (y축: skinColor, x축: skinTone)
+        const data = {
+            "1(F)": {
+                "Cool": { count: 1, people: [{ name: "Leona kinsella", aid: "A110" }] },
+                "Neutral": { count: 1, people: [{ name: "LONG VIRGINIA MARLO", aid: "A111" }] },
+                "Olive": { count: 2, people: [
+                    { name: "Mihova Aneta", aid: "A114" },
+                    { name: "Lyubanova Ekaterina", aid: "A132" }
+                ]},
+                "Warm": { count: 1, people: [{ name: "SHANNON TATUM RAE", aid: "A101" }] }
+            },
+            "2(L)": {
+                "Cool": { count: 3, people: [
+                    { name: "Kozyreva Iana", aid: "A105" },
+                    { name: "Alina Berg", aid: "A113" },
+                    { name: "Fedorova Viktoriia", aid: "A123" }
+                ]},
+                "Neutral": { count: 3, people: [
+                    { name: "Morssi Alicia Myriam", aid: "A106" },
+                    { name: "Mihova Kalina Dionisieva", aid: "A124" },
+                    { name: "Nilsson Cecilia Eva", aid: "A134" }
+                ]},
+                "Olive": { count: 2, people: [
+                    { name: "Shcherba Anzhela", aid: "A125" },
+                    { name: "Medina Siccha Nicole Mahomy", aid: "A129" }
+                ]},
+                "Warm": { count: 0, people: [] }
+            },
+            "3(LM)": {
+                "Cool": { count: 2, people: [
+                    { name: "CALLEJAS SANDOVAL SUSANA", aid: "A103" },
+                    { name: "Farhat Ghady Hossamaldin Othman", aid: "A115" }
+                ]},
+                "Neutral": { count: 5, people: [
+                    { name: "Romero Oliva Silvana Elizabeth", aid: "A107" },
+                    { name: "Singh Divija", aid: "A118" },
+                    { name: "Cortes Ortiz Madison", aid: "A127" },
+                    { name: "Mehrona Iskandarova", aid: "A126" },
+                    { name: "Nikita Khairnar", aid: "A136" }
+                ]},
+                "Olive": { count: 0, people: [] },
+                "Warm": { count: 4, people: [
+                    { name: "TAMEZ RODRIGUEZ ALEJANDRA", aid: "A112" },
+                    { name: "Salian Riddhi Ashok", aid: "A130" },
+                    { name: "Birajdar Prajakta Arvind", aid: "A131" },
+                    { name: "Mariam Lukianova", aid: "A133" }
+                ]}
+            },
+            "4(M)": {
+                "Cool": { count: 0, people: [] },
+                "Neutral": { count: 3, people: [
+                    { name: "Chaudhary Tanya", aid: "A104" },
+                    { name: "MANOHARAN NAVENA", aid: "A109" },
+                    { name: "Chidiebere Harmony Amarachi", aid: "A128" }
+                ]},
+                "Olive": { count: 1, people: [{ name: "Kumari divya", aid: "A108" }] },
+                "Warm": { count: 0, people: [] }
+            },
+            "5(MD)": {
+                "Cool": { count: 1, people: [{ name: "Batinna Mosley", aid: "A119" }] },
+                "Neutral": { count: 4, people: [
+                    { name: "THANDO KGAKGAMATSO", aid: "A102" },
+                    { name: "Ordor Racheal Chinyere", aid: "A122" },
+                    { name: "MC CRARY LEANDRE", aid: "A120" },
+                    { name: "EKEOMA JENNIFER EZINNE", aid: "A121" }
+                ]},
+                "Olive": { count: 0, people: [] },
+                "Warm": { count: 1, people: [{ name: "Scotland Justine Alexis", aid: "A135" }] }
+            },
+            "6(D)": {
+                "Cool": { count: 0, people: [] },
+                "Neutral": { count: 1, people: [{ name: "HAREWOOD SHAKIRA DELECIA", aid: "A116" }] },
+                "Olive": { count: 0, people: [] },
+                "Warm": { count: 1, people: [{ name: "Ijeoma Hunt", aid: "A117" }] }
+            }
+        };
+
+        const colors = ["1(F)", "2(L)", "3(LM)", "4(M)", "5(MD)", "6(D)"];
+        const tones = ["Cool", "Neutral", "Olive", "Warm"];
+
+        const colorInfo = {
+            "1(F)": { label: "Fair", desc: "매우 밝은 피부", hex: "#ffe8d6" },
+            "2(L)": { label: "Light", desc: "밝은 피부", hex: "#fdd4b2" },
+            "3(LM)": { label: "Light Medium", desc: "밝은 중간", hex: "#f5b895" },
+            "4(M)": { label: "Medium", desc: "중간 피부", hex: "#d4a574" },
+            "5(MD)": { label: "Medium Deep", desc: "중간 어두운", hex: "#a67c52" },
+            "6(D)": { label: "Deep", desc: "어두운 피부", hex: "#8b6239" }
+        };
+
+        // 테이블 생성
+        function createTable() {
+            const tbody = document.getElementById('tableBody');
+            let grandTotal = 0;
+
+            colors.forEach(color => {
+                const row = document.createElement('tr');
+
+                // 첫 번째 열 - 피부색 타입 (색상 표시 포함)
+                const colorCell = document.createElement('td');
+                colorCell.className = 'row-header';
+                colorCell.innerHTML = `
+                    <div>
+                        <span class="skin-color-box" style="background: ${colorInfo[color].hex};"></span>
+                        <span class="skin-label">${color} - ${colorInfo[color].label}</span>
+                        <div class="skin-desc">${colorInfo[color].desc}</div>
+                    </div>
+                `;
+                row.appendChild(colorCell);
+
+                let rowTotal = 0;
+
+                // 각 피부톤별 데이터
+                tones.forEach(tone => {
+                    const cell = document.createElement('td');
+                    const cellData = data[color][tone];
+
+                    if (cellData.count > 0) {
+                        cell.className = 'has-data';
+                        cell.innerHTML = `
+                            <div class="cell-count">${cellData.count}</div>
+                            <div class="cell-label">명</div>
+                        `;
+                        cell.setAttribute('data-color', color);
+                        cell.setAttribute('data-tone', tone);
+                        cell.onclick = function() {
+                            showModal(color, tone, cellData);
+                        };
+                        rowTotal += cellData.count;
+                    } else {
+                        cell.innerHTML = '<div class="empty-cell">-</div>';
+                    }
+
+                    row.appendChild(cell);
+                });
+
+                // Total 열
+                const totalCell = document.createElement('td');
+                totalCell.className = 'total-cell';
+                totalCell.innerHTML = `<strong>${rowTotal}</strong>`;
+                row.appendChild(totalCell);
+
+                grandTotal += rowTotal;
+                tbody.appendChild(row);
+            });
+
+            // 최하단 합계 행 추가
+            const totalRow = document.createElement('tr');
+            totalRow.className = 'total-row';
+
+            const totalLabel = document.createElement('td');
+            totalLabel.className = 'row-header';
+            totalLabel.style.background = 'linear-gradient(135deg, #ffd93d 0%, #ffb347 100%)';
+            totalLabel.innerHTML = '<strong>Total 합계</strong>';
+            totalRow.appendChild(totalLabel);
+
+            // 각 톤별 합계
+            tones.forEach(tone => {
+                const cell = document.createElement('td');
+                cell.className = 'total-cell';
+                let toneTotal = 0;
+                colors.forEach(color => {
+                    toneTotal += data[color][tone].count;
+                });
+                cell.innerHTML = `<strong>${toneTotal}</strong>`;
+                totalRow.appendChild(cell);
+            });
+
+            // 전체 합계
+            const grandTotalCell = document.createElement('td');
+            grandTotalCell.className = 'grand-total';
+            grandTotalCell.innerHTML = `<strong>${grandTotal}</strong>`;
+            totalRow.appendChild(grandTotalCell);
+
+            tbody.appendChild(totalRow);
+        }
+
+        // 모달 표시
+        function showModal(color, tone, cellData) {
+            const modal = document.getElementById('myModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalBody = document.getElementById('modalBody');
+
+            modalTitle.innerHTML = `
+                <span class="skin-color-box" style="background: ${colorInfo[color].hex};"></span>
+                ${color} - ${colorInfo[color].label} / ${tone}
+                <span style="color: #667eea;">(${cellData.count}명)</span>
+            `;
+
+            let bodyHtml = '<div class="people-list">';
+            cellData.people.forEach((person, index) => {
+                bodyHtml += `
+                    <div class="person-item">
+                        <div class="person-name">${index + 1}. ${person.name}</div>
+                        <div class="person-aid">출석 ID: ${person.aid}</div>
+                    </div>
+                `;
+            });
+            bodyHtml += '</div>';
+
+            modalBody.innerHTML = bodyHtml;
+            modal.style.display = 'block';
+        }
+
+        // 모달 닫기
+        const modal = document.getElementById('myModal');
+        const span = document.getElementsByClassName('close')[0];
+
+        span.onclick = function() {
+            modal.style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // 페이지 로드시 테이블 생성
+        createTable();
+    </script>
+</body>
+</html>
