@@ -436,11 +436,12 @@
                 </select>
             </div>
             <div class="filter-group">
-                <label>상태</label>
-                <select id="statusFilter">
+                <label>출석상태</label>
+                <select id="attendanceStatusFilter">
                     <option value="">전체</option>
-                    <option value="regular">정규</option>
-                    <option value="reserve">예비</option>
+                    <option value="Checked-In">✓ Checked-In</option>
+                    <option value="No-Show">✗ No-Show</option>
+                    <option value="Pending">- Pending</option>
                 </select>
             </div>
             <div class="filter-group">
@@ -462,7 +463,6 @@
             </div>
             <button class="btn btn-primary" onclick="showCSVData()">📄 CSV 데이터 보기</button>
             <button class="btn btn-success" onclick="showAddParticipantForm()">➕ 새 참가자 추가</button>
-            <button class="btn btn-warning" onclick="resetLocalStorage()">🔄 데이터 초기화</button>
         </div>
 
         <!-- Table -->
@@ -694,11 +694,24 @@
                 // AttendanceImages 데이터를 participant ID를 키로 하는 객체로 변환
                 attendanceData = {};
                 allRecords.forEach(record => {
+                    // 첫 번째 레코드의 필드 구조 확인 (디버깅용)
+                    if (Object.keys(attendanceData).length === 0) {
+                        console.log('AttendanceImages 필드 목록:', Object.keys(record.fields));
+                        console.log('AttendanceImages 첫 번째 레코드:', record.fields);
+                    }
+
                     const participantID = record.fields.participantID;
                     if (participantID) {
+                        // attendanceStatus 필드명 확인 - 가능한 필드명들 체크
+                        const status = record.fields.attendanceStatus ||
+                                      record.fields.AttendanceStatus ||
+                                      record.fields['attendance-status'] ||
+                                      record.fields.status ||
+                                      '';
+
                         attendanceData[participantID] = {
                             'A-ID': record.fields['A-ID'] || '',
-                            attendanceStatus: record.fields.attendanceStatus || '',
+                            attendanceStatus: status,
                             checkinTime: record.fields.checkinTime || '',
                             actualCheckinTime: record.fields.actualCheckinTime || ''
                         };
@@ -982,7 +995,7 @@
             const timeFilter = document.getElementById('timeFilter').value;
             const targetFilter = document.getElementById('targetFilter').value;
             const toneFilter = document.getElementById('toneFilter').value;
-            const statusFilter = document.getElementById('statusFilter').value;
+            const attendanceStatusFilter = document.getElementById('attendanceStatusFilter').value;
             const feedbackFilter = document.getElementById('feedbackFilter').value;
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
 
@@ -991,9 +1004,10 @@
                 if (timeFilter && p.setTime !== timeFilter) return false;
                 if (targetFilter && p.skinColor !== targetFilter) return false;
                 if (toneFilter && p.skinTone !== toneFilter) return false;
-                if (statusFilter) {
-                    if (statusFilter === 'regular' && p.예비여부) return false;
-                    if (statusFilter === 'reserve' && !p.예비여부) return false;
+                if (attendanceStatusFilter) {
+                    // Pending은 attendanceStatus가 없거나 빈 문자열인 경우
+                    if (attendanceStatusFilter === 'Pending' && p.attendanceStatus && p.attendanceStatus !== '') return false;
+                    if (attendanceStatusFilter !== 'Pending' && p.attendanceStatus !== attendanceStatusFilter) return false;
                 }
                 if (feedbackFilter && p.status !== feedbackFilter) return false;
                 if (searchTerm && !p.name.toLowerCase().includes(searchTerm)) return false;
@@ -1127,7 +1141,7 @@
             const timeFilter = document.getElementById('timeFilter').value;
             const targetFilter = document.getElementById('targetFilter').value;
             const toneFilter = document.getElementById('toneFilter').value;
-            const statusFilter = document.getElementById('statusFilter').value;
+            const attendanceStatusFilter = document.getElementById('attendanceStatusFilter').value;
             const feedbackFilter = document.getElementById('feedbackFilter').value;
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
 
@@ -1137,9 +1151,10 @@
                 if (timeFilter && p.setTime !== timeFilter) return false;
                 if (targetFilter && p.skinColor !== targetFilter) return false;
                 if (toneFilter && p.skinTone !== toneFilter) return false;
-                if (statusFilter) {
-                    if (statusFilter === 'regular' && p.예비여부) return false;
-                    if (statusFilter === 'reserve' && !p.예비여부) return false;
+                if (attendanceStatusFilter) {
+                    // Pending은 attendanceStatus가 없거나 빈 문자열인 경우
+                    if (attendanceStatusFilter === 'Pending' && p.attendanceStatus && p.attendanceStatus !== '') return false;
+                    if (attendanceStatusFilter !== 'Pending' && p.attendanceStatus !== attendanceStatusFilter) return false;
                 }
                 if (feedbackFilter && p.status !== feedbackFilter) return false;
                 if (searchTerm && !p.name.toLowerCase().includes(searchTerm)) return false;
@@ -1412,7 +1427,7 @@
             const timeFilter = document.getElementById('timeFilter').value;
             const targetFilter = document.getElementById('targetFilter').value;
             const toneFilter = document.getElementById('toneFilter').value;
-            const statusFilter = document.getElementById('statusFilter').value;
+            const attendanceStatusFilter = document.getElementById('attendanceStatusFilter').value;
             const feedbackFilter = document.getElementById('feedbackFilter').value;
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
 
@@ -1422,9 +1437,10 @@
                 if (timeFilter && p.setTime !== timeFilter) return false;
                 if (targetFilter && p.skinColor !== targetFilter) return false;
                 if (toneFilter && p.skinTone !== toneFilter) return false;
-                if (statusFilter) {
-                    if (statusFilter === 'regular' && p.예비여부) return false;
-                    if (statusFilter === 'reserve' && !p.예비여부) return false;
+                if (attendanceStatusFilter) {
+                    // Pending은 attendanceStatus가 없거나 빈 문자열인 경우
+                    if (attendanceStatusFilter === 'Pending' && p.attendanceStatus && p.attendanceStatus !== '') return false;
+                    if (attendanceStatusFilter !== 'Pending' && p.attendanceStatus !== attendanceStatusFilter) return false;
                 }
                 if (feedbackFilter && p.status !== feedbackFilter) return false;
                 if (searchTerm && !p.name.toLowerCase().includes(searchTerm)) return false;
@@ -1629,17 +1645,6 @@
             });
         }
 
-        async function resetLocalStorage() {
-            if (confirm('⚠️ Airtable에서 최신 데이터를 다시 가져오시겠습니까?')) {
-                return ErrorHandler.handle(async () => {
-                    await fetchAirtableData();
-                    ErrorHandler.showNotification('✅ Airtable에서 데이터를 새로고침했습니다.', 'success');
-                }, {
-                    showNotification: true,
-                    logError: true
-                });
-            }
-        }
 
         // 이벤트 리스너 설정
         function setupEventListeners() {
@@ -1647,7 +1652,7 @@
             document.getElementById('timeFilter').addEventListener('change', loadParticipants);
             document.getElementById('targetFilter').addEventListener('change', loadParticipants);
             document.getElementById('toneFilter').addEventListener('change', loadParticipants);
-            document.getElementById('statusFilter').addEventListener('change', loadParticipants);
+            document.getElementById('attendanceStatusFilter').addEventListener('change', loadParticipants);
             document.getElementById('feedbackFilter').addEventListener('change', loadParticipants);
             document.getElementById('searchInput').addEventListener('input', loadParticipants);
         }
