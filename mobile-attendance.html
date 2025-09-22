@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>CLT 현장 출석 관리 V2</title>
+    <title>CLT On-site Attendance Management V2</title>
     <script src="env-config.js?v=20250922"></script>
     <script src="config-loader.js?v=20250922"></script>
     <script src="config.js?v=20250922"></script>
@@ -490,10 +490,10 @@
     <div class="header">
         <div class="header-content">
             <div>
-                <h1>CLT 현장 출석</h1>
+                <h1>CLT On-site Attendance</h1>
                 <div style="font-size: 12px; opacity: 0.9;" id="staffInfo">Loading...</div>
             </div>
-            <button class="logout-btn" onclick="logout()">로그아웃</button>
+            <button class="logout-btn" onclick="logout()">Logout</button>
         </div>
     </div>
 
@@ -507,31 +507,31 @@
     <div id="mainView">
         <!-- Date Selector -->
         <div style="padding: 15px 20px; background: white; border-bottom: 1px solid #e0e0e0;">
-            <label style="display: block; font-size: 14px; color: #666; margin-bottom: 5px;">날짜 선택</label>
+            <label style="display: block; font-size: 14px; color: #666; margin-bottom: 5px;">Select Date</label>
             <div style="display: flex; gap: 10px;">
                 <input type="date" id="dateFilter" style="flex: 1; padding: 10px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 16px;">
-                <button onclick="document.getElementById('dateFilter').value=''; filterAndDisplayParticipants();" style="padding: 10px 15px; background: #667eea; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">전체보기</button>
+                <button onclick="document.getElementById('dateFilter').value=''; filterAndDisplayParticipants();" style="padding: 10px 15px; background: #667eea; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">Show All</button>
             </div>
         </div>
         <!-- Stats -->
         <div class="stats-container">
             <div class="stat-card">
                 <div class="stat-value" id="totalCount">0</div>
-                <div class="stat-label">전체</div>
+                <div class="stat-label">Total</div>
             </div>
             <div class="stat-card">
                 <div class="stat-value" id="attendedCount">0</div>
-                <div class="stat-label">출석</div>
+                <div class="stat-label">Attended</div>
             </div>
             <div class="stat-card">
                 <div class="stat-value" id="pendingCount">0</div>
-                <div class="stat-label">대기</div>
+                <div class="stat-label">Pending</div>
             </div>
         </div>
 
         <!-- Time Filter -->
         <div class="time-filter" id="timeFilter">
-            <button class="time-btn active" data-time="all">전체</button>
+            <button class="time-btn active" data-time="all">All</button>
             <button class="time-btn" data-time="13:00">13:00</button>
             <button class="time-btn" data-time="13:30">13:30</button>
             <button class="time-btn" data-time="14:00">14:00</button>
@@ -544,7 +544,7 @@
 
         <!-- Search -->
         <div class="search-container" style="position: relative;">
-            <input type="text" class="search-input" id="searchInput" placeholder="이름 또는 ID 번호로 검색...">
+            <input type="text" class="search-input" id="searchInput" placeholder="Search by name or ID number...">
             <span class="search-icon">🔍</span>
         </div>
 
@@ -552,7 +552,7 @@
         <div class="participant-list" id="participantList">
             <div class="loading">
                 <div class="spinner"></div>
-                <div>데이터를 불러오는 중...</div>
+                <div>Loading data...</div>
             </div>
         </div>
     </div>
@@ -576,15 +576,15 @@
     <div class="tab-bar">
         <div class="tab-item active" onclick="switchTab('main')">
             <div class="tab-icon">✓</div>
-            <div class="tab-label">출석체크</div>
+            <div class="tab-label">Attendance</div>
         </div>
         <div class="tab-item" onclick="switchTab('noshow')">
             <div class="tab-icon">✗</div>
-            <div class="tab-label">노쇼</div>
+            <div class="tab-label">No-show</div>
         </div>
         <div class="tab-item" onclick="switchTab('stats')">
             <div class="tab-icon">📊</div>
-            <div class="tab-label">통계</div>
+            <div class="tab-label">Statistics</div>
         </div>
     </div>
 
@@ -592,7 +592,7 @@
     <div class="modal" id="checkinModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 class="modal-title">체크인</h3>
+                <h3 class="modal-title">Check-in</h3>
                 <button class="modal-close" onclick="closeCheckinModal()">×</button>
             </div>
             <div class="modal-body">
@@ -601,52 +601,52 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">현장 번호 (A-ID)</label>
-                    <input type="text" id="aidInput" placeholder="예: A101, B202" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px;">
+                    <label class="form-label">On-site Number (A-ID)</label>
+                    <input type="text" id="aidInput" placeholder="e.g., A101, B202" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px;">
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">리워드 방식</label>
+                    <label class="form-label">Reward Type</label>
                     <div class="reward-options">
                         <div class="reward-option" onclick="selectReward('mobile')" data-reward="mobile">
                             <div class="reward-icon">📱</div>
-                            <div>모바일 상품권</div>
+                            <div>Mobile Voucher</div>
                         </div>
                         <div class="reward-option" onclick="selectReward('cash')" data-reward="cash">
                             <div class="reward-icon">💵</div>
-                            <div>현금</div>
+                            <div>Cash</div>
                         </div>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">신분증 촬영 (필수)</label>
+                    <label class="form-label">ID Card Photo (Required)</label>
                     <div class="camera-container">
                         <div class="camera-preview" id="idPreview">
-                            <span style="color: var(--text-light);">📷 사진 없음</span>
+                            <span style="color: var(--text-light);">📷 No photo</span>
                         </div>
                         <input type="file" id="idCardInput" accept="image/*" capture="camera" style="display: none;">
                         <button class="camera-btn" onclick="document.getElementById('idCardInput').click()">
-                            신분증 촬영
+                            Take ID Photo
                         </button>
                     </div>
                 </div>
 
                 <div class="form-group" id="bankbookGroup" style="display: none;">
-                    <label class="form-label">통장사본 촬영</label>
+                    <label class="form-label">Bankbook Photo</label>
                     <div class="camera-container">
                         <div class="camera-preview" id="bankbookPreview">
-                            <span style="color: var(--text-light);">📷 사진 없음</span>
+                            <span style="color: var(--text-light);">📷 No photo</span>
                         </div>
                         <input type="file" id="bankbookInput" accept="image/*" capture="camera" style="display: none;">
                         <button class="camera-btn" onclick="document.getElementById('bankbookInput').click()">
-                            통장사본 촬영
+                            Take Bankbook Photo
                         </button>
                     </div>
                 </div>
 
                 <button class="submit-btn" id="submitBtn" onclick="submitCheckin()" disabled>
-                    체크인 완료
+                    Complete Check-in
                 </button>
             </div>
         </div>
@@ -728,7 +728,7 @@
                 if (!currentUser) return;
 
                 // Display staff info (sanitized)
-                document.getElementById('staffInfo').textContent = `스태프: ${SecurityUtils.sanitizeHTML(currentUser.fullName)}`;
+                document.getElementById('staffInfo').textContent = `Staff: ${SecurityUtils.sanitizeHTML(currentUser.fullName)}`;
 
                 // Set today's date as default
                 const today = new Date().toISOString().split('T')[0];
@@ -1037,7 +1037,7 @@
 
                 dateHeader = `
                     <div style="padding: 10px 15px; background: var(--primary); color: white; margin: -20px -20px 15px; text-align: center; font-weight: bold; border-radius: 8px 8px 0 0;">
-                        📅 ${dateStr} 예약자 (${filtered.length}명)
+                        📅 ${dateStr} Reservations (${filtered.length} people)
                     </div>
                 `;
             }
@@ -1049,15 +1049,15 @@
                     listContainer.innerHTML = `
                         <div style="text-align: center; padding: 40px; color: #999;">
                             <div style="font-size: 48px; margin-bottom: 10px;">📅</div>
-                            <div>${dateStr}에 예약된 참가자가 없습니다</div>
-                            <div style="font-size: 12px; margin-top: 10px; color: #667eea;">💡 전체보기를 눌러 다른 날짜를 확인하세요</div>
+                            <div>No participants reserved for ${dateStr}</div>
+                            <div style="font-size: 12px; margin-top: 10px; color: #667eea;">💡 Click 'Show All' to check other dates</div>
                         </div>
                     `;
                 } else {
                     listContainer.innerHTML = `
                         <div style="text-align: center; padding: 40px; color: #999;">
                             <div style="font-size: 48px; margin-bottom: 10px;">🔍</div>
-                            <div>검색 결과가 없습니다</div>
+                            <div>No search results</div>
                         </div>
                     `;
                 }
@@ -1068,7 +1068,7 @@
                 <div class="participant-card" onclick="openCheckinModal(${p.ID})">
                     <div class="participant-header">
                         <div>
-                            <div class="participant-name">${p.name || '이름 없음'}</div>
+                            <div class="participant-name">${p.name || 'No name'}</div>
                             ${p.status !== 'Confirmed' ? `
                                 <span style="display: inline-block; padding: 2px 6px; background: #fef3c7; color: #92400e; font-size: 10px; border-radius: 4px; margin-left: 8px;">
                                     ${p.status || 'Unknown'}
@@ -1082,22 +1082,22 @@
                     <div class="participant-info">
                         <div>📅 ${p.setDate || ''} ${p.setTime || ''}</div>
                         <div>🎨 ${p.skinColor || ''}</div>
-                        <div>🆔 P-${p.ID || 'ID 없음'}</div>
-                        ${p.aID ? `<div style="font-weight: 600; color: var(--primary);">🏷️ ${p.aID}</div>` : '<div style="color: var(--text-light);">🏷️ A-ID 미지정</div>'}
-                        <div>📞 ${p.phone || '연락처 없음'}</div>
+                        <div>🆔 P-${p.ID || 'No ID'}</div>
+                        ${p.aID ? `<div style="font-weight: 600; color: var(--primary);">🏷️ ${p.aID}</div>` : '<div style="color: var(--text-light);">🏷️ No A-ID</div>'}
+                        <div>📞 ${p.phone || 'No phone'}</div>
                     </div>
                     ${p.attendanceStatus !== 'Attended' ?
-                        '<button class="checkin-btn">체크인</button>' :
+                        '<button class="checkin-btn">Check-in</button>' :
                         `<div style="text-align: center;">
                             <div style="color: var(--success); font-size: 14px; margin-bottom: 8px;">
-                                ✓ ${p.checkinTime ? new Date(p.checkinTime).toLocaleTimeString('ko-KR', {hour: '2-digit', minute: '2-digit'}) : ''} 체크인 완료
+                                ✓ ${p.checkinTime ? new Date(p.checkinTime).toLocaleTimeString('ko-KR', {hour: '2-digit', minute: '2-digit'}) : ''} Checked in
                             </div>
                             <div style="display: flex; gap: 8px;">
                                 <button class="checkin-btn" onclick="editAttendance(${p.ID})" style="background: #718096; font-size: 12px; padding: 8px; flex: 1;">
-                                    수정하기
+                                    Edit
                                 </button>
                                 <button class="checkin-btn" onclick="viewImages(${p.ID})" style="background: #4a5568; font-size: 12px; padding: 8px; flex: 1;">
-                                    이미지 보기
+                                    View Images
                                 </button>
                             </div>
                         </div>`
@@ -1117,9 +1117,9 @@
 
         // Get status text
         function getStatusText(status) {
-            if (status === 'Attended') return '출석';
-            if (status === 'No-show') return '노쇼';
-            return '대기';
+            if (status === 'Attended') return 'Attended';
+            if (status === 'No-show') return 'No-show';
+            return 'Pending';
         }
 
         // Update statistics
@@ -1149,7 +1149,7 @@
 
             // Skip if already attended
             if (currentParticipant.attendanceStatus === 'Attended') {
-                showNotification('이미 체크인 완료된 참가자입니다', 'error');
+                showNotification('This participant has already been checked in', 'error');
                 return;
             }
 
@@ -1523,7 +1523,7 @@
                     Object.assign(allParticipantsData[index], updateData);
                 }
 
-                ErrorHandler.showNotification('체크인 완료!', 'success');
+                ErrorHandler.showNotification('Check-in completed!', 'success');
                 closeCheckinModal();
                 filterAndDisplayParticipants();
                 updateStats();
@@ -1620,12 +1620,12 @@
             const html = noShows.map(p => `
                 <div class="participant-card">
                     <div class="participant-header">
-                        <div class="participant-name">${p.name || '이름 없음'}</div>
+                        <div class="participant-name">${p.name || 'No name'}</div>
                         <div class="participant-status status-noshow">노쇼</div>
                     </div>
                     <div class="participant-info">
                         <div>📅 ${p.setDate} ${p.setTime}</div>
-                        <div>📞 ${p.phone || '연락처 없음'}</div>
+                        <div>📞 ${p.phone || 'No phone'}</div>
                     </div>
                     <button class="checkin-btn" onclick="changeToAttended(${p.ID})" style="background: var(--success);">
                         출석으로 변경
@@ -1634,7 +1634,7 @@
             `).join('');
 
             document.getElementById('noshowList').innerHTML = html ||
-                '<div class="loading">노쇼 참가자가 없습니다</div>';
+                '<div class="loading">No no-show participants</div>';
         }
 
         // Display statistics
@@ -1672,32 +1672,32 @@
 
             const html = `
                 <div style="background: white; border-radius: 10px; padding: 20px; margin-bottom: 15px;">
-                    <h3 style="margin-bottom: 15px;">📊 ${dateLabel} 출석 현황</h3>
+                    <h3 style="margin-bottom: 15px;">📊 ${dateLabel} Attendance Status</h3>
                     <div style="padding: 8px; background: #e0f2fe; border-radius: 6px; margin-bottom: 12px; font-size: 13px; color: #0369a1;">
-                        ℹ️ Confirmed 상태 참가자만 집계됩니다
+                        ℹ️ Only participants with Confirmed status are counted
                     </div>
                     <div style="display: grid; gap: 10px;">
                         <div style="display: flex; justify-content: space-between;">
-                            <span>확정 참가자 (Confirmed)</span>
+                            <span>Confirmed Participants</span>
                             <strong>${displayParticipants.length}명</strong>
                         </div>
                         <div style="display: flex; justify-content: space-between;">
-                            <span>✅ 출석</span>
+                            <span>✅ Attended</span>
                             <strong style="color: var(--success);">${attended.length}명</strong>
                         </div>
                         <div style="display: flex; justify-content: space-between;">
-                            <span>⏳ 대기</span>
+                            <span>⏳ Pending</span>
                             <strong style="color: var(--warning);">${pending.length}명</strong>
                         </div>
                         <div style="display: flex; justify-content: space-between;">
-                            <span>❌ 노쇼</span>
+                            <span>❌ No-show</span>
                             <strong style="color: var(--danger);">${noshow.length}명</strong>
                         </div>
                     </div>
                     ${displayParticipants.length > 0 ? `
                         <div style="margin-top: 15px; padding: 10px; background: var(--bg); border-radius: 8px;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <span style="font-size: 14px;">출석률</span>
+                                <span style="font-size: 14px;">Attendance Rate</span>
                                 <strong style="font-size: 24px; color: var(--primary);">
                                     ${Math.round((attended.length / displayParticipants.length) * 100)}%
                                 </strong>
@@ -1710,25 +1710,25 @@
                 </div>
 
                 <div style="background: white; border-radius: 10px; padding: 20px; margin-bottom: 15px;">
-                    <h3 style="margin-bottom: 15px;">💰 리워드 현황</h3>
+                    <h3 style="margin-bottom: 15px;">💰 Reward Status</h3>
                     <div style="display: grid; gap: 10px;">
                         <div style="display: flex; justify-content: space-between;">
-                            <span>📱 모바일 상품권</span>
+                            <span>📱 Mobile Voucher</span>
                             <strong>${mobileCount}명</strong>
                         </div>
                         <div style="display: flex; justify-content: space-between;">
-                            <span>💵 현금</span>
+                            <span>💵 Cash</span>
                             <strong>${cashCount}명</strong>
                         </div>
                         <div style="display: flex; justify-content: space-between;">
-                            <span>➖ 리워드 없음</span>
+                            <span>➖ No Reward</span>
                             <strong>${attended.filter(p => !p.rewardType || p.rewardType === 'None').length}명</strong>
                         </div>
                     </div>
                 </div>
 
                 <div style="background: white; border-radius: 10px; padding: 20px;">
-                    <h3 style="margin-bottom: 15px;">⏰ 시간대별 현황</h3>
+                    <h3 style="margin-bottom: 15px;">⏰ Time Slot Status</h3>
                     <div style="display: grid; gap: 10px;">
                         ${Object.entries(timeSlots)
                             .sort((a, b) => a[0].localeCompare(b[0]))
@@ -1736,10 +1736,10 @@
                                 <div style="border-left: 3px solid var(--primary); padding-left: 10px;">
                                     <div style="font-weight: 600; margin-bottom: 5px;">${time}</div>
                                     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; font-size: 12px;">
-                                        <span>전체: ${stats.total}</span>
-                                        <span style="color: var(--success);">출석: ${stats.attended}</span>
-                                        <span style="color: var(--warning);">대기: ${stats.pending}</span>
-                                        <span style="color: var(--danger);">노쇼: ${stats.noshow}</span>
+                                        <span>Total: ${stats.total}</span>
+                                        <span style="color: var(--success);">Attended: ${stats.attended}</span>
+                                        <span style="color: var(--warning);">Pending: ${stats.pending}</span>
+                                        <span style="color: var(--danger);">No-show: ${stats.noshow}</span>
                                     </div>
                                 </div>
                             `).join('')}
@@ -1748,7 +1748,7 @@
             `;
 
             document.getElementById('statsView').innerHTML = `
-                <h2 style="margin-bottom: 20px;">오늘의 통계</h2>
+                <h2 style="margin-bottom: 20px;">Today's Statistics</h2>
                 ${html}
             `;
         }
@@ -1769,10 +1769,10 @@
                     <div>📅 ${currentParticipant.setDate || ''} ${currentParticipant.setTime || ''}</div>
                     <div>📞 ${currentParticipant.phone || '연락처 없음'}</div>
                     <div style="margin-top: 8px; padding: 8px; background: #e8f8f5; border-radius: 6px;">
-                        <strong>현재 상태:</strong> 출석 완료<br>
-                        <strong>체크인 시간:</strong> ${currentParticipant.checkinTime ? new Date(currentParticipant.checkinTime).toLocaleString('ko-KR') : '-'}<br>
-                        <strong>리워드:</strong> ${existingReward === 'MobileVoucher' ? '모바일 상품권' : existingReward === 'Cash' ? '현금' : '없음'}<br>
-                        <strong>A-ID:</strong> ${currentParticipant.aID || '미지정'}
+                        <strong>Current Status:</strong> Attended<br>
+                        <strong>Check-in Time:</strong> ${currentParticipant.checkinTime ? new Date(currentParticipant.checkinTime).toLocaleString('ko-KR') : '-'}<br>
+                        <strong>Reward:</strong> ${existingReward === 'MobileVoucher' ? 'Mobile Voucher' : existingReward === 'Cash' ? 'Cash' : 'None'}<br>
+                        <strong>A-ID:</strong> ${currentParticipant.aID || 'Not assigned'}
                     </div>
                 </div>
             `;
@@ -1812,7 +1812,7 @@
                     document.getElementById('idPreview').innerHTML = `
                         <img src="${imageData.idCard}" alt="ID Card" style="width: 100%; height: auto;">
                         <div style="text-align: center; font-size: 12px; color: var(--success); margin-top: 5px;">
-                            ✓ 기존 이미지 로드됨
+                            ✓ Existing image loaded
                         </div>
                     `;
                     // Convert base64 back to blob for potential re-upload
@@ -1825,7 +1825,7 @@
                     document.getElementById('bankbookPreview').innerHTML = `
                         <img src="${imageData.bankbook}" alt="Bankbook" style="width: 100%; height: auto;">
                         <div style="text-align: center; font-size: 12px; color: var(--success); margin-top: 5px;">
-                            ✓ 기존 이미지 로드됨
+                            ✓ Existing image loaded
                         </div>
                     `;
                     // Convert base64 back to blob for potential re-upload
@@ -1841,7 +1841,7 @@
             }
 
             // Update button text
-            document.getElementById('submitBtn').textContent = '수정 완료';
+            document.getElementById('submitBtn').textContent = 'Update';
             document.getElementById('submitBtn').disabled = false;
 
             // Show modal
@@ -1853,7 +1853,7 @@
             return ErrorHandler.handle(async () => {
                 const participant = allParticipantsData.find(p => p.ID === participantId);
                 if (!participant) {
-                    throw new Error('참가자를 찾을 수 없습니다.');
+                    throw new Error('Participant not found.');
                 }
 
                 // Save to AttendanceImages
@@ -1899,7 +1899,7 @@
                 participant.checkinTime = checkinDateOnly;
                 participant.checkinStaff = currentUser.fullName;
 
-                ErrorHandler.showNotification(`${participant.name}의 상태가 출석으로 변경되었습니다.`, 'success');
+                ErrorHandler.showNotification(`${participant.name}'s status has been changed to Attended.`, 'success');
                 filterAndDisplayParticipants();
                 updateStats();
             }, {
@@ -1920,7 +1920,7 @@
             }
 
             if (imageKeys.length === 0) {
-                showNotification('저장된 이미지가 없습니다', 'error');
+                showNotification('No saved images found', 'error');
                 return;
             }
 
@@ -1935,7 +1935,7 @@
             modal.innerHTML = `
                 <div class="modal-content" style="max-width: 600px;">
                     <div class="modal-header">
-                        <h3 class="modal-title">저장된 이미지</h3>
+                        <h3 class="modal-title">Saved Images</h3>
                         <button class="modal-close" onclick="this.closest('.modal').remove()">×</button>
                     </div>
                     <div class="modal-body">
@@ -1968,7 +1968,7 @@
 
         // Logout
         function logout() {
-            if (confirm('로그아웃 하시겠습니까?')) {
+            if (confirm('Are you sure you want to logout?')) {
                 sessionStorage.removeItem('clt_session');
                 window.location.href = 'login.html';
             }
