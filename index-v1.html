@@ -1376,35 +1376,64 @@
                     const oldDate = participant.setDate;
                     const oldTime = participant.setTime;
 
-                    // confirmedDate를 YYYY-MM-DD 형식으로 변환
+                    // confirmedDate를 YYYY-MM-DD 형식으로 변환 (Airtable 저장용)
                     let newDateForAirtable = participant.confirmedDate;
-                    if (newDateForAirtable && !newDateForAirtable.includes('-')) {
+                    let displayDate = participant.confirmedDate;
+
+                    console.log('시간변경 처리 시작:', {
+                        confirmedDate: participant.confirmedDate,
+                        currentSetDate: participant.setDate,
+                        newTime: newTime
+                    });
+
+                    // confirmedDate가 YYYY-MM-DD 형식인 경우
+                    if (newDateForAirtable && newDateForAirtable.includes('-')) {
+                        // 이미 YYYY-MM-DD 형식이므로 그대로 사용
+                        const [year, month, day] = newDateForAirtable.split('-');
+                        displayDate = `${parseInt(month)}/${parseInt(day)}`; // M/D 형식으로 변환
+                        console.log('YYYY-MM-DD 형식 감지:', newDateForAirtable, '→', displayDate);
+                    }
+                    // confirmedDate가 M/D 형식인 경우
+                    else if (newDateForAirtable && newDateForAirtable.includes('/')) {
                         const [month, day] = newDateForAirtable.split('/');
                         const year = new Date().getFullYear();
                         newDateForAirtable = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                        displayDate = `${parseInt(month)}/${parseInt(day)}`; // M/D 형식 유지
+                        console.log('M/D 형식 감지:', participant.confirmedDate, '→', newDateForAirtable);
                     }
 
-                    // 저장 후 표시용 형식으로 변환
-                    participant.setDate = participant.confirmedDate;  // 일단 confirmedDate 값 복사
-                    if (participant.setDate && participant.setDate.includes('-')) {
-                        // YYYY-MM-DD를 M/D로 변환
-                        const [year, month, day] = participant.setDate.split('-');
-                        participant.setDate = `${parseInt(month)}/${parseInt(day)}`;
-                    }
+                    console.log('최종 날짜 형식:', {
+                        airtableFormat: newDateForAirtable,
+                        displayFormat: displayDate
+                    });
+
+                    // 로컬 데이터 업데이트 (M/D 형식으로 저장)
+                    participant.setDate = displayDate;
                     participant.setTime = newTime;
 
                     // Airtable에 업데이트 (YYYY-MM-DD 형식으로)
-                    await updateAirtableRecord(participantId, 'setDate', newDateForAirtable);
-                    await updateAirtableRecord(participantId, 'setTime', newTime);
+                    const dateUpdateSuccess = await updateAirtableRecord(participantId, 'setDate', newDateForAirtable);
+                    const timeUpdateSuccess = await updateAirtableRecord(participantId, 'setTime', newTime);
 
-                    ErrorHandler.showNotification(
-                        `${participant.name}의 예약이 변경되었습니다.\n` +
-                        `${oldDate} ${oldTime} → ${participant.confirmedDate} ${newTime}`,
-                        'success'
-                    );
+                    if (dateUpdateSuccess && timeUpdateSuccess) {
+                        ErrorHandler.showNotification(
+                            `${participant.name}의 예약이 변경되었습니다.\n` +
+                            `${oldDate} ${oldTime} → ${displayDate} ${newTime}`,
+                            'success'
+                        );
 
-                    // 테이블 새로고침
-                    loadParticipants();
+                        // 옵션 1: 로컬 데이터만 업데이트하고 테이블 새로고침
+                        loadParticipants();
+
+                        // 옵션 2: 전체 데이터를 Airtable에서 다시 가져오기 (더 안전하지만 느림)
+                        // await fetchAirtableData();
+                        // 위 주석을 해제하면 전체 데이터를 다시 가져옵니다.
+                    } else {
+                        // 업데이트 실패시 원래 값으로 복원
+                        participant.setDate = oldDate;
+                        participant.setTime = oldTime;
+                        ErrorHandler.showNotification('예약 변경 중 오류가 발생했습니다.', 'error');
+                    }
                 } else if (success) {
                     ErrorHandler.showNotification(`${participant.name}의 시간변경 옵션이 저장되었습니다.`, 'success');
                 }
