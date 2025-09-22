@@ -750,8 +750,9 @@
                 // Display staff info (sanitized)
                 document.getElementById('staffInfo').textContent = `Staff: ${SecurityUtils.sanitizeHTML(currentUser.fullName)}`;
 
-                // Set today's date as default
-                const today = new Date().toISOString().split('T')[0];
+                // Set today's date as default (Seoul timezone)
+                const koreaTime = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Seoul"}));
+                const today = koreaTime.toISOString().split('T')[0];
                 const dateFilter = document.getElementById('dateFilter');
                 if (dateFilter) {
                     dateFilter.value = today;
@@ -1618,7 +1619,8 @@
                 // Ensure today's date is set if the field is empty when focused
                 dateFilter.addEventListener('focus', () => {
                     if (!dateFilter.value) {
-                        const today = new Date().toISOString().split('T')[0];
+                        const koreaTime = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Seoul"}));
+                        const today = koreaTime.toISOString().split('T')[0];
                         dateFilter.value = today;
                         addDebugLog('📅 빈 날짜 필드에 오늘 날짜 설정:', today);
                     }
@@ -1702,8 +1704,8 @@
 
         // Display no-shows
         function displayNoShows() {
-            const today = new Date();
-            const todayStr = `${today.getMonth() + 1}/${today.getDate()}`;
+            const koreaTime = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Seoul"}));
+            const todayStr = `${koreaTime.getMonth() + 1}/${koreaTime.getDate()}`;
 
             const noShows = participantsData.filter(p =>
                 p.setDate === todayStr && p.attendanceStatus === 'No-show'
