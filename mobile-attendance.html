@@ -647,7 +647,13 @@
 
                 <div class="form-group" id="bankbookGroup" style="display: none;">
                     <label class="form-label">Bankbook Photo</label>
-                    <div class="camera-container">
+                    <div style="margin-bottom: 10px;">
+                        <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-light);">
+                            <input type="checkbox" id="bankbookLaterCheck" checked style="width: 18px; height: 18px;">
+                            <span>Check Later</span>
+                        </label>
+                    </div>
+                    <div class="camera-container" id="bankbookCameraContainer" style="display: none;">
                         <div class="camera-preview" id="bankbookPreview">
                             <span style="color: var(--text-light);">📷 No photo</span>
                         </div>
@@ -1196,6 +1202,10 @@
             idCardImageFront = null;
             idCardImageBack = null;
             bankbookImage = null;
+
+            // Reset bankbook checkbox to default (checked)
+            document.getElementById('bankbookLaterCheck').checked = true;
+            document.getElementById('bankbookCameraContainer').style.display = 'none';
             document.getElementById('aidInput').value = '';  // Reset A-ID field
             document.querySelectorAll('.reward-option').forEach(el => el.classList.remove('selected'));
             document.getElementById('idFrontPreview').innerHTML = '<span style="color: var(--text-light);">📷 No photo</span>';
@@ -1233,7 +1243,13 @@
             const hasReward = selectedReward !== '';
             const hasIdCardFront = idCardImageFront !== null;
             const hasIdCardBack = idCardImageBack !== null;
-            const hasBankbook = selectedReward === 'cash' ? bankbookImage !== null : true;
+
+            // Check bankbook requirement
+            let hasBankbook = true;
+            if (selectedReward === 'cash') {
+                const isCheckLater = document.getElementById('bankbookLaterCheck').checked;
+                hasBankbook = isCheckLater || (bankbookImage !== null);
+            }
 
             document.getElementById('submitBtn').disabled = !(hasReward && hasIdCardFront && hasIdCardBack && hasBankbook);
         }
@@ -1334,6 +1350,10 @@
                 // checkinTime is Date type in Airtable (date only, no time)
                 const checkinDateOnly = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
+                // Get bankbook check status
+                const bankbookCheck = selectedReward === 'cash' ?
+                    document.getElementById('bankbookLaterCheck').checked : false;
+
                 const attendanceData = {
                     participantID: parseInt(currentParticipant.ID) || 0,
                     participantName: currentParticipant.name || '',
@@ -1345,7 +1365,8 @@
                     checkDate: formattedCheckDate || '',  // Date when appointment was scheduled
                     checkTime: currentParticipant.setTime || '',  // Time slot (Single line text)
                     'A-ID': aidValue || '',  // New field for on-site ID
-                    notes: `Check-in completed - ${now.toLocaleString('en-US')}${aidValue ? ` | A-ID: ${aidValue}` : ''}`
+                    bankbookCheck: bankbookCheck,  // New field for bankbook check later status
+                    notes: `Check-in completed - ${now.toLocaleString('en-US')}${aidValue ? ` | A-ID: ${aidValue}` : ''}${bankbookCheck ? ' | Bankbook: Check Later' : ''}`
                 };
 
                 // Detailed logging for debugging
@@ -1636,6 +1657,19 @@
                     document.getElementById('idBackPreview').innerHTML = `<img src="${url}" alt="ID Card Back">`;
                     checkFormComplete();
                 }
+            });
+
+            // Bankbook later checkbox
+            document.getElementById('bankbookLaterCheck').addEventListener('change', (e) => {
+                const isChecked = e.target.checked;
+                document.getElementById('bankbookCameraContainer').style.display = isChecked ? 'none' : 'block';
+
+                if (isChecked) {
+                    // Clear bankbook image if "Check Later" is selected
+                    bankbookImage = null;
+                    document.getElementById('bankbookPreview').innerHTML = '<span style="color: var(--text-light);">📷 No photo</span>';
+                }
+                checkFormComplete();
             });
 
             // Bankbook input
