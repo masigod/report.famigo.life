@@ -1328,7 +1328,7 @@
                     checkDate: formattedCheckDate || '',  // Date when appointment was scheduled
                     checkTime: currentParticipant.setTime || '',  // Time slot (Single line text)
                     'A-ID': aidValue || '',  // New field for on-site ID
-                    notes: `체크인 완료 - ${now.toLocaleString('ko-KR')}${aidValue ? ` | A-ID: ${aidValue}` : ''}`
+                    notes: `Check-in completed - ${now.toLocaleString('en-US')}${aidValue ? ` | A-ID: ${aidValue}` : ''}`
                 };
 
                 // Detailed logging for debugging
@@ -1642,7 +1642,7 @@
                         <div>📞 ${p.phone || 'No phone'}</div>
                     </div>
                     <button class="checkin-btn" onclick="changeToAttended(${p.ID})" style="background: var(--success);">
-                        출석으로 변경
+                        Change to Attended
                     </button>
                 </div>
             `).join('');
@@ -1656,12 +1656,14 @@
             const selectedDate = document.getElementById('dateFilter').value;
             // Only show statistics for Confirmed status participants
             let displayParticipants = participantsData.filter(p => p.status === 'Confirmed');
-            let dateLabel = '전체 기간';
+            let dateLabel = 'All Period';
 
             if (selectedDate) {
                 // Keep date filter but only for Confirmed participants
                 const date = new Date(selectedDate);
-                dateLabel = `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
+                const monthNames = ["January", "February", "March", "April", "May", "June",
+                    "July", "August", "September", "October", "November", "December"];
+                dateLabel = `${monthNames[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
             }
 
             const attended = displayParticipants.filter(p => p.attendanceStatus === 'Attended');
@@ -1674,7 +1676,7 @@
             // Group by time slots for detailed stats
             const timeSlots = {};
             displayParticipants.forEach(p => {
-                const slot = p.setTime || '시간 미정';
+                const slot = p.setTime || 'Time TBD';
                 if (!timeSlots[slot]) {
                     timeSlots[slot] = { total: 0, attended: 0, pending: 0, noshow: 0 };
                 }
@@ -1693,19 +1695,19 @@
                     <div style="display: grid; gap: 10px;">
                         <div style="display: flex; justify-content: space-between;">
                             <span>Confirmed Participants</span>
-                            <strong>${displayParticipants.length}명</strong>
+                            <strong>${displayParticipants.length} people</strong>
                         </div>
                         <div style="display: flex; justify-content: space-between;">
                             <span>✅ Attended</span>
-                            <strong style="color: var(--success);">${attended.length}명</strong>
+                            <strong style="color: var(--success);">${attended.length} people</strong>
                         </div>
                         <div style="display: flex; justify-content: space-between;">
                             <span>⏳ Pending</span>
-                            <strong style="color: var(--warning);">${pending.length}명</strong>
+                            <strong style="color: var(--warning);">${pending.length} people</strong>
                         </div>
                         <div style="display: flex; justify-content: space-between;">
                             <span>❌ No-show</span>
-                            <strong style="color: var(--danger);">${noshow.length}명</strong>
+                            <strong style="color: var(--danger);">${noshow.length} people</strong>
                         </div>
                     </div>
                     ${displayParticipants.length > 0 ? `
@@ -1728,15 +1730,15 @@
                     <div style="display: grid; gap: 10px;">
                         <div style="display: flex; justify-content: space-between;">
                             <span>📱 Mobile Voucher</span>
-                            <strong>${mobileCount}명</strong>
+                            <strong>${mobileCount} people</strong>
                         </div>
                         <div style="display: flex; justify-content: space-between;">
                             <span>💵 Cash</span>
-                            <strong>${cashCount}명</strong>
+                            <strong>${cashCount} people</strong>
                         </div>
                         <div style="display: flex; justify-content: space-between;">
                             <span>➖ No Reward</span>
-                            <strong>${attended.filter(p => !p.rewardType || p.rewardType === 'None').length}명</strong>
+                            <strong>${attended.filter(p => !p.rewardType || p.rewardType === 'None').length} people</strong>
                         </div>
                     </div>
                 </div>
@@ -1884,7 +1886,7 @@
                     staffID: currentUser.username || '',
                     checkDate: participant.setDate || '',
                     checkTime: participant.setTime || '',
-                    notes: `노쇼에서 출석으로 변경 - ${now.toLocaleString('ko-KR')}`
+                    notes: `Changed from No-show to Attended - ${now.toLocaleString('en-US')}`
                 };
 
                 const response = await fetch(
