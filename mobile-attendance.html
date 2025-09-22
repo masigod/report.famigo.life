@@ -1061,7 +1061,14 @@
             const html = dateHeader + filtered.map(p => `
                 <div class="participant-card" onclick="openCheckinModal(${p.ID})">
                     <div class="participant-header">
-                        <div class="participant-name">${p.name || '이름 없음'}</div>
+                        <div>
+                            <div class="participant-name">${p.name || '이름 없음'}</div>
+                            ${p.status !== 'Confirmed' ? `
+                                <span style="display: inline-block; padding: 2px 6px; background: #fef3c7; color: #92400e; font-size: 10px; border-radius: 4px; margin-left: 8px;">
+                                    ${p.status || 'Unknown'}
+                                </span>
+                            ` : ''}
+                        </div>
                         <div class="participant-status status-${getStatusClass(p.attendanceStatus)}">
                             ${getStatusText(p.attendanceStatus)}
                         </div>
@@ -1110,10 +1117,11 @@
 
         // Update statistics
         function updateStats() {
-            // Use currently filtered participants data
-            const total = participantsData.length;
-            const attended = participantsData.filter(p => p.attendanceStatus === 'Attended').length;
-            const pending = participantsData.filter(p => !p.attendanceStatus || p.attendanceStatus === 'Pending' || p.attendanceStatus === 'Confirmed').length;
+            // Only count Confirmed status participants for statistics
+            const confirmedParticipants = participantsData.filter(p => p.status === 'Confirmed');
+            const total = confirmedParticipants.length;
+            const attended = confirmedParticipants.filter(p => p.attendanceStatus === 'Attended').length;
+            const pending = confirmedParticipants.filter(p => !p.attendanceStatus || p.attendanceStatus === 'Pending').length;
 
             addDebugLog('통계 업데이트:', {
                 total: total,
@@ -1619,18 +1627,18 @@
         // Display statistics
         function displayStats() {
             const selectedDate = document.getElementById('dateFilter').value;
-            let displayParticipants = participantsData;
+            // Only show statistics for Confirmed status participants
+            let displayParticipants = participantsData.filter(p => p.status === 'Confirmed');
             let dateLabel = '전체 기간';
 
             if (selectedDate) {
-                // Use filtered participants from current date selection
-                displayParticipants = participantsData;
+                // Keep date filter but only for Confirmed participants
                 const date = new Date(selectedDate);
                 dateLabel = `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
             }
 
             const attended = displayParticipants.filter(p => p.attendanceStatus === 'Attended');
-            const pending = displayParticipants.filter(p => !p.attendanceStatus || p.attendanceStatus === 'Pending' || p.attendanceStatus === 'Confirmed');
+            const pending = displayParticipants.filter(p => !p.attendanceStatus || p.attendanceStatus === 'Pending');
             const noshow = displayParticipants.filter(p => p.attendanceStatus === 'No-show');
 
             const mobileCount = attended.filter(p => p.rewardType === 'MobileVoucher').length;
@@ -1652,9 +1660,12 @@
             const html = `
                 <div style="background: white; border-radius: 10px; padding: 20px; margin-bottom: 15px;">
                     <h3 style="margin-bottom: 15px;">📊 ${dateLabel} 출석 현황</h3>
+                    <div style="padding: 8px; background: #e0f2fe; border-radius: 6px; margin-bottom: 12px; font-size: 13px; color: #0369a1;">
+                        ℹ️ Confirmed 상태 참가자만 집계됩니다
+                    </div>
                     <div style="display: grid; gap: 10px;">
                         <div style="display: flex; justify-content: space-between;">
-                            <span>전체 참가자</span>
+                            <span>확정 참가자 (Confirmed)</span>
                             <strong>${displayParticipants.length}명</strong>
                         </div>
                         <div style="display: flex; justify-content: space-between;">
