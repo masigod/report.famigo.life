@@ -439,9 +439,9 @@
                 <label>출석상태</label>
                 <select id="attendanceStatusFilter">
                     <option value="">전체</option>
-                    <option value="Checked-In">✓ Checked-In</option>
-                    <option value="No-Show">✗ No-Show</option>
-                    <option value="Pending">- Pending</option>
+                    <option value="Attended">✓ Attended</option>
+                    <option value="No-show">✗ No-show</option>
+                    <option value="Pending">⏳ Pending</option>
                 </select>
             </div>
             <div class="filter-group">
@@ -703,11 +703,17 @@
                     const participantID = record.fields.participantID;
                     if (participantID) {
                         // attendanceStatus 필드명 확인 - 가능한 필드명들 체크
+                        // AttendanceImages 테이블의 정확한 필드명 사용
                         const status = record.fields.attendanceStatus ||
                                       record.fields.AttendanceStatus ||
                                       record.fields['attendance-status'] ||
                                       record.fields.status ||
                                       '';
+
+                        // 디버깅: 각 레코드의 attendanceStatus 값 확인
+                        if (status) {
+                            console.log(`ID ${participantID}: attendanceStatus = '${status}'`);
+                        }
 
                         attendanceData[participantID] = {
                             'A-ID': record.fields['A-ID'] || '',
@@ -1005,9 +1011,7 @@
                 if (targetFilter && p.skinColor !== targetFilter) return false;
                 if (toneFilter && p.skinTone !== toneFilter) return false;
                 if (attendanceStatusFilter) {
-                    // Pending은 attendanceStatus가 없거나 빈 문자열인 경우
-                    if (attendanceStatusFilter === 'Pending' && p.attendanceStatus && p.attendanceStatus !== '') return false;
-                    if (attendanceStatusFilter !== 'Pending' && p.attendanceStatus !== attendanceStatusFilter) return false;
+                    if (p.attendanceStatus !== attendanceStatusFilter) return false;
                 }
                 if (feedbackFilter && p.status !== feedbackFilter) return false;
                 if (searchTerm && !p.name.toLowerCase().includes(searchTerm)) return false;
@@ -1064,12 +1068,14 @@
             const html = filtered.map(p => {
                 // 출석 상태에 따른 배지 스타일 결정
                 let attendanceBadge = '';
-                if (p.attendanceStatus === 'Checked-In') {
-                    attendanceBadge = '<span style="background: #28a745; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px;">✓ Checked-In</span>';
-                } else if (p.attendanceStatus === 'No-Show') {
-                    attendanceBadge = '<span style="background: #dc3545; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px;">✗ No-Show</span>';
+                if (p.attendanceStatus === 'Attended') {
+                    attendanceBadge = '<span style="background: #28a745; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px;">✓ Attended</span>';
+                } else if (p.attendanceStatus === 'No-show') {
+                    attendanceBadge = '<span style="background: #dc3545; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px;">✗ No-show</span>';
+                } else if (p.attendanceStatus === 'Pending') {
+                    attendanceBadge = '<span style="background: #ffc107; color: #000; padding: 2px 8px; border-radius: 4px; font-size: 11px;">⏳ Pending</span>';
                 } else {
-                    attendanceBadge = '<span style="background: #6c757d; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px;">- Pending</span>';
+                    attendanceBadge = '<span style="background: #6c757d; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px;">- Not Set</span>';
                 }
 
                 return `
@@ -1152,9 +1158,7 @@
                 if (targetFilter && p.skinColor !== targetFilter) return false;
                 if (toneFilter && p.skinTone !== toneFilter) return false;
                 if (attendanceStatusFilter) {
-                    // Pending은 attendanceStatus가 없거나 빈 문자열인 경우
-                    if (attendanceStatusFilter === 'Pending' && p.attendanceStatus && p.attendanceStatus !== '') return false;
-                    if (attendanceStatusFilter !== 'Pending' && p.attendanceStatus !== attendanceStatusFilter) return false;
+                    if (p.attendanceStatus !== attendanceStatusFilter) return false;
                 }
                 if (feedbackFilter && p.status !== feedbackFilter) return false;
                 if (searchTerm && !p.name.toLowerCase().includes(searchTerm)) return false;
@@ -1175,8 +1179,8 @@
             const confirmCount = nonDuplicateFiltered.filter(p => p.confirmedDate && p.confirmedDate.trim() !== '').length;
 
             // 출석 통계 추가
-            const checkedInCount = nonDuplicateFiltered.filter(p => p.attendanceStatus === 'Checked-In').length;
-            const noShowCount = nonDuplicateFiltered.filter(p => p.attendanceStatus === 'No-Show').length;
+            const checkedInCount = nonDuplicateFiltered.filter(p => p.attendanceStatus === 'Attended').length;
+            const noShowCount = nonDuplicateFiltered.filter(p => p.attendanceStatus === 'No-show').length;
             const aidIssuedCount = nonDuplicateFiltered.filter(p => p['A-ID'] && p['A-ID'] !== '').length;
             const aidRate = total > 0 ? Math.round((aidIssuedCount / total) * 100) : 0;
 
@@ -1438,9 +1442,7 @@
                 if (targetFilter && p.skinColor !== targetFilter) return false;
                 if (toneFilter && p.skinTone !== toneFilter) return false;
                 if (attendanceStatusFilter) {
-                    // Pending은 attendanceStatus가 없거나 빈 문자열인 경우
-                    if (attendanceStatusFilter === 'Pending' && p.attendanceStatus && p.attendanceStatus !== '') return false;
-                    if (attendanceStatusFilter !== 'Pending' && p.attendanceStatus !== attendanceStatusFilter) return false;
+                    if (p.attendanceStatus !== attendanceStatusFilter) return false;
                 }
                 if (feedbackFilter && p.status !== feedbackFilter) return false;
                 if (searchTerm && !p.name.toLowerCase().includes(searchTerm)) return false;
