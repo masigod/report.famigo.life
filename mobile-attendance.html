@@ -620,14 +620,27 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">ID Card Photo (Required)</label>
+                    <label class="form-label">ID Card Front Photo (Required)</label>
                     <div class="camera-container">
-                        <div class="camera-preview" id="idPreview">
+                        <div class="camera-preview" id="idFrontPreview">
                             <span style="color: var(--text-light);">📷 No photo</span>
                         </div>
-                        <input type="file" id="idCardInput" accept="image/*" capture="camera" style="display: none;">
-                        <button class="camera-btn" onclick="document.getElementById('idCardInput').click()">
-                            Take ID Photo
+                        <input type="file" id="idCardFrontInput" accept="image/*" capture="camera" style="display: none;">
+                        <button class="camera-btn" onclick="document.getElementById('idCardFrontInput').click()">
+                            Take Front Photo
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">ID Card Back Photo (Required)</label>
+                    <div class="camera-container">
+                        <div class="camera-preview" id="idBackPreview">
+                            <span style="color: var(--text-light);">📷 No photo</span>
+                        </div>
+                        <input type="file" id="idCardBackInput" accept="image/*" capture="camera" style="display: none;">
+                        <button class="camera-btn" onclick="document.getElementById('idCardBackInput').click()">
+                            Take Back Photo
                         </button>
                     </div>
                 </div>
@@ -675,7 +688,8 @@
         let participantsData = [];     // Filtered data
         let currentParticipant = null;
         let selectedReward = '';
-        let idCardImage = null;
+        let idCardImageFront = null;
+        let idCardImageBack = null;
         let bankbookImage = null;
         let currentUser = null;
         let airtableRecords = {};
@@ -1179,11 +1193,13 @@
 
             // Reset form
             selectedReward = '';
-            idCardImage = null;
+            idCardImageFront = null;
+            idCardImageBack = null;
             bankbookImage = null;
             document.getElementById('aidInput').value = '';  // Reset A-ID field
             document.querySelectorAll('.reward-option').forEach(el => el.classList.remove('selected'));
-            document.getElementById('idPreview').innerHTML = '<span style="color: var(--text-light);">📷 사진 없음</span>';
+            document.getElementById('idFrontPreview').innerHTML = '<span style="color: var(--text-light);">📷 No photo</span>';
+            document.getElementById('idBackPreview').innerHTML = '<span style="color: var(--text-light);">📷 No photo</span>';
             document.getElementById('bankbookPreview').innerHTML = '<span style="color: var(--text-light);">📷 사진 없음</span>';
             document.getElementById('bankbookGroup').style.display = 'none';
             document.getElementById('submitBtn').disabled = true;
@@ -1215,10 +1231,11 @@
         // Check if form is complete
         function checkFormComplete() {
             const hasReward = selectedReward !== '';
-            const hasIdCard = idCardImage !== null;
+            const hasIdCardFront = idCardImageFront !== null;
+            const hasIdCardBack = idCardImageBack !== null;
             const hasBankbook = selectedReward === 'cash' ? bankbookImage !== null : true;
 
-            document.getElementById('submitBtn').disabled = !(hasReward && hasIdCard && hasBankbook);
+            document.getElementById('submitBtn').disabled = !(hasReward && hasIdCardFront && hasIdCardBack && hasBankbook);
         }
 
         // Image compression - 더 강한 압축 적용
@@ -1346,23 +1363,38 @@
                 console.log('=== END DEBUG ===');
 
                 // Handle image data
-                if (idCardImage || bankbookImage) {
+                if (idCardImageFront || idCardImageBack || bankbookImage) {
                     let imageNote = '이미지 첨부: ';
 
                     // Convert images to base64 for temporary storage in notes
                     const imageDataPromises = [];
 
-                    if (idCardImage) {
-                        imageNote += '신분증 ';
+                    if (idCardImageFront) {
+                        imageNote += '신분증 앞면 ';
                         imageDataPromises.push(
                             new Promise((resolve) => {
                                 const reader = new FileReader();
                                 reader.onloadend = () => {
                                     // Store base64 data in notes temporarily
                                     // Note: This is a temporary solution - consider external storage for production
-                                    resolve(`[신분증 이미지 크기: ${(reader.result.length / 1024).toFixed(2)}KB]`);
+                                    resolve(`[신분증 앞면 이미지 크기: ${(reader.result.length / 1024).toFixed(2)}KB]`);
                                 };
-                                reader.readAsDataURL(idCardImage);
+                                reader.readAsDataURL(idCardImageFront);
+                            })
+                        );
+                    }
+
+                    if (idCardImageBack) {
+                        imageNote += '신분증 뒷면 ';
+                        imageDataPromises.push(
+                            new Promise((resolve) => {
+                                const reader = new FileReader();
+                                reader.onloadend = () => {
+                                    // Store base64 data in notes temporarily
+                                    // Note: This is a temporary solution - consider external storage for production
+                                    resolve(`[신분증 뒷면 이미지 크기: ${(reader.result.length / 1024).toFixed(2)}KB]`);
+                                };
+                                reader.readAsDataURL(idCardImageBack);
                             })
                         );
                     }
@@ -1390,7 +1422,8 @@
                         const imageData = {
                             participantID: currentParticipant.ID,
                             timestamp: new Date().toISOString(),
-                            idCard: idCardImage ? await blobToBase64(idCardImage) : null,
+                            idCardFront: idCardImageFront ? await blobToBase64(idCardImageFront) : null,
+                            idCardBack: idCardImageBack ? await blobToBase64(idCardImageBack) : null,
                             bankbook: bankbookImage ? await blobToBase64(bankbookImage) : null
                         };
                         localStorage.setItem(imageKey, JSON.stringify(imageData));
@@ -1583,13 +1616,24 @@
             // Search
             document.getElementById('searchInput').addEventListener('input', displayParticipants);
 
-            // ID card input
-            document.getElementById('idCardInput').addEventListener('change', async (e) => {
+            // ID card front input
+            document.getElementById('idCardFrontInput').addEventListener('change', async (e) => {
                 const file = e.target.files[0];
                 if (file) {
-                    idCardImage = await compressImage(file);
-                    const url = URL.createObjectURL(idCardImage);
-                    document.getElementById('idPreview').innerHTML = `<img src="${url}" alt="ID Card">`;
+                    idCardImageFront = await compressImage(file);
+                    const url = URL.createObjectURL(idCardImageFront);
+                    document.getElementById('idFrontPreview').innerHTML = `<img src="${url}" alt="ID Card Front">`;
+                    checkFormComplete();
+                }
+            });
+
+            // ID card back input
+            document.getElementById('idCardBackInput').addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    idCardImageBack = await compressImage(file);
+                    const url = URL.createObjectURL(idCardImageBack);
+                    document.getElementById('idBackPreview').innerHTML = `<img src="${url}" alt="ID Card Back">`;
                     checkFormComplete();
                 }
             });
@@ -1813,9 +1857,11 @@
             }
 
             // Clear previous images
-            idCardImage = null;
+            idCardImageFront = null;
+            idCardImageBack = null;
             bankbookImage = null;
-            document.getElementById('idPreview').innerHTML = '<span style="color: var(--text-light);">📷 사진 없음</span>';
+            document.getElementById('idFrontPreview').innerHTML = '<span style="color: var(--text-light);">📷 No photo</span>';
+            document.getElementById('idBackPreview').innerHTML = '<span style="color: var(--text-light);">📷 No photo</span>';
             document.getElementById('bankbookPreview').innerHTML = '<span style="color: var(--text-light);">📷 사진 없음</span>';
 
             if (imageKeys.length > 0) {
@@ -1824,17 +1870,44 @@
                 const imageData = JSON.parse(localStorage.getItem(latestKey));
 
                 // Display existing images
-                if (imageData.idCard) {
-                    document.getElementById('idPreview').innerHTML = `
-                        <img src="${imageData.idCard}" alt="ID Card" style="width: 100%; height: auto;">
+                // New structure with front and back
+                if (imageData.idCardFront) {
+                    document.getElementById('idFrontPreview').innerHTML = `
+                        <img src="${imageData.idCardFront}" alt="ID Card Front" style="width: 100%; height: auto;">
                         <div style="text-align: center; font-size: 12px; color: var(--success); margin-top: 5px;">
-                            ✓ Existing image loaded
+                            ✓ Front image loaded
                         </div>
                     `;
-                    // Convert base64 back to blob for potential re-upload
+                    fetch(imageData.idCardFront)
+                        .then(res => res.blob())
+                        .then(blob => { idCardImageFront = blob; });
+                }
+
+                if (imageData.idCardBack) {
+                    document.getElementById('idBackPreview').innerHTML = `
+                        <img src="${imageData.idCardBack}" alt="ID Card Back" style="width: 100%; height: auto;">
+                        <div style="text-align: center; font-size: 12px; color: var(--success); margin-top: 5px;">
+                            ✓ Back image loaded
+                        </div>
+                    `;
+                    fetch(imageData.idCardBack)
+                        .then(res => res.blob())
+                        .then(blob => { idCardImageBack = blob; });
+                }
+
+                // Legacy support for old single image
+                if (imageData.idCard && !imageData.idCardFront) {
+                    document.getElementById('idFrontPreview').innerHTML = `
+                        <img src="${imageData.idCard}" alt="ID Card" style="width: 100%; height: auto;">
+                        <div style="text-align: center; font-size: 12px; color: var(--success); margin-top: 5px;">
+                            ✓ Legacy image loaded
+                        </div>
+                    `;
                     fetch(imageData.idCard)
                         .then(res => res.blob())
-                        .then(blob => { idCardImage = blob; });
+                        .then(blob => {
+                            idCardImageFront = blob;
+                        });
                 }
 
                 if (imageData.bankbook) {
