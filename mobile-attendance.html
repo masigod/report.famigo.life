@@ -1190,8 +1190,8 @@
             document.getElementById('submitBtn').disabled = !(hasReward && hasIdCard && hasBankbook);
         }
 
-        // Image compression
-        function compressImage(file, maxWidth = 800, quality = 0.7) {
+        // Image compression - 더 강한 압축 적용
+        function compressImage(file, maxWidth = 600, quality = 0.5) {
             return new Promise((resolve) => {
                 const reader = new FileReader();
                 reader.onload = (e) => {
