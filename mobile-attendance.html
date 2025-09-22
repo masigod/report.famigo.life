@@ -1009,25 +1009,31 @@
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
             const listContainer = document.getElementById('participantList');
 
-            let filtered = participantsData.filter(p => {
+            // If searching, use all data instead of filtered data
+            let dataToFilter = searchTerm ? allParticipantsData : participantsData;
+
+            let filtered = dataToFilter.filter(p => {
                 if (timeFilter !== 'all' && p.setTime !== timeFilter) return false;
                 if (searchTerm) {
                     const matchName = p.name && p.name.toLowerCase().includes(searchTerm);
                     const matchID = p.ID && p.ID.toString().includes(searchTerm);
                     const matchPID = p.ID && (`P-${p.ID}`).toLowerCase().includes(searchTerm.toLowerCase());
-                    if (!matchName && !matchID && !matchPID) return false;
+                    const matchAID = p.aID && p.aID.toLowerCase().includes(searchTerm);
+                    if (!matchName && !matchID && !matchPID && !matchAID) return false;
                 }
                 return true;
             });
 
             // No need to filter by today since loadParticipants already filters by selected date
 
-            // Display date info if date is selected
+            // Display date info if date is selected (but not when searching)
             const selectedDate = document.getElementById('dateFilter').value;
             let dateHeader = '';
-            if (selectedDate) {
+            if (selectedDate && !searchTerm) {
                 const date = new Date(selectedDate);
-                const dateStr = `${date.getMonth() + 1}월 ${date.getDate()}일`;
+                const monthNames = ["January", "February", "March", "April", "May", "June",
+                    "July", "August", "September", "October", "November", "December"];
+                const dateStr = `${monthNames[date.getMonth()]} ${date.getDate()}`;
                 const filterDate = `${date.getMonth() + 1}/${date.getDate()}`;
 
                 // Log filtering info
@@ -1040,12 +1046,20 @@
                         📅 ${dateStr} Reservations (${filtered.length} people)
                     </div>
                 `;
+            } else if (searchTerm) {
+                dateHeader = `
+                    <div style="padding: 10px 15px; background: #059669; color: white; margin: -20px -20px 15px; text-align: center; font-weight: bold; border-radius: 8px 8px 0 0;">
+                        🔍 Search Results from All Data (${filtered.length} found)
+                    </div>
+                `;
             }
 
             if (filtered.length === 0) {
                 if (selectedDate) {
                     const date = new Date(selectedDate);
-                    const dateStr = `${date.getMonth() + 1}월 ${date.getDate()}일`;
+                    const monthNames = ["January", "February", "March", "April", "May", "June",
+                        "July", "August", "September", "October", "November", "December"];
+                    const dateStr = `${monthNames[date.getMonth()]} ${date.getDate()}`;
                     listContainer.innerHTML = `
                         <div style="text-align: center; padding: 40px; color: #999;">
                             <div style="font-size: 48px; margin-bottom: 10px;">📅</div>
