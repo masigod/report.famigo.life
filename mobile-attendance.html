@@ -497,6 +497,11 @@
         </div>
     </div>
 
+    <!-- Debug Log Area -->
+    <div id="debugLog" style="display: none; background: #000; padding: 15px; margin: 10px; border-radius: 8px; max-height: 300px; overflow-y: auto; font-family: monospace; font-size: 11px; color: #0f0; white-space: pre-wrap; word-break: break-all; border: 2px solid #0f0;">
+        <div style="font-weight: bold; margin-bottom: 10px; color: #0f0;">🔍 DEBUG LOG:</div>
+        <div id="debugContent"></div>
+    </div>
 
     <!-- Main Content -->
     <div id="mainView">
@@ -676,6 +681,13 @@
         const AIRTABLE_TABLE_ID = typeof AIRTABLE_CONFIG !== 'undefined' ? AIRTABLE_CONFIG.TABLE_ID : 'tblxMzwX1wWJKIOhY';
         const ATTENDANCE_TABLE_ID = typeof AIRTABLE_CONFIG !== 'undefined' ? AIRTABLE_CONFIG.ATTENDANCE_TABLE_ID : 'tblUnxGfJXHp2qSHp';
 
+        // Debug: Log configuration on load
+        console.log('Configuration loaded:', {
+            BASE_ID: AIRTABLE_BASE_ID,
+            TABLE_ID: AIRTABLE_TABLE_ID,
+            ATTENDANCE_TABLE_ID: ATTENDANCE_TABLE_ID,
+            HAS_API_KEY: !!AIRTABLE_API_KEY
+        });
 
         // Global variables
         let allParticipantsData = [];  // Store all data
@@ -687,7 +699,29 @@
         let bankbookImage = null;
         let currentUser = null;
         let airtableRecords = {};
+        let debugLog = [];
         let lastLoadTime = 0;
+
+        // Debug logger function
+        function addDebugLog(message, data = null) {
+            const timestamp = new Date().toLocaleTimeString('ko-KR');
+            const logEntry = `[${timestamp}] ${message}`;
+
+            debugLog.push(logEntry);
+            if (data) {
+                debugLog.push(JSON.stringify(data, null, 2));
+            }
+
+            // Update debug display
+            const debugContent = document.getElementById('debugContent');
+            if (debugContent) {
+                debugContent.innerHTML = debugLog.join('\n');
+                debugContent.scrollTop = debugContent.scrollHeight;
+            }
+
+            // Also log to console
+            console.log(logEntry, data || '');
+        }
 
         // Check authentication
         function checkAuth() {
@@ -729,9 +763,9 @@
 
                     dateFilter.min = oneYearAgo.toISOString().split('T')[0];
                     dateFilter.max = oneYearLater.toISOString().split('T')[0];
-                    // addDebugLog('📅 오늘 날짜로 설정:', today);
+                    addDebugLog('📅 오늘 날짜로 설정:', today);
                 } else {
-                    // addDebugLog('⚠️ dateFilter 엘리먼트를 찾을 수 없음');
+                    addDebugLog('⚠️ dateFilter 엘리먼트를 찾을 수 없음');
                 }
 
                 // Load all participants once
@@ -744,7 +778,7 @@
                 if (ATTENDANCE_TABLE_ID && ATTENDANCE_TABLE_ID !== '') {
                     await loadAttendanceData();
                 } else {
-                    // addDebugLog('AttendanceImages 테이블 ID가 설정되지 않음 - 스킵');
+                    addDebugLog('AttendanceImages 테이블 ID가 설정되지 않음 - 스킵');
                 }
 
                 // Setup event listeners
@@ -766,10 +800,10 @@
                 // Check if we should reload (every 5 minutes or forced)
                 const now = Date.now();
                 if (!forceReload && allParticipantsData.length > 0 && (now - lastLoadTime) < 300000) {
-                    // addDebugLog('⏱ 캐시된 데이터 사용');
+                    addDebugLog('⏱ 캐시된 데이터 사용');
                     return allParticipantsData;
                 }
-                // addDebugLog('=== 전체 데이터 로드 시작 ===');
+                addDebugLog('=== 전체 데이터 로드 시작 ===');
 
                 // Always load all data (except Cancelled and Duplicate)
                 const filterFormula = `AND({status}!='Cancelled', {status}!='Duplicate')`;
@@ -798,7 +832,7 @@
                     offset = data.offset;
                 } while (offset);
 
-                // addDebugLog(`총 ${allRecords.length}개 레코드 로드 완료`);
+                addDebugLog(`총 ${allRecords.length}개 레코드 로드 완료`);
 
                 allParticipantsData = allRecords.map((record, index) => {
                     // Store mapping
@@ -808,7 +842,7 @@
 
                     // Log first 3 records to see field names
                     if (index < 3) {
-                        // addDebugLog(`레코드 ${index + 1}:`, {
+                        addDebugLog(`레코드 ${index + 1}:`, {
                             ID: record.fields.ID,
                             name: record.fields.name,
                             setDate: record.fields.setDate,
@@ -825,7 +859,7 @@
 
                 // Show available dates
                 const uniqueDates = [...new Set(allParticipantsData.map(p => p.setDate))].sort();
-                // addDebugLog('📅 데이터가 있는 날짜들:', uniqueDates);
+                addDebugLog('📅 데이터가 있는 날짜들:', uniqueDates);
 
                 // Sort by time
                 allParticipantsData.sort((a, b) => {
@@ -835,15 +869,15 @@
                 });
 
                 lastLoadTime = now;
-                // addDebugLog('=== 전체 데이터 로드 완료 ===');
+                addDebugLog('=== 전체 데이터 로드 완료 ===');
                 return allParticipantsData;
             }, {
                 showNotification: true,
                 logError: true,
                 fallbackValue: []
             }).catch(error => {
-                // addDebugLog('❌ 에러 발생:', error.message);
-                // addDebugLog('에러 상세:', error.stack);
+                addDebugLog('❌ 에러 발생:', error.message);
+                addDebugLog('에러 상세:', error.stack);
                 ErrorHandler.logError(error, { context: 'loadAllParticipants' });
                 return [];
             });
@@ -852,7 +886,7 @@
         // Load attendance data from AttendanceImages table
         async function loadAttendanceData() {
             return ErrorHandler.handle(async () => {
-                // addDebugLog('=== AttendanceImages 출석 데이터 로드 ===');
+                addDebugLog('=== AttendanceImages 출석 데이터 로드 ===');
 
                 const response = await ErrorHandler.fetchWithErrorHandling(
                     `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${ATTENDANCE_TABLE_ID}`,
@@ -866,7 +900,7 @@
 
 
                 const data = await response.json();
-                // addDebugLog(`AttendanceImages 레코드 ${data.records.length}개 로드`);
+                addDebugLog(`AttendanceImages 레코드 ${data.records.length}개 로드`);
 
                 // Update participants with attendance data
                 data.records.forEach(record => {
@@ -883,7 +917,7 @@
                             participant.checkinStaff = fields.staffName;
                             participant.aID = fields['A-ID'] || '';  // Load A-ID field
                             participant.attendanceRecordId = record.id;  // Store Airtable record ID for updates
-                            // addDebugLog(`참가자 ${participantID} 출석 상태 업데이트: ${fields.attendanceStatus} (Record ID: ${record.id}, A-ID: ${fields['A-ID'] || 'none'})`);
+                            addDebugLog(`참가자 ${participantID} 출석 상태 업데이트: ${fields.attendanceStatus} (Record ID: ${record.id}, A-ID: ${fields['A-ID'] || 'none'})`);
                         }
                     }
                 });
@@ -894,7 +928,7 @@
                 showNotification: false,
                 logError: true
             }).catch(error => {
-                // addDebugLog('AttendanceImages 로드 에러:', error.message);
+                addDebugLog('AttendanceImages 로드 에러:', error.message);
             });
         }
 
@@ -902,8 +936,8 @@
         function filterAndDisplayParticipants() {
             const selectedDate = document.getElementById('dateFilter').value;
 
-            // addDebugLog('=== 필터링 시작 ===');
-            // addDebugLog('선택된 날짜 (input):', selectedDate || '전체');
+            addDebugLog('=== 필터링 시작 ===');
+            addDebugLog('선택된 날짜 (input):', selectedDate || '전체');
 
             if (selectedDate) {
                 // 선택된 날짜를 다양한 형식으로 준비
@@ -917,7 +951,7 @@
                 const format3 = `${year}.${monthInt}.${dayInt}`;   // 2025.9.22
                 const format4 = `${year}/${monthInt}/${dayInt}`;   // 2025/9/22
 
-                // addDebugLog('비교할 날짜 형식들:', {
+                addDebugLog('비교할 날짜 형식들:', {
                     format1_MD: format1,
                     format2_YYYYMMDD: format2,
                     format3_Dot: format3,
@@ -926,7 +960,7 @@
 
                 // 첫 몇 개 데이터의 setDate 형식 확인
                 if (allParticipantsData.length > 0) {
-                    // addDebugLog('데이터 샘플 (첫 3개):',
+                    addDebugLog('데이터 샘플 (첫 3개):',
                         allParticipantsData.slice(0, 3).map(p => ({
                             name: p.name,
                             setDate: p.setDate
@@ -972,17 +1006,17 @@
                                   pDateStr === format4;
 
                     if (matches && participantsData.length < 5) {
-                        // addDebugLog(`매칭: ${p.name}, setDate: ${pDateStr} → normalized: ${normalizedPDate}`);
+                        addDebugLog(`매칭: ${p.name}, setDate: ${pDateStr} → normalized: ${normalizedPDate}`);
                     }
 
                     return matches;
                 });
 
-                // addDebugLog(`필터 결과: ${participantsData.length}개 (전체 ${allParticipantsData.length}개 중)`);
+                addDebugLog(`필터 결과: ${participantsData.length}개 (전체 ${allParticipantsData.length}개 중)`);
             } else {
                 // Show all
                 participantsData = [...allParticipantsData];
-                // addDebugLog(`전체 표시: ${participantsData.length}개`);
+                addDebugLog(`전체 표시: ${participantsData.length}개`);
             }
 
             displayParticipants();
@@ -1023,6 +1057,9 @@
                 const filterDate = `${date.getMonth() + 1}/${date.getDate()}`;
 
                 // Log filtering info
+                console.log('Display filter - Selected date:', filterDate);
+                console.log('Display filter - Filtered count:', filtered.length);
+                console.log('Display filter - Total participants:', participantsData.length);
 
                 dateHeader = `
                     <div style="padding: 10px 15px; background: var(--primary); color: white; margin: -20px -20px 15px; text-align: center; font-weight: bold; border-radius: 8px 8px 0 0;">
@@ -1127,7 +1164,7 @@
             const attended = confirmedParticipants.filter(p => p.attendanceStatus === 'Attended').length;
             const pending = confirmedParticipants.filter(p => !p.attendanceStatus || p.attendanceStatus === 'Pending').length;
 
-            // addDebugLog('통계 업데이트:', {
+            addDebugLog('통계 업데이트:', {
                 total: total,
                 attended: attended,
                 pending: pending,
@@ -1251,6 +1288,10 @@
 
         // Submit check-in
         async function submitCheckin() {
+            console.log('=== submitCheckin 함수 시작 ===');
+            console.log('Current participant:', currentParticipant);
+            console.log('ATTENDANCE_TABLE_ID:', ATTENDANCE_TABLE_ID);
+            console.log('This function should only POST to AttendanceImages table');
 
             if (!currentParticipant) {
                 console.error('No participant selected');
@@ -1293,9 +1334,11 @@
                 // Try different format for Airtable - remove milliseconds and Z
                 // Format: YYYY-MM-DDTHH:mm:ss.000Z
                 const isoString = now.toISOString();
+                console.log('Original ISO string:', isoString);
 
                 // Try without milliseconds: YYYY-MM-DDTHH:mm:ss
                 const checkinTimeFormatted = isoString.substring(0, 19);
+                console.log('Formatted checkinTime (no ms/tz):', checkinTimeFormatted);
 
                 // Airtable Date field requires YYYY-MM-DD format (date only, no time)
                 const todayDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -1326,6 +1369,19 @@
                     notes: `Check-in completed - ${now.toLocaleString('en-US')}${aidValue ? ` | A-ID: ${aidValue}` : ''}${bankbookCheck ? ' | Bankbook: Check Later' : ''}`
                 };
 
+                // Detailed logging for debugging
+                console.log('=== ATTENDANCE DATA DEBUG ===');
+                console.log('participantID:', attendanceData.participantID, typeof attendanceData.participantID);
+                console.log('participantName:', attendanceData.participantName, typeof attendanceData.participantName);
+                console.log('checkinTime:', attendanceData.checkinTime, typeof attendanceData.checkinTime);
+                console.log('attendanceStatus:', attendanceData.attendanceStatus, typeof attendanceData.attendanceStatus);
+                console.log('rewardType:', attendanceData.rewardType, typeof attendanceData.rewardType);
+                console.log('staffName:', attendanceData.staffName, typeof attendanceData.staffName);
+                console.log('staffID:', attendanceData.staffID, typeof attendanceData.staffID);
+                console.log('checkDate:', attendanceData.checkDate, typeof attendanceData.checkDate);
+                console.log('checkTime:', attendanceData.checkTime, typeof attendanceData.checkTime);
+                console.log('notes:', attendanceData.notes, typeof attendanceData.notes);
+                console.log('=== END DEBUG ===');
 
                 // Handle image data
                 if (idCardImageFront || idCardImageBack || bankbookImage) {
@@ -1394,9 +1450,9 @@
                         localStorage.setItem(imageKey, JSON.stringify(imageData));
                         attendanceData.notes += `\n이미지 저장 키: ${imageKey}`;
 
-                        // addDebugLog('이미지 임시 저장 완료:', imageKey);
+                        addDebugLog('이미지 임시 저장 완료:', imageKey);
                     } catch (e) {
-                        // addDebugLog('이미지 저장 실패:', e.message);
+                        addDebugLog('이미지 저장 실패:', e.message);
                     }
                 }
 
@@ -1410,7 +1466,7 @@
                 }
 
                 // Debug: Log attempt (DO NOT use recordId for anything)
-                // addDebugLog('체크인 시도 - AttendanceImages 테이블에만 저장:', {
+                addDebugLog('체크인 시도 - AttendanceImages 테이블에만 저장:', {
                     participantID: parseInt(currentParticipant.ID) || 0,
                     participantName: currentParticipant.name,
                     table: 'AttendanceImages',
@@ -1423,12 +1479,21 @@
                     throw new Error('AttendanceImages 테이블 ID가 설정되지 않았습니다.');
                 }
 
-                // addDebugLog('AttendanceImages 테이블에 저장 시도:', {
+                addDebugLog('AttendanceImages 테이블에 저장 시도:', {
                     table: ATTENDANCE_TABLE_ID,
                     data: attendanceData
                 });
 
                 // Log the exact data being sent
+                console.log('Sending to Airtable - Full attendanceData:', attendanceData);
+                console.log('checkinTime format:', checkinTimeFormatted);
+                console.log('checkinTime type:', typeof checkinTimeFormatted);
+                console.log('checkDate format:', formattedCheckDate);
+                console.log('Testing different formats:');
+                console.log('  - ISO with Z:', now.toISOString());
+                console.log('  - ISO no ms:', now.toISOString().split('.')[0] + 'Z');
+                console.log('  - ISO no Z:', now.toISOString().substring(0, 19));
+                console.log('  - Local string:', now.toLocaleString('ko-KR'));
 
                 // Check if record exists (UPDATE) or new (CREATE)
                 let response;
@@ -1438,7 +1503,7 @@
                     // UPDATE existing record
                     const updateUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${ATTENDANCE_TABLE_ID}/${currentParticipant.attendanceRecordId}`;
 
-                    // addDebugLog('기존 레코드 업데이트:', {
+                    addDebugLog('기존 레코드 업데이트:', {
                         recordId: currentParticipant.attendanceRecordId,
                         method: 'PATCH',
                         data: attendanceData
@@ -1458,7 +1523,7 @@
                     // CREATE new record
                     const createUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${ATTENDANCE_TABLE_ID}`;
 
-                    // addDebugLog('새 레코드 생성:', {
+                    addDebugLog('새 레코드 생성:', {
                         method: 'POST',
                         data: attendanceData
                     });
@@ -1481,14 +1546,14 @@
                 if (!response.ok) {
                     const errorData = await response.json();
                     console.error('Airtable API Error:', errorData);
-                    // addDebugLog('API 오류 상세:', errorData);
+                    addDebugLog('API 오류 상세:', errorData);
 
                     // Log specific field error details
                     if (errorData.error && errorData.error.type === 'INVALID_VALUE_FOR_COLUMN') {
                         console.error('Field validation error - full data:', attendanceData);
                         console.error('Error details:', errorData);
-                        // addDebugLog('필드 검증 실패 - 전체 데이터:', attendanceData);
-                        // addDebugLog('에러 상세:', errorData);
+                        addDebugLog('필드 검증 실패 - 전체 데이터:', attendanceData);
+                        addDebugLog('에러 상세:', errorData);
                     }
 
                     if (errorData.error && errorData.error.message) {
@@ -1501,12 +1566,12 @@
                 const result = await response.json();
 
                 if (isUpdate) {
-                    // addDebugLog('AttendanceImages 레코드 업데이트 성공:', result);
+                    addDebugLog('AttendanceImages 레코드 업데이트 성공:', result);
                 } else {
                     // Store the new record ID for future updates
                     currentParticipant.attendanceRecordId = result.records ? result.records[0].id : result.id;
-                    // addDebugLog('AttendanceImages 레코드 생성 성공:', result);
-                    // addDebugLog('새 레코드 ID 저장:', currentParticipant.attendanceRecordId);
+                    addDebugLog('AttendanceImages 레코드 생성 성공:', result);
+                    addDebugLog('새 레코드 ID 저장:', currentParticipant.attendanceRecordId);
                 }
 
                 // Update local participant data
@@ -1534,7 +1599,7 @@
                 showNotification: true,
                 logError: true
             }).catch(error => {
-                // addDebugLog('체크인 에러:', error.message);
+                addDebugLog('체크인 에러:', error.message);
             }).finally(() => {
                 document.getElementById('submitBtn').disabled = false;
                 document.getElementById('submitBtn').textContent = '체크인 완료';
@@ -1555,7 +1620,7 @@
                     if (!dateFilter.value) {
                         const today = new Date().toISOString().split('T')[0];
                         dateFilter.value = today;
-                        // addDebugLog('📅 빈 날짜 필드에 오늘 날짜 설정:', today);
+                        addDebugLog('📅 빈 날짜 필드에 오늘 날짜 설정:', today);
                     }
                 });
             }
