@@ -8,6 +8,7 @@ window.AIRTABLE_BASE_ID = '${AIRTABLE_BASE_ID}';
 window.AIRTABLE_TABLE_ID = '${AIRTABLE_TABLE_ID}';
 window.AIRTABLE_ADMIN_TABLE_ID = '${AIRTABLE_ADMIN_TABLE_ID}';
 window.AIRTABLE_ATTENDANCE_TABLE_ID = '${AIRTABLE_ATTENDANCE_TABLE_ID}';
+window.IMGBB_API_KEY = '${IMGBB_API_KEY}';
 EOF
 
 # Also ensure config.js exists with the updated secure version

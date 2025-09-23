@@ -1580,8 +1580,16 @@
                         // Remove data:image/jpeg;base64, prefix
                         const base64Data = base64Image.split(',')[1];
 
-                        // Using imgbb free API (get your key from https://imgbb.com/api)
-                        const IMGBB_API_KEY = '7d3e84e7f5e2c8a9b6d4f3a2e1c5b8d7'; // Replace with your API key
+                        // Get API key from environment variable (set in Netlify)
+                        // Priority: 1. Window (from env-config.js), 2. localStorage, 3. Empty
+                        const IMGBB_API_KEY = window.IMGBB_API_KEY || localStorage.getItem('IMGBB_API_KEY') || '';
+
+                        if (!IMGBB_API_KEY) {
+                            console.warn('ImgBB API key not configured. Images will only be saved locally.');
+                            console.log('Set IMGBB_API_KEY in Netlify environment variables or use localStorage.setItem("IMGBB_API_KEY", "your-key")');
+                            addDebugLog('ImgBB API 키가 설정되지 않음 - 이미지는 로컬에만 저장됩니다');
+                            return null;
+                        }
 
                         const formData = new FormData();
                         formData.append('image', base64Data);
@@ -1594,11 +1602,17 @@
 
                         if (response.ok) {
                             const data = await response.json();
+                            console.log('Image uploaded successfully:', data.data.url);
                             return data.data.url; // Return the public URL
+                        } else {
+                            const errorText = await response.text();
+                            console.error('ImgBB upload failed:', response.status, errorText);
+                            addDebugLog('ImgBB 업로드 실패:', { status: response.status, error: errorText });
                         }
                         return null;
                     } catch (error) {
-                        console.error('Image upload failed:', error);
+                        console.error('Image upload error:', error);
+                        addDebugLog('이미지 업로드 오류:', error.message);
                         return null;
                     }
                 }
