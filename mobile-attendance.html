@@ -1640,26 +1640,60 @@
             document.getElementById('searchInput').addEventListener('input', displayParticipants);
 
             // ID card front input
-            document.getElementById('idCardFrontInput').addEventListener('change', async (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    idCardImageFront = await compressImage(file);
-                    const url = URL.createObjectURL(idCardImageFront);
-                    document.getElementById('idFrontPreview').innerHTML = `<img src="${url}" alt="ID Card Front">`;
-                    checkFormComplete();
-                }
-            });
+            const idFrontInput = document.getElementById('idCardFrontInput');
+            if (!idFrontInput) {
+                console.error('ID Card Front Input element not found!');
+                addDebugLog('ERROR: ID Card Front Input element not found');
+            } else {
+                console.log('ID Card Front Input found, adding listener');
+                addDebugLog('ID Card Front Input found successfully');
+                idFrontInput.addEventListener('change', async (e) => {
+                    console.log('ID Card Front file selected:', e.target.files[0]);
+                    addDebugLog('ID Card Front file selected', {
+                        fileName: e.target.files[0]?.name,
+                        fileSize: e.target.files[0]?.size
+                    });
+                    const file = e.target.files[0];
+                    if (file) {
+                        try {
+                            idCardImageFront = await compressImage(file);
+                            const url = URL.createObjectURL(idCardImageFront);
+                            document.getElementById('idFrontPreview').innerHTML = `<img src="${url}" alt="ID Card Front">`;
+                            console.log('ID Card Front image processed successfully');
+                            addDebugLog('ID Card Front image processed successfully');
+                            checkFormComplete();
+                        } catch (error) {
+                            console.error('Error processing ID Card Front:', error);
+                            addDebugLog('Error processing ID Card Front:', error.message);
+                            showNotification('Failed to process image', 'error');
+                        }
+                    }
+                });
+            }
 
             // ID card back input
-            document.getElementById('idCardBackInput').addEventListener('change', async (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    idCardImageBack = await compressImage(file);
-                    const url = URL.createObjectURL(idCardImageBack);
-                    document.getElementById('idBackPreview').innerHTML = `<img src="${url}" alt="ID Card Back">`;
-                    checkFormComplete();
-                }
-            });
+            const idBackInput = document.getElementById('idCardBackInput');
+            if (!idBackInput) {
+                console.error('ID Card Back Input element not found!');
+            } else {
+                console.log('ID Card Back Input found, adding listener');
+                idBackInput.addEventListener('change', async (e) => {
+                    console.log('ID Card Back file selected:', e.target.files[0]);
+                    const file = e.target.files[0];
+                    if (file) {
+                        try {
+                            idCardImageBack = await compressImage(file);
+                            const url = URL.createObjectURL(idCardImageBack);
+                            document.getElementById('idBackPreview').innerHTML = `<img src="${url}" alt="ID Card Back">`;
+                            console.log('ID Card Back image processed successfully');
+                            checkFormComplete();
+                        } catch (error) {
+                            console.error('Error processing ID Card Back:', error);
+                            showNotification('Failed to process image', 'error');
+                        }
+                    }
+                });
+            }
 
             // Bankbook later checkbox
             document.getElementById('bankbookLaterCheck').addEventListener('change', (e) => {
@@ -1675,15 +1709,28 @@
             });
 
             // Bankbook input
-            document.getElementById('bankbookInput').addEventListener('change', async (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    bankbookImage = await compressImage(file);
-                    const url = URL.createObjectURL(bankbookImage);
-                    document.getElementById('bankbookPreview').innerHTML = `<img src="${url}" alt="Bankbook">`;
-                    checkFormComplete();
-                }
-            });
+            const bankbookInput = document.getElementById('bankbookInput');
+            if (!bankbookInput) {
+                console.error('Bankbook Input element not found!');
+            } else {
+                console.log('Bankbook Input found, adding listener');
+                bankbookInput.addEventListener('change', async (e) => {
+                    console.log('Bankbook file selected:', e.target.files[0]);
+                    const file = e.target.files[0];
+                    if (file) {
+                        try {
+                            bankbookImage = await compressImage(file);
+                            const url = URL.createObjectURL(bankbookImage);
+                            document.getElementById('bankbookPreview').innerHTML = `<img src="${url}" alt="Bankbook">`;
+                            console.log('Bankbook image processed successfully');
+                            checkFormComplete();
+                        } catch (error) {
+                            console.error('Error processing Bankbook:', error);
+                            showNotification('Failed to process image', 'error');
+                        }
+                    }
+                });
+            }
         }
 
         // Switch tabs
@@ -1850,9 +1897,18 @@
         }
 
         // Edit attendance record
-        async function editAttendance(participantId) {
-            currentParticipant = participantsData.find(p => p.ID === participantId);
-            if (!currentParticipant) return;
+        window.editAttendance = async function(participantId) {
+            console.log('editAttendance called for participant:', participantId);
+            addDebugLog('editAttendance 호출됨:', { participantId });
+
+            try {
+                currentParticipant = participantsData.find(p => p.ID === participantId);
+                if (!currentParticipant) {
+                    console.error('Participant not found:', participantId);
+                    addDebugLog('참가자를 찾을 수 없음:', { participantId });
+                    showNotification('참가자를 찾을 수 없습니다', 'error');
+                    return;
+                }
 
             // Pre-fill with existing data
             const existingReward = currentParticipant.rewardType;
@@ -1903,46 +1959,65 @@
             if (imageKeys.length > 0) {
                 // Get the latest image set
                 const latestKey = imageKeys.sort().pop();
-                const imageData = JSON.parse(localStorage.getItem(latestKey));
+                try {
+                    const imageDataString = localStorage.getItem(latestKey);
+                    if (!imageDataString) {
+                        console.error('No data for key:', latestKey);
+                        addDebugLog('이미지 데이터 없음:', { key: latestKey });
+                    } else {
+                        const imageData = JSON.parse(imageDataString);
+                        console.log('Loading existing images:', imageData);
+                        addDebugLog('기존 이미지 로드 중:', {
+                            hasfront: !!imageData.idCardFront,
+                            hasBack: !!imageData.idCardBack,
+                            hasBankbook: !!imageData.bankbook
+                        });
 
-                // Display existing images
-                // New structure with front and back
-                if (imageData.idCardFront) {
-                    document.getElementById('idFrontPreview').innerHTML = `
-                        <img src="${imageData.idCardFront}" alt="ID Card Front" style="width: 100%; height: auto;">
-                        <div style="text-align: center; font-size: 12px; color: var(--success); margin-top: 5px;">
-                            ✓ Front image loaded
-                        </div>
-                    `;
-                    fetch(imageData.idCardFront)
-                        .then(res => res.blob())
-                        .then(blob => { idCardImageFront = blob; });
-                }
+                        // Display existing images
+                        // New structure with front and back
+                        if (imageData.idCardFront) {
+                            document.getElementById('idFrontPreview').innerHTML = `
+                                <img src="${imageData.idCardFront}" alt="ID Card Front" style="width: 100%; height: auto;">
+                                <div style="text-align: center; font-size: 12px; color: var(--success); margin-top: 5px;">
+                                    ✓ Front image loaded
+                                </div>
+                            `;
+                            fetch(imageData.idCardFront)
+                                .then(res => res.blob())
+                                .then(blob => { idCardImageFront = blob; })
+                                .catch(err => console.error('Failed to load front image:', err));
+                        }
 
-                if (imageData.idCardBack) {
-                    document.getElementById('idBackPreview').innerHTML = `
-                        <img src="${imageData.idCardBack}" alt="ID Card Back" style="width: 100%; height: auto;">
-                        <div style="text-align: center; font-size: 12px; color: var(--success); margin-top: 5px;">
-                            ✓ Back image loaded
-                        </div>
-                    `;
-                    fetch(imageData.idCardBack)
-                        .then(res => res.blob())
-                        .then(blob => { idCardImageBack = blob; });
-                }
+                        if (imageData.idCardBack) {
+                            document.getElementById('idBackPreview').innerHTML = `
+                                <img src="${imageData.idCardBack}" alt="ID Card Back" style="width: 100%; height: auto;">
+                                <div style="text-align: center; font-size: 12px; color: var(--success); margin-top: 5px;">
+                                    ✓ Back image loaded
+                                </div>
+                            `;
+                            fetch(imageData.idCardBack)
+                                .then(res => res.blob())
+                                .then(blob => { idCardImageBack = blob; })
+                                .catch(err => console.error('Failed to load back image:', err));
+                        }
 
-
-                if (imageData.bankbook) {
-                    document.getElementById('bankbookPreview').innerHTML = `
-                        <img src="${imageData.bankbook}" alt="Bankbook" style="width: 100%; height: auto;">
-                        <div style="text-align: center; font-size: 12px; color: var(--success); margin-top: 5px;">
-                            ✓ Existing image loaded
-                        </div>
-                    `;
-                    // Convert base64 back to blob for potential re-upload
-                    fetch(imageData.bankbook)
-                        .then(res => res.blob())
-                        .then(blob => { bankbookImage = blob; });
+                        if (imageData.bankbook) {
+                            document.getElementById('bankbookPreview').innerHTML = `
+                                <img src="${imageData.bankbook}" alt="Bankbook" style="width: 100%; height: auto;">
+                                <div style="text-align: center; font-size: 12px; color: var(--success); margin-top: 5px;">
+                                    ✓ Existing image loaded
+                                </div>
+                            `;
+                            // Convert base64 back to blob for potential re-upload
+                            fetch(imageData.bankbook)
+                                .then(res => res.blob())
+                                .then(blob => { bankbookImage = blob; })
+                                .catch(err => console.error('Failed to load bankbook image:', err));
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error loading images:', error);
+                    addDebugLog('이미지 로드 오류:', error.message);
                 }
 
                 // Show bankbook group if cash was selected
@@ -1951,12 +2026,20 @@
                 }
             }
 
-            // Update button text
-            document.getElementById('submitBtn').textContent = 'Update';
-            document.getElementById('submitBtn').disabled = false;
+                // Update button text
+                document.getElementById('submitBtn').textContent = 'Update';
+                document.getElementById('submitBtn').disabled = false;
 
-            // Show modal
-            document.getElementById('checkinModal').classList.add('active');
+                // Show modal
+                document.getElementById('checkinModal').classList.add('active');
+
+                console.log('Edit modal opened successfully');
+                addDebugLog('편집 모달 열림');
+            } catch (error) {
+                console.error('Error in editAttendance:', error);
+                addDebugLog('editAttendance 오류:', error.message);
+                showNotification('편집 모드를 열 수 없습니다', 'error');
+            }
         }
 
         // Change no-show to attended
@@ -2020,62 +2103,93 @@
         }
 
         // View stored images
-        function viewImages(participantId) {
-            // Find all image keys for this participant
-            const imageKeys = [];
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key && key.startsWith(`images_${participantId}_`)) {
-                    imageKeys.push(key);
+        window.viewImages = function(participantId) {
+            console.log('viewImages called for participant:', participantId);
+            addDebugLog('viewImages 호출됨:', { participantId });
+
+            try {
+                // Find all image keys for this participant
+                const imageKeys = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith(`images_${participantId}_`)) {
+                        imageKeys.push(key);
+                        console.log('Found image key:', key);
+                    }
                 }
-            }
 
-            if (imageKeys.length === 0) {
-                showNotification('No saved images found', 'error');
-                return;
-            }
+                console.log('Total image keys found:', imageKeys.length);
+                addDebugLog('이미지 키 검색 결과:', { count: imageKeys.length, keys: imageKeys });
 
-            // Get the latest image set
-            const latestKey = imageKeys.sort().pop();
-            const imageData = JSON.parse(localStorage.getItem(latestKey));
+                if (imageKeys.length === 0) {
+                    console.log('No images found in localStorage for participant:', participantId);
+                    addDebugLog('저장된 이미지 없음', { participantId });
+                    showNotification('저장된 이미지가 없습니다', 'error');
+                    return;
+                }
 
-            // Create modal to display images
-            const modal = document.createElement('div');
-            modal.className = 'modal active';
-            modal.style.zIndex = '2000';
-            modal.innerHTML = `
-                <div class="modal-content" style="max-width: 600px;">
-                    <div class="modal-header">
-                        <h3 class="modal-title">Saved Images</h3>
-                        <button class="modal-close" onclick="this.closest('.modal').remove()">×</button>
-                    </div>
-                    <div class="modal-body">
-                        <div style="margin-bottom: 10px; font-size: 12px; color: var(--text-light);">
-                            참가자 ID: ${imageData.participantID}<br>
-                            저장 시간: ${new Date(imageData.timestamp).toLocaleString('ko-KR')}
+                // Get the latest image set
+                const latestKey = imageKeys.sort().pop();
+                const imageDataString = localStorage.getItem(latestKey);
+
+                if (!imageDataString) {
+                    console.error('Image data is null for key:', latestKey);
+                    showNotification('이미지 데이터를 불러올 수 없습니다', 'error');
+                    return;
+                }
+
+                const imageData = JSON.parse(imageDataString);
+                console.log('Image data loaded:', imageData);
+                addDebugLog('이미지 데이터 로드됨:', { key: latestKey, hasImages: {
+                    front: !!imageData.idCardFront,
+                    back: !!imageData.idCardBack,
+                    bankbook: !!imageData.bankbook
+                }});
+
+                // Create modal to display images
+                const modal = document.createElement('div');
+                modal.className = 'modal active';
+                modal.style.zIndex = '2000';
+                modal.innerHTML = `
+                    <div class="modal-content" style="max-width: 600px;">
+                        <div class="modal-header">
+                            <h3 class="modal-title">저장된 이미지</h3>
+                            <button class="modal-close" onclick="this.closest('.modal').remove()">×</button>
                         </div>
-                        ${imageData.idCardFront ? `
-                            <div style="margin-bottom: 15px;">
-                                <h4 style="margin-bottom: 8px;">신분증 앞면</h4>
-                                <img src="${imageData.idCardFront}" style="width: 100%; border-radius: 8px; border: 1px solid var(--border);">
+                        <div class="modal-body">
+                            <div style="margin-bottom: 10px; font-size: 12px; color: var(--text-light);">
+                                참가자 ID: ${imageData.participantID}<br>
+                                저장 시간: ${new Date(imageData.timestamp).toLocaleString('ko-KR')}
                             </div>
-                        ` : ''}
-                        ${imageData.idCardBack ? `
-                            <div style="margin-bottom: 15px;">
-                                <h4 style="margin-bottom: 8px;">신분증 뒷면</h4>
-                                <img src="${imageData.idCardBack}" style="width: 100%; border-radius: 8px; border: 1px solid var(--border);">
-                            </div>
-                        ` : ''}
-                        ${imageData.bankbook ? `
-                            <div>
-                                <h4 style="margin-bottom: 8px;">통장사본</h4>
-                                <img src="${imageData.bankbook}" style="width: 100%; border-radius: 8px; border: 1px solid var(--border);">
-                            </div>
-                        ` : ''}
+                            ${imageData.idCardFront ? `
+                                <div style="margin-bottom: 15px;">
+                                    <h4 style="margin-bottom: 8px;">신분증 앞면</h4>
+                                    <img src="${imageData.idCardFront}" style="width: 100%; border-radius: 8px; border: 1px solid var(--border);">
+                                </div>
+                            ` : '<div style="margin-bottom: 15px; color: var(--text-light);">신분증 앞면 이미지 없음</div>'}
+                            ${imageData.idCardBack ? `
+                                <div style="margin-bottom: 15px;">
+                                    <h4 style="margin-bottom: 8px;">신분증 뒷면</h4>
+                                    <img src="${imageData.idCardBack}" style="width: 100%; border-radius: 8px; border: 1px solid var(--border);">
+                                </div>
+                            ` : '<div style="margin-bottom: 15px; color: var(--text-light);">신분증 뒷면 이미지 없음</div>'}
+                            ${imageData.bankbook ? `
+                                <div>
+                                    <h4 style="margin-bottom: 8px;">통장사본</h4>
+                                    <img src="${imageData.bankbook}" style="width: 100%; border-radius: 8px; border: 1px solid var(--border);">
+                                </div>
+                            ` : '<div style="color: var(--text-light);">통장사본 이미지 없음</div>'}
+                        </div>
                     </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
+                `;
+                document.body.appendChild(modal);
+                console.log('Modal appended to body');
+                addDebugLog('이미지 모달 표시됨');
+            } catch (error) {
+                console.error('Error in viewImages:', error);
+                addDebugLog('viewImages 오류:', error.message);
+                showNotification('이미지 표시 중 오류가 발생했습니다', 'error');
+            }
         }
 
         // Show notification

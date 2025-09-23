@@ -1056,7 +1056,7 @@
                         <div class="distribution-item">
                             <div class="distribution-label">
                                 <div class="distribution-dot" style="background: var(--success);"></div>
-                                <span>Mobile Voucher</span>
+                                <span>Gift-Card</span>
                             </div>
                             <div class="distribution-value" id="mobileVoucherCount">0</div>
                         </div>
@@ -1754,20 +1754,20 @@
         // Update reward distribution
         function updateRewardDistribution() {
             const attended = participantsData.filter(p => p.attendanceStatus === 'Attended');
-            const mobileVoucher = attended.filter(p => p.rewardType === 'Gift-Card' || p.rewardType === 'MobileVoucher').length;
-            const cash = attended.filter(p => p.rewardType === 'Transfer' || p.rewardType === 'Cash').length;
+            const giftCard = attended.filter(p => p.rewardType === 'Gift-Card' || p.rewardType === 'MobileVoucher').length;
+            const transfer = attended.filter(p => p.rewardType === 'Transfer' || p.rewardType === 'Cash').length;
             const none = attended.filter(p => !p.rewardType || p.rewardType === 'None').length;
-            const total = mobileVoucher + cash + none;
+            const total = giftCard + transfer + none;
 
             // Update counts
-            document.getElementById('mobileVoucherCount').textContent = mobileVoucher;
-            document.getElementById('cashCount').textContent = cash;
+            document.getElementById('mobileVoucherCount').textContent = giftCard;
+            document.getElementById('cashCount').textContent = transfer;
             document.getElementById('noneCount').textContent = none;
 
             // Update bars
             if (total > 0) {
-                document.getElementById('mobileVoucherBar').style.width = `${(mobileVoucher / total) * 100}%`;
-                document.getElementById('cashBar').style.width = `${(cash / total) * 100}%`;
+                document.getElementById('mobileVoucherBar').style.width = `${(giftCard / total) * 100}%`;
+                document.getElementById('cashBar').style.width = `${(transfer / total) * 100}%`;
                 document.getElementById('noneBar').style.width = `${(none / total) * 100}%`;
             } else {
                 document.getElementById('mobileVoucherBar').style.width = '0%';
@@ -2065,8 +2065,8 @@
                 attended: filteredData.filter(p => p.attendanceStatus === 'Attended').length,
                 pending: filteredData.filter(p => p.attendanceStatus === 'Pending').length,
                 noShow: filteredData.filter(p => p.attendanceStatus === 'No-show').length,
-                mobileVoucher: filteredData.filter(p => p.rewardType === 'Gift-Card' || p.rewardType === 'MobileVoucher').length,
-                cash: filteredData.filter(p => p.rewardType === 'Transfer' || p.rewardType === 'Cash').length
+                giftCard: filteredData.filter(p => p.rewardType === 'Gift-Card' || p.rewardType === 'MobileVoucher').length,
+                transfer: filteredData.filter(p => p.rewardType === 'Transfer' || p.rewardType === 'Cash').length
             };
 
             // Display report
