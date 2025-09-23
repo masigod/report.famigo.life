@@ -464,8 +464,7 @@
                         const setDate = record.setDate;
                         const status = record.status;
                         return setDate === selectedDate &&
-                               status !== 'Cancelled' &&
-                               status !== 'Duplicate';
+                               status === 'Confirmed';  // Only show Confirmed status
                     });
 
                 console.log('Filtered participants for date:', allData.length);
