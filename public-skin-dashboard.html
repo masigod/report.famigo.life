@@ -484,6 +484,11 @@
                 <p>No attendance data available</p>
             </div>
         </div>
+        <!-- Debug Console -->
+        <div class="debug-console" id="debugConsole" style="background: #2d2d2d; color: #0f0; padding: 20px; margin-top: 20px; border-radius: 10px; font-family: monospace; font-size: 12px; max-height: 400px; overflow-y: auto; display: block;">
+            <h3 style="color: #fff; margin-bottom: 10px;">Debug Console</h3>
+            <div id="debugMessages"></div>
+        </div>
     </div>
 
     <!-- Modal -->
@@ -500,6 +505,17 @@
     </div>
 
     <script>
+        // Debug logging function
+        function debugLog(message, type = 'info') {
+            const debugDiv = document.getElementById('debugMessages');
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'error' ? '#ff6b6b' : type === 'success' ? '#51cf66' : '#ffd93d';
+            const logEntry = `<div style="color: ${color}; margin: 5px 0;">[${timestamp}] ${message}</div>`;
+            debugDiv.innerHTML += logEntry;
+            debugDiv.scrollTop = debugDiv.scrollHeight;
+            console.log(`[${type}] ${message}`);
+        }
+
         // Configuration - loaded from config.js (built by Netlify with environment variables)
         const AIRTABLE_API_KEY = typeof AIRTABLE_CONFIG !== 'undefined' ?
             AIRTABLE_CONFIG.API_KEY : '';
@@ -533,9 +549,11 @@
 
         // Initialize
         window.addEventListener('DOMContentLoaded', async () => {
-            // Config is loaded from config.js which is built by Netlify with environment variables
-            console.log('Initializing dashboard with config...');
-            console.log('API Key available:', !!AIRTABLE_API_KEY);
+            debugLog('=== Dashboard Initialization Started ===', 'info');
+            debugLog(`API Key configured: ${!!AIRTABLE_API_KEY ? 'YES' : 'NO'}`, AIRTABLE_API_KEY ? 'success' : 'error');
+            debugLog(`Base ID: ${AIRTABLE_BASE_ID}`, 'info');
+            debugLog(`Participants Table: ${PARTICIPANTS_TABLE_ID}`, 'info');
+            debugLog(`Attendance Table: ${ATTENDANCE_IMAGES_TABLE_ID}`, 'info');
 
             // Load data
             await loadAllData();
@@ -547,6 +565,7 @@
         // Load all data
         async function loadAllData() {
             showLoading();
+            debugLog('=== Starting data load ===', 'info');
 
             try {
                 // Load data in parallel
@@ -558,6 +577,8 @@
                 attendanceData = attendance;
                 participantsData = participants;
 
+                debugLog(`✓ Data loaded: ${attendance.length} attendance, ${participants.length} participants`, 'success');
+
                 // Merge and process data
                 mergeAttendanceData();
                 processMatrixData();
@@ -567,7 +588,9 @@
                 updateMatrix();
 
                 hideLoading();
+                debugLog('=== Data load completed ===', 'success');
             } catch (error) {
+                debugLog(`Error loading data: ${error.message}`, 'error');
                 console.error('Error loading data:', error);
                 hideLoading();
                 showNoData();
@@ -576,22 +599,24 @@
 
         // Load attendance data from AttendanceImages table
         async function loadAttendanceData() {
-            console.log('Loading attendance data from AttendanceImages table...');
+            debugLog('Loading attendance data...', 'info');
             let allRecords = [];
             let offset = null;
+            let pageCount = 0;
 
             do {
                 let url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${ATTENDANCE_IMAGES_TABLE_ID}`;
                 const params = new URLSearchParams();
                 if (offset) params.append('offset', offset);
                 params.append('pageSize', '100');
-                // Remove filter to get all records first, then filter after
                 params.append('sort[0][field]', 'checkinTime');
                 params.append('sort[0][direction]', 'desc');
 
                 if (params.toString()) url += `?${params.toString()}`;
 
-                console.log('Fetching from:', url);
+                pageCount++;
+                debugLog(`Fetching attendance page ${pageCount}...`, 'info');
+
                 const response = await fetch(url, {
                     headers: {
                         'Authorization': `Bearer ${AIRTABLE_API_KEY}`
@@ -600,12 +625,18 @@
 
                 if (!response.ok) {
                     const errorText = await response.text();
-                    console.error('API Error:', errorText);
+                    debugLog(`API Error: ${response.status} - ${errorText}`, 'error');
                     throw new Error('Failed to load attendance data');
                 }
 
                 const data = await response.json();
-                console.log(`Fetched ${data.records.length} records from AttendanceImages`);
+                debugLog(`Page ${pageCount}: ${data.records.length} records`, 'info');
+
+                // Show sample record structure
+                if (pageCount === 1 && data.records.length > 0) {
+                    debugLog(`Sample record fields: ${Object.keys(data.records[0].fields).join(', ')}`, 'info');
+                }
+
                 allRecords = allRecords.concat(data.records);
                 offset = data.offset;
             } while (offset);
@@ -615,7 +646,7 @@
                 record.fields.attendanceStatus === 'Attended'
             );
 
-            console.log(`Total attended records: ${attendedRecords.length} out of ${allRecords.length}`);
+            debugLog(`✓ Total: ${attendedRecords.length} attended out of ${allRecords.length} total`, 'success');
             return attendedRecords.map(record => ({
                 ...record.fields,
                 recordId: record.id
@@ -624,8 +655,10 @@
 
         // Load participants data
         async function loadParticipantsData() {
+            debugLog('Loading participants data...', 'info');
             let allRecords = [];
             let offset = null;
+            let pageCount = 0;
 
             do {
                 let url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${PARTICIPANTS_TABLE_ID}`;
@@ -635,20 +668,34 @@
 
                 if (params.toString()) url += `?${params.toString()}`;
 
+                pageCount++;
+                debugLog(`Fetching participants page ${pageCount}...`, 'info');
+
                 const response = await fetch(url, {
                     headers: {
                         'Authorization': `Bearer ${AIRTABLE_API_KEY}`
                     }
                 });
 
-                if (!response.ok) throw new Error('Failed to load participants data');
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    debugLog(`API Error: ${response.status} - ${errorText}`, 'error');
+                    throw new Error('Failed to load participants data');
+                }
 
                 const data = await response.json();
+                debugLog(`Page ${pageCount}: ${data.records.length} records`, 'info');
+
+                // Show sample record structure
+                if (pageCount === 1 && data.records.length > 0) {
+                    debugLog(`Sample participant fields: ${Object.keys(data.records[0].fields).join(', ')}`, 'info');
+                }
+
                 allRecords = allRecords.concat(data.records);
                 offset = data.offset;
             } while (offset);
 
-            console.log(`Loaded ${allRecords.length} participants`);
+            debugLog(`✓ Total participants: ${allRecords.length}`, 'success');
             return allRecords.map(record => ({
                 ...record.fields,
                 recordId: record.id
@@ -657,16 +704,25 @@
 
         // Merge attendance with participants
         function mergeAttendanceData() {
-            console.log('Merging attendance data with participants...');
-            mergedData = attendanceData.map(attendance => {
+            debugLog('Merging attendance with participants...', 'info');
+            let matchCount = 0;
+            let unmatchedCount = 0;
+
+            mergedData = attendanceData.map((attendance, index) => {
                 // Join by participant ID field
                 const participantId = attendance.participantID || attendance.ParticipantID || attendance['Participant ID'];
                 const participant = participantsData.find(p => p.ID === participantId);
 
                 if (participant) {
-                    console.log(`Matched participant ID ${participantId}: ${participant.name}`);
+                    matchCount++;
+                    if (index < 3) { // Log first 3 matches
+                        debugLog(`Match: ID ${participantId} → ${participant.name}`, 'success');
+                    }
                 } else {
-                    console.log(`No match found for participant ID: ${participantId}`);
+                    unmatchedCount++;
+                    if (unmatchedCount <= 3) { // Log first 3 unmatched
+                        debugLog(`No match for ID: ${participantId}`, 'error');
+                    }
                 }
 
                 return {
@@ -678,11 +734,14 @@
                     setDate: participant?.setDate || attendance.setDate || '-'
                 };
             });
-            console.log(`Total merged records: ${mergedData.length}`);
+
+            debugLog(`✓ Merge complete: ${matchCount} matched, ${unmatchedCount} unmatched`, matchCount > 0 ? 'success' : 'error');
         }
 
         // Process data into matrix format
         function processMatrixData() {
+            debugLog('Processing matrix data...', 'info');
+
             // Initialize matrix
             matrixData = {};
             skinColors.forEach(color => {
@@ -695,20 +754,21 @@
                 });
             });
 
-            console.log(`Processing all-time cumulative matrix data...`);
-            console.log(`Total merged records to process: ${mergedData.length}`);
+            let validCount = 0;
+            let invalidCount = 0;
 
             // Process ALL attended data (no date filter for matrix)
-            mergedData.forEach(item => {
+            mergedData.forEach((item, index) => {
                 const color = item.skinColor;
                 const tone = item.skinTone;
 
-                // Only log first few items to avoid console spam
-                if (mergedData.indexOf(item) < 5) {
-                    console.log(`Processing: ${item.participantName} - Color: ${color}, Tone: ${tone}`);
+                // Log first few items
+                if (index < 3) {
+                    debugLog(`Sample ${index + 1}: ${item.participantName} - Color: ${color}, Tone: ${tone}`, 'info');
                 }
 
-                if (color && tone && matrixData[color] && matrixData[color][tone]) {
+                if (color && tone && color !== '-' && tone !== '-' && matrixData[color] && matrixData[color][tone]) {
+                    validCount++;
                     matrixData[color][tone].count++;
                     matrixData[color][tone].people.push({
                         name: item.participantName,
@@ -717,19 +777,30 @@
                         checkinTime: item.checkinTime,
                         date: item.setDate
                     });
+                } else {
+                    invalidCount++;
+                    if (invalidCount <= 3) {
+                        debugLog(`Invalid skin data: ${item.participantName} - Color: ${color}, Tone: ${tone}`, 'error');
+                    }
                 }
             });
 
             // Log summary
             let totalInMatrix = 0;
+            let distributionSummary = [];
             Object.keys(matrixData).forEach(color => {
                 Object.keys(matrixData[color]).forEach(tone => {
                     if (matrixData[color][tone].count > 0) {
                         totalInMatrix += matrixData[color][tone].count;
+                        distributionSummary.push(`${color}/${tone}: ${matrixData[color][tone].count}`);
                     }
                 });
             });
-            console.log(`Total records in matrix: ${totalInMatrix}`);
+
+            debugLog(`✓ Matrix complete: ${totalInMatrix} valid, ${invalidCount} invalid`, totalInMatrix > 0 ? 'success' : 'error');
+            if (distributionSummary.length > 0) {
+                debugLog(`Distribution: ${distributionSummary.slice(0, 5).join(', ')}${distributionSummary.length > 5 ? '...' : ''}`, 'info');
+            }
         }
 
         // Update statistics
