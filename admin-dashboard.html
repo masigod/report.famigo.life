@@ -1067,7 +1067,7 @@
                         <div class="distribution-item">
                             <div class="distribution-label">
                                 <div class="distribution-dot" style="background: var(--info);"></div>
-                                <span>Cash</span>
+                                <span>Transfer</span>
                             </div>
                             <div class="distribution-value" id="cashCount">0</div>
                         </div>
@@ -1754,8 +1754,8 @@
         // Update reward distribution
         function updateRewardDistribution() {
             const attended = participantsData.filter(p => p.attendanceStatus === 'Attended');
-            const mobileVoucher = attended.filter(p => p.rewardType === 'MobileVoucher').length;
-            const cash = attended.filter(p => p.rewardType === 'Cash').length;
+            const mobileVoucher = attended.filter(p => p.rewardType === 'Gift-Card' || p.rewardType === 'MobileVoucher').length;
+            const cash = attended.filter(p => p.rewardType === 'Transfer' || p.rewardType === 'Cash').length;
             const none = attended.filter(p => !p.rewardType || p.rewardType === 'None').length;
             const total = mobileVoucher + cash + none;
 
@@ -2065,8 +2065,8 @@
                 attended: filteredData.filter(p => p.attendanceStatus === 'Attended').length,
                 pending: filteredData.filter(p => p.attendanceStatus === 'Pending').length,
                 noShow: filteredData.filter(p => p.attendanceStatus === 'No-show').length,
-                mobileVoucher: filteredData.filter(p => p.rewardType === 'MobileVoucher').length,
-                cash: filteredData.filter(p => p.rewardType === 'Cash').length
+                mobileVoucher: filteredData.filter(p => p.rewardType === 'Gift-Card' || p.rewardType === 'MobileVoucher').length,
+                cash: filteredData.filter(p => p.rewardType === 'Transfer' || p.rewardType === 'Cash').length
             };
 
             // Display report
@@ -2183,8 +2183,8 @@
         // Format reward type
         function formatReward(reward) {
             if (!reward) return '-';
-            if (reward === 'MobileVoucher') return '📱 Mobile';
-            if (reward === 'Cash') return '💵 Cash';
+            if (reward === 'Gift-Card' || reward === 'MobileVoucher') return '🎁 Gift-Card';
+            if (reward === 'Transfer' || reward === 'Cash') return '💵 Transfer';
             return '➖ None';
         }
 

@@ -610,7 +610,7 @@
                     <div class="reward-options">
                         <div class="reward-option" onclick="selectReward('mobile')" data-reward="mobile">
                             <div class="reward-icon">📱</div>
-                            <div>Mobile Voucher</div>
+                            <div>Gift-Card</div>
                         </div>
                         <div class="reward-option" onclick="selectReward('cash')" data-reward="cash">
                             <div class="reward-icon">💵</div>
@@ -1318,7 +1318,7 @@
                 // Map reward type to Airtable values
                 let rewardTypeValue = 'None';
                 if (selectedReward === 'mobile') {
-                    rewardTypeValue = 'MobileVoucher';
+                    rewardTypeValue = 'Gift-Card';
                 } else if (selectedReward === 'cash') {
                     rewardTypeValue = 'Transfer';
                 }
@@ -1750,7 +1750,7 @@
             const pending = displayParticipants.filter(p => !p.attendanceStatus || p.attendanceStatus === 'Pending');
             const noshow = displayParticipants.filter(p => p.attendanceStatus === 'No-show');
 
-            const mobileCount = attended.filter(p => p.rewardType === 'MobileVoucher').length;
+            const mobileCount = attended.filter(p => p.rewardType === 'Gift-Card' || p.rewardType === 'MobileVoucher').length;
             const transferCount = attended.filter(p => p.rewardType === 'Transfer' || p.rewardType === 'Cash').length;
 
             // Group by time slots for detailed stats
@@ -1809,7 +1809,7 @@
                     <h3 style="margin-bottom: 15px;">💰 Reward Status</h3>
                     <div style="display: grid; gap: 10px;">
                         <div style="display: flex; justify-content: space-between;">
-                            <span>📱 Mobile Voucher</span>
+                            <span>🎁 Gift-Card</span>
                             <strong>${mobileCount} people</strong>
                         </div>
                         <div style="display: flex; justify-content: space-between;">
@@ -1867,7 +1867,7 @@
                     <div style="margin-top: 8px; padding: 8px; background: #e8f8f5; border-radius: 6px;">
                         <strong>Current Status:</strong> Attended<br>
                         <strong>Check-in Time:</strong> ${currentParticipant.checkinTime ? new Date(currentParticipant.checkinTime).toLocaleString('ko-KR') : '-'}<br>
-                        <strong>Reward:</strong> ${existingReward === 'MobileVoucher' ? 'Mobile Voucher' : existingReward === 'Cash' || existingReward === 'Transfer' ? 'Transfer' : 'None'}<br>
+                        <strong>Reward:</strong> ${existingReward === 'Gift-Card' || existingReward === 'MobileVoucher' ? 'Gift-Card' : existingReward === 'Cash' || existingReward === 'Transfer' ? 'Transfer' : 'None'}<br>
                         <strong>A-ID:</strong> ${currentParticipant.aID || 'Not assigned'}
                     </div>
                 </div>
@@ -1877,7 +1877,7 @@
             document.getElementById('aidInput').value = currentParticipant.aID || '';
 
             // Set existing reward type
-            selectedReward = existingReward === 'MobileVoucher' ? 'mobile' : (existingReward === 'Cash' || existingReward === 'Transfer') ? 'cash' : '';
+            selectedReward = (existingReward === 'Gift-Card' || existingReward === 'MobileVoucher') ? 'mobile' : (existingReward === 'Cash' || existingReward === 'Transfer') ? 'cash' : '';
             if (selectedReward) {
                 document.querySelectorAll('.reward-option').forEach(el => el.classList.remove('selected'));
                 document.querySelector(`[data-reward="${selectedReward}"]`).classList.add('selected');
