@@ -1128,12 +1128,15 @@
                                 ✓ ${p.checkinTime ? new Date(p.checkinTime).toLocaleTimeString('ko-KR', {hour: '2-digit', minute: '2-digit'}) : ''} Checked in
                             </div>
                             <div style="display: flex; gap: 8px;">
-                                <button class="checkin-btn" onclick="editAttendance(${p.ID})" style="background: #718096; font-size: 12px; padding: 8px; flex: 1;">
+                                <button class="checkin-btn" onclick="editAttendance(${p.ID})" style="background: #718096; font-size: 12px; padding: 8px; width: 100%;">
                                     Edit
                                 </button>
+                                <!-- 이미지 보기 버튼 임시 숨김 (보안 문제) -->
+                                <!--
                                 <button class="checkin-btn" onclick="viewImages(${p.ID})" style="background: #4a5568; font-size: 12px; padding: 8px; flex: 1;">
                                     View Images
                                 </button>
+                                -->
                             </div>
                         </div>`
                     }
