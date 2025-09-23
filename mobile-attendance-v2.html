@@ -614,32 +614,6 @@
                     </div>
                 </div>
 
-                <!-- 이미지 업로드 UI 숨김 (백그라운드에서 카메라 촬영은 진행) -->
-                <div class="form-group" style="display: none;">
-                    <label class="form-label">신분증 촬영 (필수)</label>
-                    <div class="camera-container">
-                        <div class="camera-preview" id="idPreview">
-                            <span style="color: var(--text-light);">📷 사진 없음</span>
-                        </div>
-                        <input type="file" id="idCardInput" accept="image/*" capture="camera" style="display: none;">
-                        <button class="camera-btn" onclick="document.getElementById('idCardInput').click()">
-                            신분증 촬영
-                        </button>
-                    </div>
-                </div>
-
-                <div class="form-group" id="bankbookGroup" style="display: none;">
-                    <label class="form-label">통장사본 촬영</label>
-                    <div class="camera-container">
-                        <div class="camera-preview" id="bankbookPreview">
-                            <span style="color: var(--text-light);">📷 사진 없음</span>
-                        </div>
-                        <input type="file" id="bankbookInput" accept="image/*" capture="camera" style="display: none;">
-                        <button class="camera-btn" onclick="document.getElementById('bankbookInput').click()">
-                            통장사본 촬영
-                        </button>
-                    </div>
-                </div>
 
                 <button class="submit-btn" id="submitBtn" onclick="submitCheckin()" disabled>
                     체크인 완료
@@ -1143,9 +1117,10 @@
             idCardImage = null;
             bankbookImage = null;
             document.querySelectorAll('.reward-option').forEach(el => el.classList.remove('selected'));
-            document.getElementById('idPreview').innerHTML = '<span style="color: var(--text-light);">📷 사진 없음</span>';
-            document.getElementById('bankbookPreview').innerHTML = '<span style="color: var(--text-light);">📷 사진 없음</span>';
-            document.getElementById('bankbookGroup').style.display = 'none';
+            // 이미지 프리뷰 UI 제거됨 - 관련 코드 제거
+            // document.getElementById('idPreview').innerHTML = '<span style="color: var(--text-light);">📷 사진 없음</span>';
+            // document.getElementById('bankbookPreview').innerHTML = '<span style="color: var(--text-light);">📷 사진 없음</span>';
+            // document.getElementById('bankbookGroup').style.display = 'none';
             document.getElementById('submitBtn').disabled = true;
 
             // Show modal
@@ -1166,8 +1141,8 @@
             });
             document.querySelector(`[data-reward="${type}"]`).classList.add('selected');
 
-            // Show/hide bankbook section
-            document.getElementById('bankbookGroup').style.display = type === 'cash' ? 'block' : 'none';
+            // bankbookGroup UI는 이미 제거됨 - 이 라인 제거
+            // document.getElementById('bankbookGroup').style.display = type === 'cash' ? 'block' : 'none';
 
             checkFormComplete();
         }
@@ -1384,66 +1359,6 @@
             document.getElementById('submitBtn').textContent = '처리 중...';
 
             return ErrorHandler.handle(async () => {
-                // 자동으로 카메라 촬영 시작 (UI는 숨겨져 있지만 기능은 동작)
-                if (!idCardImage) {
-                    showNotification('신분증을 촬영합니다...', 'info');
-
-                    // 프로그래밍 방식으로 파일 입력 트리거
-                    const idInput = document.getElementById('idCardInput');
-                    if (idInput) {
-                        // 사용자가 카메라 촬영하도록 유도
-                        await new Promise((resolve) => {
-                            const handleChange = async (e) => {
-                                const file = e.target.files[0];
-                                if (file) {
-                                    idCardImage = await compressImage(file);
-                                    idInput.removeEventListener('change', handleChange);
-                                    resolve();
-                                } else {
-                                    // 취소한 경우
-                                    document.getElementById('submitBtn').disabled = false;
-                                    document.getElementById('submitBtn').textContent = '체크인 완료';
-                                    showNotification('신분증 촬영이 취소되었습니다', 'error');
-                                    idInput.removeEventListener('change', handleChange);
-                                    resolve();
-                                    return;
-                                }
-                            };
-                            idInput.addEventListener('change', handleChange);
-                            idInput.click();
-                        });
-
-                        // 사진 촬영 취소한 경우 중단
-                        if (!idCardImage) {
-                            return;
-                        }
-                    }
-                }
-
-                // 현금 선택시 통장사본도 촬영
-                if (selectedReward === 'cash' && !bankbookImage) {
-                    showNotification('통장사본을 촬영합니다...', 'info');
-
-                    const bankbookInput = document.getElementById('bankbookInput');
-                    if (bankbookInput) {
-                        await new Promise((resolve) => {
-                            const handleChange = async (e) => {
-                                const file = e.target.files[0];
-                                if (file) {
-                                    bankbookImage = await compressImage(file);
-                                    bankbookInput.removeEventListener('change', handleChange);
-                                    resolve();
-                                } else {
-                                    // 취소한 경우 - 통장사본은 선택사항으로 처리
-                                    bankbookInput.removeEventListener('change', handleChange);
-                                    resolve();
-                                }
-                            };
-                            bankbookInput.addEventListener('change', handleChange);
-                            bankbookInput.click();
-                        });
-                    }
-                }
                 // Create record in AttendanceImages table using exact field names from CSV
                 const now = new Date();
 
@@ -1514,30 +1429,6 @@
                 console.log('notes:', attendanceData.notes, typeof attendanceData.notes);
                 console.log('=== END DEBUG ===');
 
-                // Store Base64 images in Long Text fields
-                if (idCardImage) {
-                    // Convert blob to Base64
-                    const base64String = await new Promise((resolve) => {
-                        const reader = new FileReader();
-                        reader.onload = () => resolve(reader.result);
-                        reader.readAsDataURL(idCardImage);
-                    });
-                    attendanceData.idCardImageFrontBase64 = base64String;
-                    console.log('ID card image stored as Base64, size:', (base64String.length / 1024).toFixed(2), 'KB');
-                    addDebugLog('신분증 이미지 Base64 저장 완료');
-                }
-
-                if (bankbookImage) {
-                    // Convert blob to Base64
-                    const base64String = await new Promise((resolve) => {
-                        const reader = new FileReader();
-                        reader.onload = () => resolve(reader.result);
-                        reader.readAsDataURL(bankbookImage);
-                    });
-                    attendanceData.bankbookImageBase64 = base64String;
-                    console.log('Bankbook image stored as Base64, size:', (base64String.length / 1024).toFixed(2), 'KB');
-                    addDebugLog('통장사본 이미지 Base64 저장 완료');
-                }
 
                 // Debug: Log attempt (DO NOT use recordId for anything)
                 addDebugLog('체크인 시도 - AttendanceImages 테이블에만 저장:', {
