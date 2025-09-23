@@ -1368,12 +1368,26 @@
     <div class="notification" id="notification"></div>
 
     <script>
-        // Configuration
-        const AIRTABLE_API_KEY = typeof AIRTABLE_CONFIG !== 'undefined' ? AIRTABLE_CONFIG.API_KEY : '';
-        const AIRTABLE_BASE_ID = typeof AIRTABLE_CONFIG !== 'undefined' ? AIRTABLE_CONFIG.BASE_ID : 'appZcPs57spwdoKQH';
-        const PARTICIPANTS_TABLE_ID = typeof AIRTABLE_CONFIG !== 'undefined' ? AIRTABLE_CONFIG.TABLE_ID : 'tblxMzwX1wWJKIOhY';
-        const ATTENDANCE_TABLE_ID = typeof AIRTABLE_CONFIG !== 'undefined' ? AIRTABLE_CONFIG.ATTENDANCE_TABLE_ID : 'tblUnxGfJXHp2qSHp';
-        const ADMIN_TABLE_ID = typeof AIRTABLE_CONFIG !== 'undefined' ? AIRTABLE_CONFIG.ADMIN_TABLE_ID : 'tblFQ7ofZ9CXZcydm';
+        // Configuration - wait for config to load
+        let AIRTABLE_API_KEY = '';
+        let AIRTABLE_BASE_ID = 'appZcPs57spwdoKQH';
+        let PARTICIPANTS_TABLE_ID = 'tblxMzwX1wWJKIOhY';
+        let ATTENDANCE_TABLE_ID = 'tblUnxGfJXHp2qSHp';
+        let ADMIN_TABLE_ID = 'tblFQ7ofZ9CXZcydm';
+
+        // Load config if available
+        if (typeof AIRTABLE_CONFIG !== 'undefined') {
+            AIRTABLE_API_KEY = AIRTABLE_CONFIG.API_KEY || '';
+            AIRTABLE_BASE_ID = AIRTABLE_CONFIG.BASE_ID || AIRTABLE_BASE_ID;
+            PARTICIPANTS_TABLE_ID = AIRTABLE_CONFIG.TABLE_ID || PARTICIPANTS_TABLE_ID;
+            ATTENDANCE_TABLE_ID = AIRTABLE_CONFIG.ATTENDANCE_TABLE_ID || ATTENDANCE_TABLE_ID;
+            ADMIN_TABLE_ID = AIRTABLE_CONFIG.ADMIN_TABLE_ID || ADMIN_TABLE_ID;
+        }
+
+        // Check localStorage for API key as fallback
+        if (!AIRTABLE_API_KEY) {
+            AIRTABLE_API_KEY = localStorage.getItem('AIRTABLE_API_KEY') || '';
+        }
 
         // Global variables
         let participantsData = [];
@@ -1387,6 +1401,19 @@
 
         // Initialize on load
         window.addEventListener('DOMContentLoaded', async () => {
+            console.log('Initializing admin dashboard...');
+
+            // Check for API key
+            if (!AIRTABLE_API_KEY) {
+                const apiKey = prompt('Please enter your Airtable API key:');
+                if (apiKey) {
+                    AIRTABLE_API_KEY = apiKey;
+                    localStorage.setItem('AIRTABLE_API_KEY', apiKey);
+                } else {
+                    showNotification('API key is required to load data', 'error');
+                }
+            }
+
             checkAuth();
             initializeDates();
             await loadAllData();
@@ -1445,6 +1472,15 @@
         async function loadAllData() {
             try {
                 showLoading();
+                console.log('Starting to load all data...');
+
+                // Check if API key exists
+                if (!AIRTABLE_API_KEY) {
+                    console.error('No API key found');
+                    showNotification('API key not configured. Please check configuration.', 'error');
+                    hideLoading();
+                    return;
+                }
 
                 // Load all data in parallel
                 const [participants, attendance, staff] = await Promise.all([
@@ -1457,10 +1493,17 @@
                 attendanceData = attendance;
                 staffData = staff;
 
+                console.log('Data loaded:', {
+                    participants: participantsData.length,
+                    attendance: attendanceData.length,
+                    staff: staffData.length
+                });
+
                 // Merge attendance data with participants
                 mergeData();
 
                 hideLoading();
+                showNotification(`Data loaded: ${participantsData.length} participants`, 'success');
             } catch (error) {
                 console.error('Error loading data:', error);
                 showNotification('Failed to load data. Please refresh the page.', 'error');
@@ -1470,26 +1513,37 @@
 
         // Load participants from Airtable
         async function loadParticipants() {
+            console.log('Loading participants...');
             let allRecords = [];
             let offset = null;
+            let pageCount = 0;
 
             do {
                 let url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${PARTICIPANTS_TABLE_ID}`;
-                if (offset) url += `?offset=${offset}`;
+                const params = new URLSearchParams();
+                if (offset) params.append('offset', offset);
+                params.append('pageSize', '100');
+                if (params.toString()) url += `?${params.toString()}`;
 
+                console.log(`Fetching participants page ${++pageCount}...`);
                 const response = await fetch(url, {
                     headers: {
                         'Authorization': `Bearer ${AIRTABLE_API_KEY}`
                     }
                 });
 
-                if (!response.ok) throw new Error('Failed to load participants');
+                if (!response.ok) {
+                    const error = await response.text();
+                    console.error('Failed to load participants:', error);
+                    throw new Error('Failed to load participants');
+                }
 
                 const data = await response.json();
                 allRecords = allRecords.concat(data.records);
                 offset = data.offset;
             } while (offset);
 
+            console.log(`Loaded ${allRecords.length} participants`);
             return allRecords.map(record => ({
                 ...record.fields,
                 recordId: record.id
@@ -1498,26 +1552,37 @@
 
         // Load attendance from Airtable
         async function loadAttendance() {
+            console.log('Loading attendance records...');
             let allRecords = [];
             let offset = null;
+            let pageCount = 0;
 
             do {
                 let url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${ATTENDANCE_TABLE_ID}`;
-                if (offset) url += `?offset=${offset}`;
+                const params = new URLSearchParams();
+                if (offset) params.append('offset', offset);
+                params.append('pageSize', '100');
+                if (params.toString()) url += `?${params.toString()}`;
 
+                console.log(`Fetching attendance page ${++pageCount}...`);
                 const response = await fetch(url, {
                     headers: {
                         'Authorization': `Bearer ${AIRTABLE_API_KEY}`
                     }
                 });
 
-                if (!response.ok) throw new Error('Failed to load attendance');
+                if (!response.ok) {
+                    const error = await response.text();
+                    console.error('Failed to load attendance:', error);
+                    throw new Error('Failed to load attendance');
+                }
 
                 const data = await response.json();
                 allRecords = allRecords.concat(data.records);
                 offset = data.offset;
             } while (offset);
 
+            console.log(`Loaded ${allRecords.length} attendance records`);
             return allRecords.map(record => ({
                 ...record.fields,
                 recordId: record.id
@@ -1527,8 +1592,9 @@
         // Load staff from Admin table
         async function loadStaff() {
             try {
+                console.log('Loading staff data...');
                 const response = await fetch(
-                    `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${ADMIN_TABLE_ID}`,
+                    `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${ADMIN_TABLE_ID}?pageSize=100`,
                     {
                         headers: {
                             'Authorization': `Bearer ${AIRTABLE_API_KEY}`
@@ -1536,14 +1602,19 @@
                     }
                 );
 
-                if (!response.ok) return [];
+                if (!response.ok) {
+                    console.error('Failed to load staff');
+                    return [];
+                }
 
                 const data = await response.json();
+                console.log(`Loaded ${data.records.length} staff members`);
                 return data.records.map(record => ({
                     ...record.fields,
                     recordId: record.id
                 }));
-            } catch {
+            } catch (error) {
+                console.error('Error loading staff:', error);
                 return [];
             }
         }
@@ -2218,16 +2289,20 @@
 
         // Refresh data
         async function refreshData() {
+            console.log('Manual refresh triggered');
+            showNotification('Refreshing data...', 'info');
             await loadAllData();
             updateCurrentPage();
-            showNotification('Data refreshed successfully');
+            showNotification('Data refreshed successfully', 'success');
         }
 
         // Auto refresh
         function startAutoRefresh() {
             // Refresh every 30 seconds
-            autoRefreshInterval = setInterval(() => {
-                loadAllData().then(() => updateCurrentPage());
+            autoRefreshInterval = setInterval(async () => {
+                console.log('Auto-refreshing data...');
+                await loadAllData();
+                updateCurrentPage();
             }, 30000);
         }
 
