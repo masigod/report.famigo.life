@@ -544,19 +544,20 @@
         let matrixData = {};
 
         // Skin type definitions
-        const skinColors = ["1(F)", "2(L)", "3(LM)", "4(M)", "5(MD)", "6(D)"];
-        const skinTones = ["Cool", "Neutral", "Warm", "Olive"];  // Swapped Warm and Olive
+        const skinColors = ["1(F)", "2(L)", "3(LM)", "4(M)", "5(MD)", "6(D)", "7(R)"];
+        const skinTones = ["Cool", "Neutral", "Warm", "Olive"];  // Order: Cool, Neutral, Warm, Olive
 
-        // Goal targets from the image
+        // Goal targets - Total: 130 participants
+        // Format: Cool, Neutral, Warm, Olive
         const goalTargets = {
-            "1(F)": { "Cool": 1, "Neutral": 3, "Warm": 5, "Olive": 2 },
-            "2(L)": { "Cool": 6, "Neutral": 9, "Warm": 5, "Olive": 2 },
-            "3(LM)": { "Cool": 2, "Neutral": 12, "Warm": 5, "Olive": 7 },
-            "4(M)": { "Cool": 5, "Neutral": 13, "Warm": 14, "Olive": 8 },
-            "5(MD)": { "Cool": 7, "Neutral": 11, "Warm": 8, "Olive": 5 },
-            "6(D)": { "Cool": 8, "Neutral": 6, "Warm": 1, "Olive": 1 },
-            "7(L)": { "Cool": 2, "Neutral": 1, "Warm": 3, "Olive": 5 }
-        };
+            "1(F)": { "Cool": 3, "Neutral": 3, "Warm": 1, "Olive": 1 },   // Total: 8
+            "2(L)": { "Cool": 6, "Neutral": 9, "Warm": 5, "Olive": 2 },   // Total: 22
+            "3(LM)": { "Cool": 2, "Neutral": 12, "Warm": 9, "Olive": 7 }, // Total: 30
+            "4(M)": { "Cool": 0, "Neutral": 13, "Warm": 14, "Olive": 3 }, // Total: 30
+            "5(MD)": { "Cool": 0, "Neutral": 12, "Warm": 8, "Olive": 0 }, // Total: 20
+            "6(D)": { "Cool": 2, "Neutral": 6, "Warm": 6, "Olive": 0 },   // Total: 14
+            "7(R)": { "Cool": 2, "Neutral": 1, "Warm": 3, "Olive": 0 }    // Total: 6
+        };  // Grand Total: 8+22+30+30+20+14+6 = 130
 
         const colorInfo = {
             "1(F)": { label: "Fair", desc: "매우 밝은 피부", hex: "#ffe8d6" },
@@ -564,7 +565,8 @@
             "3(LM)": { label: "Light Medium", desc: "밝은 중간", hex: "#f5b895" },
             "4(M)": { label: "Medium", desc: "중간 피부", hex: "#d4a574" },
             "5(MD)": { label: "Medium Deep", desc: "중간 어두운", hex: "#a67c52" },
-            "6(D)": { label: "Deep", desc: "어두운 피부", hex: "#8b6239" }
+            "6(D)": { label: "Deep", desc: "어두운 피부", hex: "#8b6239" },
+            "7(R)": { label: "Rich", desc: "진한 피부", hex: "#704214" }
         };
 
         // Initialize
@@ -991,8 +993,19 @@
                     }
                 });
 
-                // Row total
-                html += `<td class="total-cell">${rowTotal}</td>`;
+                // Row total with goal
+                const rowGoal = Object.values(goalTargets[color] || {}).reduce((a, b) => a + b, 0);
+                const rowAchieveRate = rowGoal > 0 ? Math.round((rowTotal / rowGoal) * 100) : 0;
+                const rowRateColor = rowAchieveRate >= 100 ? '#51cf66' :
+                                    rowAchieveRate >= 70 ? '#ffd93d' : '#ff6b6b';
+
+                html += `<td class="total-cell">
+                    ${rowTotal}
+                    <div style="font-size: 0.75em;">
+                        <span style="color: ${rowRateColor};">${rowAchieveRate}%</span>
+                        <span style="color: rgba(255,255,255,0.8);">(${rowGoal})</span>
+                    </div>
+                </td>`;
                 html += '</tr>';
 
                 grandTotal += rowTotal;
@@ -1002,17 +1015,39 @@
             html += '<tr>';
             html += '<td class="row-header" style="background: linear-gradient(135deg, #ffd93d 0%, #ffb347 100%);"><strong>Total</strong></td>';
 
-            // Column totals
+            // Column totals with goals
             skinTones.forEach(tone => {
                 let columnTotal = 0;
+                let columnGoal = 0;
                 skinColors.forEach(color => {
                     columnTotal += matrixData[color][tone].count;
+                    columnGoal += (goalTargets[color] && goalTargets[color][tone]) || 0;
                 });
-                html += `<td class="total-cell">${columnTotal}</td>`;
+                const colAchieveRate = columnGoal > 0 ? Math.round((columnTotal / columnGoal) * 100) : 0;
+                const colRateColor = colAchieveRate >= 100 ? '#51cf66' :
+                                   colAchieveRate >= 70 ? '#ffd93d' : '#ff6b6b';
+
+                html += `<td class="total-cell">
+                    ${columnTotal}
+                    <div style="font-size: 0.75em;">
+                        <span style="color: ${colRateColor};">${colAchieveRate}%</span>
+                        <span style="color: rgba(255,255,255,0.8);">(${columnGoal})</span>
+                    </div>
+                </td>`;
             });
 
-            // Grand total
-            html += `<td class="total-cell" style="background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%); color: white;">${grandTotal}</td>`;
+            // Grand total with goal (130)
+            const grandGoalRate = Math.round((grandTotal / 130) * 100);
+            const grandRateColor = grandGoalRate >= 100 ? '#51cf66' :
+                                  grandGoalRate >= 70 ? '#ffd93d' : '#ff6b6b';
+
+            html += `<td class="total-cell" style="background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%); color: white;">
+                ${grandTotal}
+                <div style="font-size: 0.75em;">
+                    <span style="color: white;">${grandGoalRate}%</span>
+                    <span style="color: rgba(255,255,255,0.8);">(130)</span>
+                </div>
+            </td>`;
             html += '</tr>';
 
             tbody.innerHTML = html;
