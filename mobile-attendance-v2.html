@@ -614,6 +614,8 @@
                     </div>
                 </div>
 
+                <!-- 이미지 업로드 기능 임시 비활성화 (보안 문제 해결 중) -->
+                <!--
                 <div class="form-group">
                     <label class="form-label">신분증 촬영 (필수)</label>
                     <div class="camera-container">
@@ -639,6 +641,7 @@
                         </button>
                     </div>
                 </div>
+                -->
 
                 <button class="submit-btn" id="submitBtn" onclick="submitCheckin()" disabled>
                     체크인 완료
@@ -1174,10 +1177,12 @@
         // Check if form is complete
         function checkFormComplete() {
             const hasReward = selectedReward !== '';
-            const hasIdCard = idCardImage !== null;
-            const hasBankbook = selectedReward === 'cash' ? bankbookImage !== null : true;
+            // 이미지 업로드 임시 비활성화 - 리워드 선택만 확인
+            // const hasIdCard = idCardImage !== null;
+            // const hasBankbook = selectedReward === 'cash' ? bankbookImage !== null : true;
+            // document.getElementById('submitBtn').disabled = !(hasReward && hasIdCard && hasBankbook);
 
-            document.getElementById('submitBtn').disabled = !(hasReward && hasIdCard && hasBankbook);
+            document.getElementById('submitBtn').disabled = !hasReward;
         }
 
         // View stored images from Airtable
@@ -1451,6 +1456,8 @@
                 console.log('notes:', attendanceData.notes, typeof attendanceData.notes);
                 console.log('=== END DEBUG ===');
 
+                // 이미지 업로드 임시 비활성화
+                /*
                 // Store Base64 images in Long Text fields
                 if (idCardImage) {
                     // Convert blob to Base64
@@ -1473,6 +1480,7 @@
                     attendanceData.bankbookImageBase64 = base64String;
                     console.log('Bankbook image stored as Base64, size:', (base64String.length / 1024).toFixed(2), 'KB');
                 }
+                */
 
                 // Debug: Log attempt (DO NOT use recordId for anything)
                 addDebugLog('체크인 시도 - AttendanceImages 테이블에만 저장:', {
@@ -1620,6 +1628,8 @@
             // Search
             document.getElementById('searchInput').addEventListener('input', displayParticipants);
 
+            // 이미지 입력 이벤트 리스너 임시 비활성화
+            /*
             // ID card input
             document.getElementById('idCardInput').addEventListener('change', async (e) => {
                 const file = e.target.files[0];
@@ -1641,6 +1651,7 @@
                     checkFormComplete();
                 }
             });
+            */
         }
 
         // Switch tabs
