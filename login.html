@@ -414,8 +414,12 @@
                     // Viewer 사용자는 리포트 페이지로 리다이렉트
                     console.log('Redirecting to report.html');
                     window.location.href = 'report.html';
+                } else if (normalizedRole === 'admin') {
+                    // Admin 사용자는 관리자 대시보드로 리다이렉트
+                    console.log('Redirecting to admin-dashboard.html');
+                    window.location.href = 'admin-dashboard.html';
                 } else {
-                    // admin, manager는 메인 페이지로
+                    // manager는 메인 페이지로
                     console.log('Redirecting to index.html');
                     window.location.href = 'index.html';
                 }
