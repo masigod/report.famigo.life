@@ -587,9 +587,6 @@
 
             // Load data
             await loadAllData();
-
-            // Auto refresh every 30 seconds
-            setInterval(loadAllData, 30000);
         });
 
         // Load all data
@@ -664,7 +661,12 @@
 
                 // Show sample record structure
                 if (pageCount === 1 && data.records.length > 0) {
-                    debugLog(`Sample record fields: ${Object.keys(data.records[0].fields).join(', ')}`, 'info');
+                    const sampleRecord = data.records[0].fields;
+                    debugLog(`Sample record fields: ${Object.keys(sampleRecord).join(', ')}`, 'info');
+                    debugLog(`Sample attendanceStatus: "${sampleRecord.attendanceStatus}"`, 'info');
+                    // Count unique statuses
+                    const statusSet = new Set(data.records.map(r => r.fields.attendanceStatus));
+                    debugLog(`Unique status values in this page: ${Array.from(statusSet).join(', ')}`, 'info');
                 }
 
                 allRecords = allRecords.concat(data.records);
@@ -672,9 +674,29 @@
             } while (offset);
 
             // Filter for attended status after loading
-            const attendedRecords = allRecords.filter(record =>
-                record.fields.attendanceStatus === 'Attended'
-            );
+            const attendedRecords = allRecords.filter(record => {
+                const status = record.fields.attendanceStatus;
+                // Check different possible field names and values
+                return status === 'Attended' || status === 'attended' || status === true;
+            });
+
+            // If no attended records found, try without filter to debug
+            if (attendedRecords.length === 0 && allRecords.length > 0) {
+                debugLog('No attended records found, showing all attendance statuses:', 'error');
+                const statusCounts = {};
+                allRecords.forEach(record => {
+                    const status = record.fields.attendanceStatus || 'undefined';
+                    statusCounts[status] = (statusCounts[status] || 0) + 1;
+                });
+                debugLog(`Status distribution: ${JSON.stringify(statusCounts)}`, 'info');
+
+                // Return all records for debugging
+                debugLog(`Returning all ${allRecords.length} records for analysis`, 'info');
+                return allRecords.map(record => ({
+                    ...record.fields,
+                    recordId: record.id
+                }));
+            }
 
             debugLog(`✓ Total: ${attendedRecords.length} attended out of ${allRecords.length} total`, 'success');
             return attendedRecords.map(record => ({
@@ -841,6 +863,7 @@
             // Total attended (all-time)
             const totalAttended = mergedData.length;
             document.getElementById('totalAttended').textContent = totalAttended.toLocaleString();
+            debugLog(`Displaying total attended: ${totalAttended}`, 'info');
 
             // Today's attendance
             const todayAttended = mergedData.filter(item => {
