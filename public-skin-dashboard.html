@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CLT Skin Test Dashboard - Real-time Data</title>
+    <script src="env-config.js"></script>
+    <script src="config-loader.js"></script>
     <script src="config.js"></script>
     <style>
         * {
@@ -517,16 +519,23 @@
         }
 
         // Configuration - loaded from config.js (built by Netlify with environment variables)
-        const AIRTABLE_API_KEY = typeof AIRTABLE_CONFIG !== 'undefined' ?
-            AIRTABLE_CONFIG.API_KEY : '';
-        const AIRTABLE_BASE_ID = typeof AIRTABLE_CONFIG !== 'undefined' ?
-            AIRTABLE_CONFIG.BASE_ID : 'appZcPs57spwdoKQH';
-        // Participants table
-        const PARTICIPANTS_TABLE_ID = typeof AIRTABLE_CONFIG !== 'undefined' ?
-            AIRTABLE_CONFIG.TABLE_ID : 'tblxMzwX1wWJKIOhY';
-        // AttendanceImages table for actual attendance records
-        const ATTENDANCE_IMAGES_TABLE_ID = typeof AIRTABLE_CONFIG !== 'undefined' ?
-            AIRTABLE_CONFIG.ATTENDANCE_TABLE_ID : 'tblUnxGfJXHp2qSHp';
+        let AIRTABLE_API_KEY = '';
+        let AIRTABLE_BASE_ID = 'appZcPs57spwdoKQH';
+        let PARTICIPANTS_TABLE_ID = 'tblxMzwX1wWJKIOhY';
+        let ATTENDANCE_IMAGES_TABLE_ID = 'tblUnxGfJXHp2qSHp';
+
+        // Try to load from AIRTABLE_CONFIG if available
+        if (typeof AIRTABLE_CONFIG !== 'undefined') {
+            AIRTABLE_API_KEY = AIRTABLE_CONFIG.API_KEY || '';
+            AIRTABLE_BASE_ID = AIRTABLE_CONFIG.BASE_ID || AIRTABLE_BASE_ID;
+            PARTICIPANTS_TABLE_ID = AIRTABLE_CONFIG.TABLE_ID || PARTICIPANTS_TABLE_ID;
+            ATTENDANCE_IMAGES_TABLE_ID = AIRTABLE_CONFIG.ATTENDANCE_TABLE_ID || ATTENDANCE_IMAGES_TABLE_ID;
+        }
+
+        // Fallback to localStorage if no API key
+        if (!AIRTABLE_API_KEY) {
+            AIRTABLE_API_KEY = localStorage.getItem('AIRTABLE_API_KEY') || '';
+        }
 
         // Global data
         let attendanceData = [];
@@ -550,6 +559,27 @@
         // Initialize
         window.addEventListener('DOMContentLoaded', async () => {
             debugLog('=== Dashboard Initialization Started ===', 'info');
+
+            // Check for API key
+            if (!AIRTABLE_API_KEY) {
+                debugLog('No API key found in config, checking localStorage...', 'info');
+                const savedKey = localStorage.getItem('AIRTABLE_API_KEY');
+                if (savedKey) {
+                    AIRTABLE_API_KEY = savedKey;
+                    debugLog('API key loaded from localStorage', 'success');
+                } else {
+                    const apiKey = prompt('Please enter your Airtable API key:');
+                    if (apiKey) {
+                        AIRTABLE_API_KEY = apiKey;
+                        localStorage.setItem('AIRTABLE_API_KEY', apiKey);
+                        debugLog('API key saved to localStorage', 'success');
+                    } else {
+                        debugLog('No API key provided - cannot load data', 'error');
+                        return;
+                    }
+                }
+            }
+
             debugLog(`API Key configured: ${!!AIRTABLE_API_KEY ? 'YES' : 'NO'}`, AIRTABLE_API_KEY ? 'success' : 'error');
             debugLog(`Base ID: ${AIRTABLE_BASE_ID}`, 'info');
             debugLog(`Participants Table: ${PARTICIPANTS_TABLE_ID}`, 'info');
