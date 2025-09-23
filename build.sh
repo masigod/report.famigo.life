@@ -19,7 +19,7 @@ const AIRTABLE_CONFIG = {
     BASE_ID: window.AIRTABLE_BASE_ID || 'appZcPs57spwdoKQH',
     TABLE_ID: window.AIRTABLE_TABLE_ID || 'tblxMzwX1wWJKIOhY',
     ADMIN_TABLE_ID: window.AIRTABLE_ADMIN_TABLE_ID || 'tblFQ7ofZ9CXZcydm',
-    ATTENDANCE_TABLE_ID: window.AIRTABLE_ATTENDANCE_TABLE_ID || ''
+    ATTENDANCE_TABLE_ID: window.AIRTABLE_ATTENDANCE_TABLE_ID || 'tblUnxGfJXHp2qSHp'
 };
 
 // Security check - warn if API key is not properly configured
