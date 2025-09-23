@@ -419,7 +419,7 @@
         <div class="stats-grid">
             <div class="stat-card total">
                 <div class="icon">👥</div>
-                <div class="label">Total Attended</div>
+                <div class="label">Total Attended (All-time)</div>
                 <div class="value" id="totalAttended">0</div>
                 <div class="change" id="totalChange">Loading...</div>
             </div>
@@ -449,12 +449,8 @@
         <!-- Main Content -->
         <div class="main-content">
             <div class="section-header">
-                <h2 class="section-title">Skin Type Distribution Matrix</h2>
+                <h2 class="section-title">Skin Type Distribution Matrix (All-time Cumulative)</h2>
                 <div style="display: flex; gap: 15px; align-items: center;">
-                    <div class="date-filter">
-                        <label>Date:</label>
-                        <input type="date" id="filterDate">
-                    </div>
                     <button class="refresh-btn" onclick="refreshData()">
                         🔄 Refresh
                     </button>
@@ -485,7 +481,7 @@
             </div>
 
             <div id="noDataMessage" style="display: none; text-align: center; padding: 40px; color: #999;">
-                <p>No attendance data available for the selected date</p>
+                <p>No attendance data available</p>
             </div>
         </div>
     </div>
@@ -540,12 +536,6 @@
             // Config is loaded from config.js which is built by Netlify with environment variables
             console.log('Initializing dashboard with config...');
             console.log('API Key available:', !!AIRTABLE_API_KEY);
-
-            // Set specific date for testing (9/22/2024)
-            // You can change this to today's date if needed
-            const testDate = new Date('2024-09-22');
-            document.getElementById('filterDate').value = testDate.toISOString().split('T')[0];
-            console.log('Filter date set to:', document.getElementById('filterDate').value);
 
             // Load data
             await loadAllData();
@@ -705,36 +695,18 @@
                 });
             });
 
-            // Get selected date
-            const filterDate = document.getElementById('filterDate').value;
-            let filterDateStr = null;
+            console.log(`Processing all-time cumulative matrix data...`);
+            console.log(`Total merged records to process: ${mergedData.length}`);
 
-            if (filterDate) {
-                // Convert 2024-09-22 to 9/22 format
-                const dateObj = new Date(filterDate + 'T00:00:00');
-                const month = dateObj.getMonth() + 1;
-                const day = dateObj.getDate();
-                filterDateStr = `${month}/${day}`;
-            }
-
-            console.log(`Processing matrix data for date: ${filterDateStr} (from input: ${filterDate})`);
-
-            // Filter and populate matrix
+            // Process ALL attended data (no date filter for matrix)
             mergedData.forEach(item => {
-                // Filter by date if specified
-                if (filterDateStr) {
-                    const itemDate = item.setDate;
-                    // Log to debug date matching
-                    if (itemDate === filterDateStr) {
-                        console.log(`Date match: ${itemDate} === ${filterDateStr}`);
-                    }
-                    if (itemDate !== filterDateStr) return;
-                }
-
                 const color = item.skinColor;
                 const tone = item.skinTone;
 
-                console.log(`Processing: ${item.participantName} - Color: ${color}, Tone: ${tone}`);
+                // Only log first few items to avoid console spam
+                if (mergedData.indexOf(item) < 5) {
+                    console.log(`Processing: ${item.participantName} - Color: ${color}, Tone: ${tone}`);
+                }
 
                 if (color && tone && matrixData[color] && matrixData[color][tone]) {
                     matrixData[color][tone].count++;
@@ -742,10 +714,22 @@
                         name: item.participantName,
                         aid: item['A-ID'] || '-',
                         phone: item.participantPhone,
-                        checkinTime: item.checkinTime
+                        checkinTime: item.checkinTime,
+                        date: item.setDate
                     });
                 }
             });
+
+            // Log summary
+            let totalInMatrix = 0;
+            Object.keys(matrixData).forEach(color => {
+                Object.keys(matrixData[color]).forEach(tone => {
+                    if (matrixData[color][tone].count > 0) {
+                        totalInMatrix += matrixData[color][tone].count;
+                    }
+                });
+            });
+            console.log(`Total records in matrix: ${totalInMatrix}`);
         }
 
         // Update statistics
@@ -753,7 +737,7 @@
             const koreaTime = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Seoul"}));
             const todayStr = `${koreaTime.getMonth() + 1}/${koreaTime.getDate()}`;
 
-            // Total attended
+            // Total attended (all-time)
             const totalAttended = mergedData.length;
             document.getElementById('totalAttended').textContent = totalAttended.toLocaleString();
 
@@ -771,7 +755,7 @@
             const todayRate = todayTotal > 0 ? Math.round((todayAttended / todayTotal) * 100) : 0;
             document.getElementById('todayRate').textContent = `${todayRate}% attendance rate`;
 
-            // Count active skin types
+            // Count active skin types from ALL data
             let activeSkinColors = new Set();
             let activeSkinTones = new Set();
 
@@ -788,7 +772,7 @@
             document.getElementById('skinToneTypes').textContent = activeSkinTones.size;
 
             // Update total change
-            document.getElementById('totalChange').textContent = `All-time total`;
+            document.getElementById('totalChange').textContent = `Cumulative from all attended records`;
         }
 
         // Update matrix display
@@ -901,7 +885,8 @@
                         <div class="person-aid">A-ID: ${person.aid}</div>
                         <div class="person-details">
                             Phone: ${person.phone}<br>
-                            Check-in: ${checkinTime}
+                            Check-in: ${checkinTime}<br>
+                            Date: ${person.date || '-'}
                         </div>
                     </div>
                 `;
@@ -948,10 +933,7 @@
             await loadAllData();
         }
 
-        // Date filter change
-        document.getElementById('filterDate').addEventListener('change', async () => {
-            await loadAllData();
-        });
+        // No date filter needed for cumulative matrix
     </script>
 </body>
 </html>
