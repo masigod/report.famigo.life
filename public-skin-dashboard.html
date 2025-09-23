@@ -857,9 +857,18 @@
 
         // Update statistics
         function updateStatistics() {
+            // Get Korea time properly
             const koreaTime = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Seoul"}));
             const todayStr = `${koreaTime.getMonth() + 1}/${koreaTime.getDate()}`;
-            const todayDateStr = koreaTime.toISOString().split('T')[0]; // YYYY-MM-DD format
+
+            // Format date properly for comparison (Korea timezone)
+            const year = koreaTime.getFullYear();
+            const month = String(koreaTime.getMonth() + 1).padStart(2, '0');
+            const day = String(koreaTime.getDate()).padStart(2, '0');
+            const todayDateStr = `${year}-${month}-${day}`; // 2025-09-23 format
+            const todayCompact = `${year}${month}${day}`; // 20250923 format
+
+            debugLog(`Today's date formats: ${todayDateStr} / ${todayCompact} / ${todayStr}`, 'info');
 
             // Total attended (all-time)
             const totalAttended = mergedData.length;
@@ -870,13 +879,17 @@
             const todayAttended = mergedData.filter(item => {
                 if (!item.checkinTime) return false;
 
-                // Parse checkinTime and compare date
+                // Parse checkinTime in Korea timezone
                 const checkinDate = new Date(item.checkinTime);
-                const checkinDateStr = checkinDate.toISOString().split('T')[0];
+                const checkinKorea = new Date(checkinDate.toLocaleString("en-US", {timeZone: "Asia/Seoul"}));
+                const checkinYear = checkinKorea.getFullYear();
+                const checkinMonth = String(checkinKorea.getMonth() + 1).padStart(2, '0');
+                const checkinDay = String(checkinKorea.getDate()).padStart(2, '0');
+                const checkinDateStr = `${checkinYear}-${checkinMonth}-${checkinDay}`;
 
                 // Debug first few checkin times
                 if (mergedData.indexOf(item) < 3) {
-                    debugLog(`Sample checkinTime: ${item.checkinTime} → ${checkinDateStr}`, 'info');
+                    debugLog(`Sample: ${item.checkinTime} → ${checkinDateStr} (today: ${todayDateStr})`, 'info');
                 }
 
                 return checkinDateStr === todayDateStr;

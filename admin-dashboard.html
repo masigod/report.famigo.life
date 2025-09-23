@@ -1431,14 +1431,16 @@
 
             currentUser = JSON.parse(session);
 
-            // Check if user is admin
-            if (currentUser.role?.toLowerCase() !== 'admin') {
+            // Check if user is admin or administrators
+            const userRole = currentUser.role?.toLowerCase();
+            if (userRole !== 'admin' && userRole !== 'administrators') {
                 // Redirect to appropriate page based on role
-                const role = currentUser.role?.toLowerCase();
-                if (role === 'staff') {
+                if (userRole === 'staff') {
                     window.location.href = 'mobile-attendance.html';
-                } else if (role === 'viewer') {
+                } else if (userRole === 'viewer') {
                     window.location.href = 'report.html';
+                } else if (userRole === 'administrators') {
+                    window.location.href = 'public-skin-dashboard.html';
                 } else {
                     window.location.href = 'index.html';
                 }
