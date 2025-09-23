@@ -1498,44 +1498,45 @@
                         // For now, we'll store base64 as text (not ideal for production)
                         // In production, upload to cloud storage first and use URLs
 
-                        // Add base64 images directly to attendanceData for Airtable
-                        // Airtable accepts base64 data URLs in Attachment fields
+                        // Store base64 images in Long Text fields
+                        // This works if your Airtable fields are set as Long Text type
+                        // If they are Attachment type, you need to change them to Long Text
 
                         if (frontBase64) {
-                            // Airtable Attachment field expects array of objects with url property
-                            // Can use data URLs (base64) directly
-                            attendanceData.idCardImageFront = [{
-                                url: frontBase64,
-                                filename: `id_front_${currentParticipant.ID}_${Date.now()}.jpg`
-                            }];
-                            console.log('Front image prepared for Airtable upload');
-                            addDebugLog('신분증 앞면 Airtable 업로드 준비 완료');
+                            // Store as base64 string (if field is Long Text type)
+                            attendanceData.idCardImageFrontBase64 = frontBase64;
+                            console.log('Front image stored as base64, size:', (frontBase64.length / 1024).toFixed(2), 'KB');
+                            addDebugLog('신분증 앞면 Base64 저장', {
+                                size: `${(frontBase64.length / 1024).toFixed(2)} KB`
+                            });
                         }
 
                         if (backBase64) {
-                            attendanceData.idCardImageBack = [{
-                                url: backBase64,
-                                filename: `id_back_${currentParticipant.ID}_${Date.now()}.jpg`
-                            }];
-                            console.log('Back image prepared for Airtable upload');
-                            addDebugLog('신분증 뒷면 Airtable 업로드 준비 완료');
+                            // Store as base64 string (if field is Long Text type)
+                            attendanceData.idCardImageBackBase64 = backBase64;
+                            console.log('Back image stored as base64, size:', (backBase64.length / 1024).toFixed(2), 'KB');
+                            addDebugLog('신분증 뒷면 Base64 저장', {
+                                size: `${(backBase64.length / 1024).toFixed(2)} KB`
+                            });
                         }
 
                         if (bankbookBase64) {
-                            attendanceData.bankbookImage = [{
-                                url: bankbookBase64,
-                                filename: `bankbook_${currentParticipant.ID}_${Date.now()}.jpg`
-                            }];
-                            console.log('Bankbook image prepared for Airtable upload');
-                            addDebugLog('통장사본 Airtable 업로드 준비 완료');
+                            // Store as base64 string (if field is Long Text type)
+                            attendanceData.bankbookImageBase64 = bankbookBase64;
+                            console.log('Bankbook image stored as base64, size:', (bankbookBase64.length / 1024).toFixed(2), 'KB');
+                            addDebugLog('통장사본 Base64 저장', {
+                                size: `${(bankbookBase64.length / 1024).toFixed(2)} KB`
+                            });
                         }
 
-                        addDebugLog('Airtable 이미지 업로드 데이터 준비:', {
-                            idCardFront: !!attendanceData.idCardImageFront,
-                            idCardBack: !!attendanceData.idCardImageBack,
-                            bankbook: !!attendanceData.bankbookImage,
-                            note: 'Base64 데이터를 직접 Airtable Attachment 필드에 저장'
-                        });
+                        // Also update notes for tracking
+                        if (frontBase64 || backBase64 || bankbookBase64) {
+                            attendanceData.notes += '\n이미지 저장됨 (Base64 형식)';
+                            addDebugLog('이미지 Airtable 저장 준비 완료', {
+                                method: 'Long Text fields with Base64',
+                                totalImages: [frontBase64, backBase64, bankbookBase64].filter(Boolean).length
+                            });
+                        }
                     } catch (e) {
                         console.error('Image save error:', e);
                         addDebugLog('이미지 저장 실패:', e.message);
@@ -1557,11 +1558,35 @@
                     });
                 }
 
-                // Note: imgBB upload function removed - using direct Airtable upload instead
-                // Airtable Attachment fields can accept:
-                // 1. External URLs (https://...)
-                // 2. Data URLs (data:image/jpeg;base64,...)
-                // We're using option 2 for direct upload without external hosting
+                // Helper function to upload image to Cloudinary (free tier available)
+                async function uploadToCloudinary(base64Image, publicId) {
+                    try {
+                        // Cloudinary free unsigned upload
+                        // You need to create a free account at cloudinary.com
+                        // and set up an unsigned upload preset
+                        const CLOUDINARY_URL = 'https://api.cloudinary.com/v1_1/demo/image/upload';
+                        const UPLOAD_PRESET = 'docs_upload_example_us_preset'; // Demo preset
+
+                        const formData = new FormData();
+                        formData.append('file', base64Image);
+                        formData.append('upload_preset', UPLOAD_PRESET);
+                        formData.append('public_id', publicId);
+
+                        const response = await fetch(CLOUDINARY_URL, {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            return data.secure_url;
+                        }
+                        return null;
+                    } catch (error) {
+                        console.error('Cloudinary upload failed:', error);
+                        return null;
+                    }
+                }
 
                 // Debug: Log attempt (DO NOT use recordId for anything)
                 addDebugLog('체크인 시도 - AttendanceImages 테이블에만 저장:', {
@@ -2315,8 +2340,11 @@
                     bankbookValue: fields.bankbookImage
                 });
 
-                // Check if any images exist
-                if (!fields.idCardImageFront && !fields.idCardImageBack && !fields.bankbookImage) {
+                // Check if any images exist (both Attachment and Base64 fields)
+                const hasAttachmentImages = fields.idCardImageFront || fields.idCardImageBack || fields.bankbookImage;
+                const hasBase64Images = fields.idCardImageFrontBase64 || fields.idCardImageBackBase64 || fields.bankbookImageBase64;
+
+                if (!hasAttachmentImages && !hasBase64Images) {
                     console.log('No images in Airtable record, checking localStorage...');
                     addDebugLog('Airtable에 이미지 없음, localStorage 확인 중...');
 
@@ -2458,10 +2486,17 @@
                                 </div>
                             </div>
 
-                            ${fields.idCardImageFront ? `
+                            ${fields.idCardImageFront || fields.idCardImageFrontBase64 ? `
                                 <div style="margin-bottom: 20px;">
                                     <h4 style="margin-bottom: 10px; color: var(--text);">📇 신분증 앞면</h4>
-                                    ${Array.isArray(fields.idCardImageFront) && fields.idCardImageFront[0] ? `
+                                    ${fields.idCardImageFrontBase64 ? `
+                                        <img src="${fields.idCardImageFrontBase64}"
+                                             alt="ID Card Front"
+                                             style="width: 100%; border-radius: 8px; border: 1px solid var(--border);">
+                                        <div style="margin-top: 5px; font-size: 11px; color: var(--text-light);">
+                                            Base64 이미지
+                                        </div>
+                                    ` : Array.isArray(fields.idCardImageFront) && fields.idCardImageFront[0] ? `
                                         <img src="${fields.idCardImageFront[0].url}"
                                              alt="ID Card Front"
                                              style="width: 100%; border-radius: 8px; border: 1px solid var(--border); cursor: pointer;"
@@ -2469,7 +2504,7 @@
                                         <div style="margin-top: 5px; font-size: 11px; color: var(--text-light);">
                                             클릭하여 원본 크기로 보기
                                         </div>
-                                    ` : `<div style="color: var(--text-light);">이미지 URL 형식이 올바르지 않습니다</div>`}
+                                    ` : `<div style="color: var(--text-light);">이미지 로드 오류</div>`}
                                 </div>
                             ` : '<div style="margin-bottom: 15px; padding: 10px; background: #fef3c7; border-radius: 6px; color: #92400e;">⚠️ 신분증 앞면 이미지 없음</div>'}
 
