@@ -1256,7 +1256,7 @@
         }
 
         // Image compression - 더 강한 압축 적용
-        function compressImage(file, maxWidth = 600, quality = 0.5) {
+        function compressImage(file, maxWidth = 400, quality = 0.3) {
             return new Promise((resolve) => {
                 const reader = new FileReader();
                 reader.onload = (e) => {
@@ -1441,19 +1441,66 @@
                     // In production, use proper image hosting service
                     try {
                         const imageKey = `images_${currentParticipant.ID}_${Date.now()}`;
+                        console.log('Attempting to save images with key:', imageKey);
+                        addDebugLog('이미지 저장 시도:', { key: imageKey, participantID: currentParticipant.ID });
+
+                        // Convert images to base64 with size check
+                        const frontBase64 = idCardImageFront ? await blobToBase64(idCardImageFront) : null;
+                        const backBase64 = idCardImageBack ? await blobToBase64(idCardImageBack) : null;
+                        const bankbookBase64 = bankbookImage ? await blobToBase64(bankbookImage) : null;
+
+                        // Check sizes
+                        const totalSize = (frontBase64?.length || 0) + (backBase64?.length || 0) + (bankbookBase64?.length || 0);
+                        console.log('Total image data size:', (totalSize / 1024 / 1024).toFixed(2), 'MB');
+                        addDebugLog('이미지 데이터 크기:', {
+                            totalMB: (totalSize / 1024 / 1024).toFixed(2),
+                            frontKB: frontBase64 ? (frontBase64.length / 1024).toFixed(2) : 0,
+                            backKB: backBase64 ? (backBase64.length / 1024).toFixed(2) : 0,
+                            bankbookKB: bankbookBase64 ? (bankbookBase64.length / 1024).toFixed(2) : 0
+                        });
+
                         const imageData = {
                             participantID: currentParticipant.ID,
                             timestamp: new Date().toISOString(),
-                            idCardFront: idCardImageFront ? await blobToBase64(idCardImageFront) : null,
-                            idCardBack: idCardImageBack ? await blobToBase64(idCardImageBack) : null,
-                            bankbook: bankbookImage ? await blobToBase64(bankbookImage) : null
+                            idCardFront: frontBase64,
+                            idCardBack: backBase64,
+                            bankbook: bankbookBase64
                         };
-                        localStorage.setItem(imageKey, JSON.stringify(imageData));
-                        attendanceData.notes += `\n이미지 저장 키: ${imageKey}`;
 
-                        addDebugLog('이미지 임시 저장 완료:', imageKey);
+                        // Try to save to localStorage
+                        localStorage.setItem(imageKey, JSON.stringify(imageData));
+
+                        // Verify save was successful
+                        const savedData = localStorage.getItem(imageKey);
+                        if (savedData) {
+                            console.log('Images successfully saved to localStorage');
+                            addDebugLog('이미지 저장 성공 확인됨:', imageKey);
+
+                            // List all image keys for this participant
+                            const allKeys = [];
+                            for (let i = 0; i < localStorage.length; i++) {
+                                const key = localStorage.key(i);
+                                if (key && key.startsWith(`images_${currentParticipant.ID}_`)) {
+                                    allKeys.push(key);
+                                }
+                            }
+                            console.log('All image keys for participant:', allKeys);
+                            addDebugLog('참가자의 모든 이미지 키:', allKeys);
+                        } else {
+                            console.error('Failed to verify image save');
+                            addDebugLog('이미지 저장 확인 실패');
+                        }
+
+                        attendanceData.notes += `\n이미지 저장 키: ${imageKey}`;
                     } catch (e) {
+                        console.error('Image save error:', e);
                         addDebugLog('이미지 저장 실패:', e.message);
+
+                        // Try to save without images if localStorage is full
+                        if (e.name === 'QuotaExceededError') {
+                            showNotification('저장 공간이 부족합니다. 이미지를 저장할 수 없습니다.', 'error');
+                            addDebugLog('localStorage 용량 초과');
+                        }
                     }
                 }
 
@@ -2102,89 +2149,220 @@
             });
         }
 
-        // View stored images
-        window.viewImages = function(participantId) {
+        // Debug function to list all localStorage keys
+        window.debugLocalStorage = function() {
+            console.log('=== localStorage Debug Info ===');
+            console.log('Total items:', localStorage.length);
+            const imageKeys = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                console.log(`Key ${i}:`, key);
+                if (key && key.includes('images_')) {
+                    imageKeys.push(key);
+                }
+            }
+            console.log('Image keys found:', imageKeys);
+            return imageKeys;
+        };
+
+        // View stored images from Airtable
+        window.viewImages = async function(participantId) {
             console.log('viewImages called for participant:', participantId);
-            addDebugLog('viewImages 호출됨:', { participantId });
+            addDebugLog('viewImages 호출됨 - Airtable에서 이미지 조회:', { participantId });
 
             try {
-                // Find all image keys for this participant
-                const imageKeys = [];
-                for (let i = 0; i < localStorage.length; i++) {
-                    const key = localStorage.key(i);
-                    if (key && key.startsWith(`images_${participantId}_`)) {
-                        imageKeys.push(key);
-                        console.log('Found image key:', key);
+                // Show loading message
+                showNotification('이미지를 불러오는 중...', 'info');
+
+                // Fetch from AttendanceImages table with filter
+                const filterFormula = `{participantID}=${participantId}`;
+                const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${ATTENDANCE_TABLE_ID}?filterByFormula=${encodeURIComponent(filterFormula)}`;
+
+                console.log('Fetching images from Airtable:', url);
+                addDebugLog('Airtable 이미지 조회 URL:', url);
+
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${AIRTABLE_API_KEY}`
                     }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch images: ${response.status}`);
                 }
 
-                console.log('Total image keys found:', imageKeys.length);
-                addDebugLog('이미지 키 검색 결과:', { count: imageKeys.length, keys: imageKeys });
+                const data = await response.json();
+                console.log('Airtable response:', data);
+                addDebugLog('Airtable 응답 데이터:', { recordCount: data.records.length });
 
-                if (imageKeys.length === 0) {
-                    console.log('No images found in localStorage for participant:', participantId);
-                    addDebugLog('저장된 이미지 없음', { participantId });
-                    showNotification('저장된 이미지가 없습니다', 'error');
+                if (!data.records || data.records.length === 0) {
+                    console.log('No records found for participant:', participantId);
+                    addDebugLog('참가자 레코드 없음', { participantId });
+
+                    // Try to find participant data to show info
+                    const participant = participantsData.find(p => p.ID === participantId);
+
+                    // Show modal with no images message
+                    const modal = document.createElement('div');
+                    modal.className = 'modal active';
+                    modal.style.zIndex = '2000';
+                    modal.innerHTML = `
+                        <div class="modal-content" style="max-width: 600px;">
+                            <div class="modal-header">
+                                <h3 class="modal-title">이미지 정보</h3>
+                                <button class="modal-close" onclick="this.closest('.modal').remove()">×</button>
+                            </div>
+                            <div class="modal-body">
+                                <div style="padding: 20px; text-align: center;">
+                                    <div style="font-size: 48px; margin-bottom: 20px;">📷</div>
+                                    <h4>저장된 이미지가 없습니다</h4>
+                                    ${participant ? `
+                                        <div style="margin-top: 20px; padding: 15px; background: #f3f4f6; border-radius: 8px; text-align: left;">
+                                            <div style="margin-bottom: 8px;"><strong>참가자:</strong> ${participant.name || 'Unknown'}</div>
+                                            <div style="margin-bottom: 8px;"><strong>ID:</strong> ${participantId}</div>
+                                            <div style="margin-bottom: 8px;"><strong>체크인 시간:</strong> ${participant.checkinTime ? new Date(participant.checkinTime).toLocaleString('ko-KR') : 'N/A'}</div>
+                                            <div><strong>리워드:</strong> ${participant.rewardType || 'None'}</div>
+                                        </div>
+                                    ` : ''}
+                                    <button onclick="this.closest('.modal').remove()" style="margin-top: 20px; padding: 10px 20px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer;">
+                                        닫기
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    document.body.appendChild(modal);
                     return;
                 }
 
-                // Get the latest image set
-                const latestKey = imageKeys.sort().pop();
-                const imageDataString = localStorage.getItem(latestKey);
+                // Get the latest record (if multiple exist)
+                const latestRecord = data.records[data.records.length - 1];
+                const fields = latestRecord.fields;
 
-                if (!imageDataString) {
-                    console.error('Image data is null for key:', latestKey);
-                    showNotification('이미지 데이터를 불러올 수 없습니다', 'error');
+                console.log('Image fields from Airtable:', fields);
+                addDebugLog('Airtable 이미지 필드:', {
+                    hasIdCardFront: !!fields.idCardImageFront,
+                    hasIdCardBack: !!fields.idCardImageBack,
+                    hasBankbook: !!fields.bankbookImage
+                });
+
+                // Check if any images exist
+                if (!fields.idCardImageFront && !fields.idCardImageBack && !fields.bankbookImage) {
+                    console.log('No images in record');
+                    showNotification('이 참가자의 이미지가 없습니다', 'warning');
+
+                    // Show info modal
+                    const modal = document.createElement('div');
+                    modal.className = 'modal active';
+                    modal.style.zIndex = '2000';
+                    modal.innerHTML = `
+                        <div class="modal-content" style="max-width: 600px;">
+                            <div class="modal-header">
+                                <h3 class="modal-title">이미지 정보</h3>
+                                <button class="modal-close" onclick="this.closest('.modal').remove()">×</button>
+                            </div>
+                            <div class="modal-body">
+                                <div style="padding: 20px;">
+                                    <div style="margin-bottom: 15px; padding: 15px; background: #f3f4f6; border-radius: 8px;">
+                                        <div style="margin-bottom: 8px;"><strong>참가자 이름:</strong> ${fields.participantName || 'Unknown'}</div>
+                                        <div style="margin-bottom: 8px;"><strong>참가자 ID:</strong> ${fields.participantID || participantId}</div>
+                                        <div style="margin-bottom: 8px;"><strong>체크인 시간:</strong> ${fields.checkinTime || 'N/A'}</div>
+                                        <div style="margin-bottom: 8px;"><strong>리워드:</strong> ${fields.rewardType || 'None'}</div>
+                                        <div><strong>A-ID:</strong> ${fields['A-ID'] || 'Not assigned'}</div>
+                                    </div>
+                                    <div style="text-align: center; padding: 20px; background: #fef3c7; border-radius: 8px;">
+                                        <div style="font-size: 48px; margin-bottom: 10px;">📷</div>
+                                        <p style="margin: 0; color: #92400e;">이미지가 업로드되지 않았습니다</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    document.body.appendChild(modal);
                     return;
                 }
 
-                const imageData = JSON.parse(imageDataString);
-                console.log('Image data loaded:', imageData);
-                addDebugLog('이미지 데이터 로드됨:', { key: latestKey, hasImages: {
-                    front: !!imageData.idCardFront,
-                    back: !!imageData.idCardBack,
-                    bankbook: !!imageData.bankbook
-                }});
 
-                // Create modal to display images
+                // Create modal to display images from Airtable
                 const modal = document.createElement('div');
                 modal.className = 'modal active';
                 modal.style.zIndex = '2000';
                 modal.innerHTML = `
-                    <div class="modal-content" style="max-width: 600px;">
+                    <div class="modal-content" style="max-width: 700px;">
                         <div class="modal-header">
                             <h3 class="modal-title">저장된 이미지</h3>
                             <button class="modal-close" onclick="this.closest('.modal').remove()">×</button>
                         </div>
-                        <div class="modal-body">
-                            <div style="margin-bottom: 10px; font-size: 12px; color: var(--text-light);">
-                                참가자 ID: ${imageData.participantID}<br>
-                                저장 시간: ${new Date(imageData.timestamp).toLocaleString('ko-KR')}
+                        <div class="modal-body" style="max-height: 80vh; overflow-y: auto;">
+                            <div style="margin-bottom: 15px; padding: 12px; background: #f3f4f6; border-radius: 8px; font-size: 13px;">
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                    <div><strong>참가자:</strong> ${fields.participantName || 'Unknown'}</div>
+                                    <div><strong>ID:</strong> ${fields.participantID || participantId}</div>
+                                    <div><strong>체크인:</strong> ${fields.checkinTime || 'N/A'}</div>
+                                    <div><strong>리워드:</strong> ${fields.rewardType || 'None'}</div>
+                                    <div><strong>A-ID:</strong> ${fields['A-ID'] || 'Not assigned'}</div>
+                                    <div><strong>직원:</strong> ${fields.staffName || 'N/A'}</div>
+                                </div>
                             </div>
-                            ${imageData.idCardFront ? `
-                                <div style="margin-bottom: 15px;">
-                                    <h4 style="margin-bottom: 8px;">신분증 앞면</h4>
-                                    <img src="${imageData.idCardFront}" style="width: 100%; border-radius: 8px; border: 1px solid var(--border);">
+
+                            ${fields.idCardImageFront ? `
+                                <div style="margin-bottom: 20px;">
+                                    <h4 style="margin-bottom: 10px; color: var(--text);">📇 신분증 앞면</h4>
+                                    ${Array.isArray(fields.idCardImageFront) && fields.idCardImageFront[0] ? `
+                                        <img src="${fields.idCardImageFront[0].url}"
+                                             alt="ID Card Front"
+                                             style="width: 100%; border-radius: 8px; border: 1px solid var(--border); cursor: pointer;"
+                                             onclick="window.open('${fields.idCardImageFront[0].url}', '_blank')">
+                                        <div style="margin-top: 5px; font-size: 11px; color: var(--text-light);">
+                                            클릭하여 원본 크기로 보기
+                                        </div>
+                                    ` : `<div style="color: var(--text-light);">이미지 URL 형식이 올바르지 않습니다</div>`}
                                 </div>
-                            ` : '<div style="margin-bottom: 15px; color: var(--text-light);">신분증 앞면 이미지 없음</div>'}
-                            ${imageData.idCardBack ? `
-                                <div style="margin-bottom: 15px;">
-                                    <h4 style="margin-bottom: 8px;">신분증 뒷면</h4>
-                                    <img src="${imageData.idCardBack}" style="width: 100%; border-radius: 8px; border: 1px solid var(--border);">
+                            ` : '<div style="margin-bottom: 15px; padding: 10px; background: #fef3c7; border-radius: 6px; color: #92400e;">⚠️ 신분증 앞면 이미지 없음</div>'}
+
+                            ${fields.idCardImageBack ? `
+                                <div style="margin-bottom: 20px;">
+                                    <h4 style="margin-bottom: 10px; color: var(--text);">📇 신분증 뒷면</h4>
+                                    ${Array.isArray(fields.idCardImageBack) && fields.idCardImageBack[0] ? `
+                                        <img src="${fields.idCardImageBack[0].url}"
+                                             alt="ID Card Back"
+                                             style="width: 100%; border-radius: 8px; border: 1px solid var(--border); cursor: pointer;"
+                                             onclick="window.open('${fields.idCardImageBack[0].url}', '_blank')">
+                                        <div style="margin-top: 5px; font-size: 11px; color: var(--text-light);">
+                                            클릭하여 원본 크기로 보기
+                                        </div>
+                                    ` : `<div style="color: var(--text-light);">이미지 URL 형식이 올바르지 않습니다</div>`}
                                 </div>
-                            ` : '<div style="margin-bottom: 15px; color: var(--text-light);">신분증 뒷면 이미지 없음</div>'}
-                            ${imageData.bankbook ? `
-                                <div>
-                                    <h4 style="margin-bottom: 8px;">통장사본</h4>
-                                    <img src="${imageData.bankbook}" style="width: 100%; border-radius: 8px; border: 1px solid var(--border);">
+                            ` : '<div style="margin-bottom: 15px; padding: 10px; background: #fef3c7; border-radius: 6px; color: #92400e;">⚠️ 신분증 뒷면 이미지 없음</div>'}
+
+                            ${fields.bankbookImage ? `
+                                <div style="margin-bottom: 20px;">
+                                    <h4 style="margin-bottom: 10px; color: var(--text);">💳 통장사본</h4>
+                                    ${Array.isArray(fields.bankbookImage) && fields.bankbookImage[0] ? `
+                                        <img src="${fields.bankbookImage[0].url}"
+                                             alt="Bankbook"
+                                             style="width: 100%; border-radius: 8px; border: 1px solid var(--border); cursor: pointer;"
+                                             onclick="window.open('${fields.bankbookImage[0].url}', '_blank')">
+                                        <div style="margin-top: 5px; font-size: 11px; color: var(--text-light);">
+                                            클릭하여 원본 크기로 보기
+                                        </div>
+                                    ` : `<div style="color: var(--text-light);">이미지 URL 형식이 올바르지 않습니다</div>`}
                                 </div>
-                            ` : '<div style="color: var(--text-light);">통장사본 이미지 없음</div>'}
+                            ` : fields.rewardType === 'Transfer' && fields.bankbookCheck ?
+                                '<div style="margin-bottom: 15px; padding: 10px; background: #dbeafe; border-radius: 6px; color: #1e40af;">ℹ️ 통장사본 나중에 확인 예정</div>' :
+                                '<div style="margin-bottom: 15px; padding: 10px; background: #fef3c7; border-radius: 6px; color: #92400e;">⚠️ 통장사본 이미지 없음</div>'}
                         </div>
                     </div>
                 `;
                 document.body.appendChild(modal);
-                console.log('Modal appended to body');
-                addDebugLog('이미지 모달 표시됨');
+                console.log('Modal with Airtable images displayed');
+                addDebugLog('Airtable 이미지 모달 표시됨', {
+                    hasImages: {
+                        front: !!fields.idCardImageFront,
+                        back: !!fields.idCardImageBack,
+                        bankbook: !!fields.bankbookImage
+                    }
+                });
             } catch (error) {
                 console.error('Error in viewImages:', error);
                 addDebugLog('viewImages 오류:', error.message);
