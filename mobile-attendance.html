@@ -614,7 +614,7 @@
                         </div>
                         <div class="reward-option" onclick="selectReward('cash')" data-reward="cash">
                             <div class="reward-icon">💵</div>
-                            <div>Cash</div>
+                            <div>Transfer</div>
                         </div>
                     </div>
                 </div>
@@ -1320,7 +1320,7 @@
                 if (selectedReward === 'mobile') {
                     rewardTypeValue = 'MobileVoucher';
                 } else if (selectedReward === 'cash') {
-                    rewardTypeValue = 'Cash';
+                    rewardTypeValue = 'Transfer';
                 }
 
                 // Format datetime for Airtable
@@ -1751,7 +1751,7 @@
             const noshow = displayParticipants.filter(p => p.attendanceStatus === 'No-show');
 
             const mobileCount = attended.filter(p => p.rewardType === 'MobileVoucher').length;
-            const cashCount = attended.filter(p => p.rewardType === 'Cash').length;
+            const transferCount = attended.filter(p => p.rewardType === 'Transfer' || p.rewardType === 'Cash').length;
 
             // Group by time slots for detailed stats
             const timeSlots = {};
@@ -1813,8 +1813,8 @@
                             <strong>${mobileCount} people</strong>
                         </div>
                         <div style="display: flex; justify-content: space-between;">
-                            <span>💵 Cash</span>
-                            <strong>${cashCount} people</strong>
+                            <span>💵 Transfer</span>
+                            <strong>${transferCount} people</strong>
                         </div>
                         <div style="display: flex; justify-content: space-between;">
                             <span>➖ No Reward</span>
@@ -1867,7 +1867,7 @@
                     <div style="margin-top: 8px; padding: 8px; background: #e8f8f5; border-radius: 6px;">
                         <strong>Current Status:</strong> Attended<br>
                         <strong>Check-in Time:</strong> ${currentParticipant.checkinTime ? new Date(currentParticipant.checkinTime).toLocaleString('ko-KR') : '-'}<br>
-                        <strong>Reward:</strong> ${existingReward === 'MobileVoucher' ? 'Mobile Voucher' : existingReward === 'Cash' ? 'Cash' : 'None'}<br>
+                        <strong>Reward:</strong> ${existingReward === 'MobileVoucher' ? 'Mobile Voucher' : existingReward === 'Cash' || existingReward === 'Transfer' ? 'Transfer' : 'None'}<br>
                         <strong>A-ID:</strong> ${currentParticipant.aID || 'Not assigned'}
                     </div>
                 </div>
@@ -1877,7 +1877,7 @@
             document.getElementById('aidInput').value = currentParticipant.aID || '';
 
             // Set existing reward type
-            selectedReward = existingReward === 'MobileVoucher' ? 'mobile' : existingReward === 'Cash' ? 'cash' : '';
+            selectedReward = existingReward === 'MobileVoucher' ? 'mobile' : (existingReward === 'Cash' || existingReward === 'Transfer') ? 'cash' : '';
             if (selectedReward) {
                 document.querySelectorAll('.reward-option').forEach(el => el.classList.remove('selected'));
                 document.querySelector(`[data-reward="${selectedReward}"]`).classList.add('selected');
