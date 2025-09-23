@@ -614,9 +614,8 @@
                     </div>
                 </div>
 
-                <!-- 이미지 업로드 기능 임시 비활성화 (보안 문제 해결 중) -->
-                <!--
-                <div class="form-group">
+                <!-- 이미지 업로드 UI 숨김 (백그라운드에서 카메라 촬영은 진행) -->
+                <div class="form-group" style="display: none;">
                     <label class="form-label">신분증 촬영 (필수)</label>
                     <div class="camera-container">
                         <div class="camera-preview" id="idPreview">
@@ -641,7 +640,6 @@
                         </button>
                     </div>
                 </div>
-                -->
 
                 <button class="submit-btn" id="submitBtn" onclick="submitCheckin()" disabled>
                     체크인 완료
@@ -1386,6 +1384,66 @@
             document.getElementById('submitBtn').textContent = '처리 중...';
 
             return ErrorHandler.handle(async () => {
+                // 자동으로 카메라 촬영 시작 (UI는 숨겨져 있지만 기능은 동작)
+                if (!idCardImage) {
+                    showNotification('신분증을 촬영합니다...', 'info');
+
+                    // 프로그래밍 방식으로 파일 입력 트리거
+                    const idInput = document.getElementById('idCardInput');
+                    if (idInput) {
+                        // 사용자가 카메라 촬영하도록 유도
+                        await new Promise((resolve) => {
+                            const handleChange = async (e) => {
+                                const file = e.target.files[0];
+                                if (file) {
+                                    idCardImage = await compressImage(file);
+                                    idInput.removeEventListener('change', handleChange);
+                                    resolve();
+                                } else {
+                                    // 취소한 경우
+                                    document.getElementById('submitBtn').disabled = false;
+                                    document.getElementById('submitBtn').textContent = '체크인 완료';
+                                    showNotification('신분증 촬영이 취소되었습니다', 'error');
+                                    idInput.removeEventListener('change', handleChange);
+                                    resolve();
+                                    return;
+                                }
+                            };
+                            idInput.addEventListener('change', handleChange);
+                            idInput.click();
+                        });
+
+                        // 사진 촬영 취소한 경우 중단
+                        if (!idCardImage) {
+                            return;
+                        }
+                    }
+                }
+
+                // 현금 선택시 통장사본도 촬영
+                if (selectedReward === 'cash' && !bankbookImage) {
+                    showNotification('통장사본을 촬영합니다...', 'info');
+
+                    const bankbookInput = document.getElementById('bankbookInput');
+                    if (bankbookInput) {
+                        await new Promise((resolve) => {
+                            const handleChange = async (e) => {
+                                const file = e.target.files[0];
+                                if (file) {
+                                    bankbookImage = await compressImage(file);
+                                    bankbookInput.removeEventListener('change', handleChange);
+                                    resolve();
+                                } else {
+                                    // 취소한 경우 - 통장사본은 선택사항으로 처리
+                                    bankbookInput.removeEventListener('change', handleChange);
+                                    resolve();
+                                }
+                            };
+                            bankbookInput.addEventListener('change', handleChange);
+                            bankbookInput.click();
+                        });
+                    }
+                }
                 // Create record in AttendanceImages table using exact field names from CSV
                 const now = new Date();
 
@@ -1456,8 +1514,6 @@
                 console.log('notes:', attendanceData.notes, typeof attendanceData.notes);
                 console.log('=== END DEBUG ===');
 
-                // 이미지 업로드 임시 비활성화
-                /*
                 // Store Base64 images in Long Text fields
                 if (idCardImage) {
                     // Convert blob to Base64
@@ -1468,6 +1524,7 @@
                     });
                     attendanceData.idCardImageFrontBase64 = base64String;
                     console.log('ID card image stored as Base64, size:', (base64String.length / 1024).toFixed(2), 'KB');
+                    addDebugLog('신분증 이미지 Base64 저장 완료');
                 }
 
                 if (bankbookImage) {
@@ -1479,8 +1536,8 @@
                     });
                     attendanceData.bankbookImageBase64 = base64String;
                     console.log('Bankbook image stored as Base64, size:', (base64String.length / 1024).toFixed(2), 'KB');
+                    addDebugLog('통장사본 이미지 Base64 저장 완료');
                 }
-                */
 
                 // Debug: Log attempt (DO NOT use recordId for anything)
                 addDebugLog('체크인 시도 - AttendanceImages 테이블에만 저장:', {
@@ -1628,7 +1685,8 @@
             // Search
             document.getElementById('searchInput').addEventListener('input', displayParticipants);
 
-            // 이미지 입력 이벤트 리스너 임시 비활성화
+            // 이미지 입력 이벤트 리스너 (UI는 숨겨져 있지만 기능은 유지)
+            // 이 리스너는 submitCheckin 함수에서 동적으로 처리되므로 여기서는 주석 유지
             /*
             // ID card input
             document.getElementById('idCardInput').addEventListener('change', async (e) => {
