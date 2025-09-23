@@ -859,25 +859,41 @@
         function updateStatistics() {
             const koreaTime = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Seoul"}));
             const todayStr = `${koreaTime.getMonth() + 1}/${koreaTime.getDate()}`;
+            const todayDateStr = koreaTime.toISOString().split('T')[0]; // YYYY-MM-DD format
 
             // Total attended (all-time)
             const totalAttended = mergedData.length;
             document.getElementById('totalAttended').textContent = totalAttended.toLocaleString();
             debugLog(`Displaying total attended: ${totalAttended}`, 'info');
 
-            // Today's attendance
+            // Today's attendance - filter by checkinTime for actual attendance today
             const todayAttended = mergedData.filter(item => {
-                const itemDate = item.setDate;
-                return itemDate === todayStr;
-            }).length;
-            document.getElementById('todayAttended').textContent = todayAttended.toLocaleString();
+                if (!item.checkinTime) return false;
 
-            // Calculate today's rate
-            const todayTotal = participantsData.filter(p =>
-                p.setDate === todayStr && p.status === 'Confirmed'
-            ).length;
-            const todayRate = todayTotal > 0 ? Math.round((todayAttended / todayTotal) * 100) : 0;
-            document.getElementById('todayRate').textContent = `${todayRate}% attendance rate`;
+                // Parse checkinTime and compare date
+                const checkinDate = new Date(item.checkinTime);
+                const checkinDateStr = checkinDate.toISOString().split('T')[0];
+
+                // Debug first few checkin times
+                if (mergedData.indexOf(item) < 3) {
+                    debugLog(`Sample checkinTime: ${item.checkinTime} → ${checkinDateStr}`, 'info');
+                }
+
+                return checkinDateStr === todayDateStr;
+            }).length;
+
+            document.getElementById('todayAttended').textContent = todayAttended.toLocaleString();
+            debugLog(`Today's attended (${todayDateStr}): ${todayAttended}`, todayAttended > 0 ? 'success' : 'info');
+
+            // Calculate today's rate based on scheduled participants for today
+            const todayScheduled = participantsData.filter(p => {
+                return p.setDate === todayStr && p.status === 'Confirmed';
+            }).length;
+
+            const todayRate = todayScheduled > 0 ? Math.round((todayAttended / todayScheduled) * 100) : 0;
+            document.getElementById('todayRate').textContent = todayScheduled > 0 ?
+                `${todayRate}% (${todayAttended}/${todayScheduled})` :
+                'No scheduled today';
 
             // Count active skin types from ALL data
             let activeSkinColors = new Set();
