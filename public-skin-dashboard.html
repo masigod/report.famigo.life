@@ -504,9 +504,9 @@
     </div>
 
     <script>
-        // Configuration
-        let AIRTABLE_API_KEY = typeof AIRTABLE_CONFIG !== 'undefined' ?
-            AIRTABLE_CONFIG.API_KEY : localStorage.getItem('AIRTABLE_API_KEY') || '';
+        // Configuration - loaded from config.js (built by Netlify with environment variables)
+        const AIRTABLE_API_KEY = typeof AIRTABLE_CONFIG !== 'undefined' ?
+            AIRTABLE_CONFIG.API_KEY : '';
         const AIRTABLE_BASE_ID = typeof AIRTABLE_CONFIG !== 'undefined' ?
             AIRTABLE_CONFIG.BASE_ID : 'appZcPs57spwdoKQH';
         const PARTICIPANTS_TABLE_ID = typeof AIRTABLE_CONFIG !== 'undefined' ?
@@ -535,17 +535,8 @@
 
         // Initialize
         window.addEventListener('DOMContentLoaded', async () => {
-            // Check API key
-            if (!AIRTABLE_API_KEY) {
-                const apiKey = prompt('Please enter your Airtable API key:');
-                if (apiKey) {
-                    AIRTABLE_API_KEY = apiKey;
-                    localStorage.setItem('AIRTABLE_API_KEY', apiKey);
-                } else {
-                    alert('API key is required to view data');
-                    return;
-                }
-            }
+            // Config is loaded from config.js which is built by Netlify with environment variables
+            console.log('Initializing dashboard with config...');
 
             // Set today's date as default
             const koreaTime = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Seoul"}));
