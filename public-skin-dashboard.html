@@ -427,10 +427,10 @@
             </div>
 
             <div class="stat-card today">
-                <div class="icon">📅</div>
-                <div class="label">Today's Attendance</div>
-                <div class="value" id="todayAttended">0</div>
-                <div class="change" id="todayRate">0% attendance rate</div>
+                <div class="icon">🎯</div>
+                <div class="label">Goal Achievement</div>
+                <div class="value" id="goalAchievement">0%</div>
+                <div class="change" id="goalProgress">0 / 130 participants</div>
             </div>
 
             <div class="stat-card skin-types">
@@ -471,8 +471,8 @@
                             <th class="row-header">Skin Color</th>
                             <th>Cool<br><span style="font-weight: normal; font-size: 0.85em;">차가운 톤</span></th>
                             <th>Neutral<br><span style="font-weight: normal; font-size: 0.85em;">중간 톤</span></th>
-                            <th>Olive<br><span style="font-weight: normal; font-size: 0.85em;">올리브 톤</span></th>
                             <th>Warm<br><span style="font-weight: normal; font-size: 0.85em;">따뜻한 톤</span></th>
+                            <th>Olive<br><span style="font-weight: normal; font-size: 0.85em;">올리브 톤</span></th>
                             <th style="background: linear-gradient(135deg, #ffd93d 0%, #ffb347 100%);">Total</th>
                         </tr>
                     </thead>
@@ -545,7 +545,18 @@
 
         // Skin type definitions
         const skinColors = ["1(F)", "2(L)", "3(LM)", "4(M)", "5(MD)", "6(D)"];
-        const skinTones = ["Cool", "Neutral", "Olive", "Warm"];
+        const skinTones = ["Cool", "Neutral", "Warm", "Olive"];  // Swapped Warm and Olive
+
+        // Goal targets from the image
+        const goalTargets = {
+            "1(F)": { "Cool": 1, "Neutral": 3, "Warm": 5, "Olive": 2 },
+            "2(L)": { "Cool": 6, "Neutral": 9, "Warm": 5, "Olive": 2 },
+            "3(LM)": { "Cool": 2, "Neutral": 12, "Warm": 5, "Olive": 7 },
+            "4(M)": { "Cool": 5, "Neutral": 13, "Warm": 14, "Olive": 8 },
+            "5(MD)": { "Cool": 7, "Neutral": 11, "Warm": 8, "Olive": 5 },
+            "6(D)": { "Cool": 8, "Neutral": 6, "Warm": 1, "Olive": 1 },
+            "7(L)": { "Cool": 2, "Neutral": 1, "Warm": 3, "Olive": 5 }
+        };
 
         const colorInfo = {
             "1(F)": { label: "Fair", desc: "매우 밝은 피부", hex: "#ffe8d6" },
@@ -875,38 +886,24 @@
             document.getElementById('totalAttended').textContent = totalAttended.toLocaleString();
             debugLog(`Displaying total attended: ${totalAttended}`, 'info');
 
-            // Today's attendance - filter by checkinTime for actual attendance today
-            const todayAttended = mergedData.filter(item => {
-                if (!item.checkinTime) return false;
+            // Goal achievement rate (target: 130 participants)
+            const TOTAL_GOAL = 130;
+            const achievementRate = Math.round((totalAttended / TOTAL_GOAL) * 100);
+            document.getElementById('goalAchievement').textContent = `${achievementRate}%`;
+            document.getElementById('goalProgress').textContent = `${totalAttended} / ${TOTAL_GOAL} participants`;
 
-                // Parse checkinTime in Korea timezone
-                const checkinDate = new Date(item.checkinTime);
-                const checkinKorea = new Date(checkinDate.toLocaleString("en-US", {timeZone: "Asia/Seoul"}));
-                const checkinYear = checkinKorea.getFullYear();
-                const checkinMonth = String(checkinKorea.getMonth() + 1).padStart(2, '0');
-                const checkinDay = String(checkinKorea.getDate()).padStart(2, '0');
-                const checkinDateStr = `${checkinYear}-${checkinMonth}-${checkinDay}`;
+            // Color code based on achievement
+            const goalCard = document.querySelector('.stat-card.today');
+            if (achievementRate >= 100) {
+                goalCard.style.borderLeft = '4px solid #51cf66';
+            } else if (achievementRate >= 70) {
+                goalCard.style.borderLeft = '4px solid #ffd93d';
+            } else {
+                goalCard.style.borderLeft = '4px solid #ff6b6b';
+            }
 
-                // Debug first few checkin times
-                if (mergedData.indexOf(item) < 3) {
-                    debugLog(`Sample: ${item.checkinTime} → ${checkinDateStr} (today: ${todayDateStr})`, 'info');
-                }
-
-                return checkinDateStr === todayDateStr;
-            }).length;
-
-            document.getElementById('todayAttended').textContent = todayAttended.toLocaleString();
-            debugLog(`Today's attended (${todayDateStr}): ${todayAttended}`, todayAttended > 0 ? 'success' : 'info');
-
-            // Calculate today's rate based on scheduled participants for today
-            const todayScheduled = participantsData.filter(p => {
-                return p.setDate === todayStr && p.status === 'Confirmed';
-            }).length;
-
-            const todayRate = todayScheduled > 0 ? Math.round((todayAttended / todayScheduled) * 100) : 0;
-            document.getElementById('todayRate').textContent = todayScheduled > 0 ?
-                `${todayRate}% (${todayAttended}/${todayScheduled})` :
-                'No scheduled today';
+            debugLog(`Goal achievement: ${achievementRate}% (${totalAttended}/${TOTAL_GOAL})`,
+                     achievementRate >= 70 ? 'success' : 'info');
 
             // Count active skin types from ALL data
             let activeSkinColors = new Set();
@@ -972,16 +969,25 @@
                 // Data cells for each tone
                 skinTones.forEach(tone => {
                     const cellData = matrixData[color][tone];
+                    const target = goalTargets[color] ? goalTargets[color][tone] || 0 : 0;
+                    const achieveRate = target > 0 ? Math.round((cellData.count / target) * 100) : 0;
+
                     if (cellData.count > 0) {
+                        const rateColor = achieveRate >= 100 ? '#51cf66' :
+                                         achieveRate >= 70 ? '#ffd93d' : '#ff6b6b';
                         html += `
                             <td class="has-data" onclick="showDetails('${color}', '${tone}')">
                                 <div class="cell-count">${cellData.count}</div>
-                                <div class="cell-label">명</div>
+                                <div class="cell-label" style="font-size: 0.75em;">
+                                    <span style="color: ${rateColor};">${achieveRate}%</span>
+                                    <span style="color: #999;">(목표:${target})</span>
+                                </div>
                             </td>
                         `;
                         rowTotal += cellData.count;
                     } else {
-                        html += '<td><div class="empty-cell">-</div></td>';
+                        html += `<td><div class="empty-cell">0</div>
+                                 <div class="cell-label" style="font-size: 0.75em; color: #999;">목표:${target}</div></td>`;
                     }
                 });
 
