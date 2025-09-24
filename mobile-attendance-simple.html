@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>CLT 출석 관리 - 간소화 버전</title>
+    <script src="env-config.js?v=3"></script>
+    <script src="config-loader.js?v=3"></script>
+    <script src="config.js?v=3"></script>
+    <script src="security-utils.js?v=3"></script>
+    <script src="error-handler.js?v=3"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --primary: #667eea;
+            --primary-dark: #5a67d8;
+            --success: #48bb78;
+            --danger: #f56565;
+            --warning: #ed8936;
+            --bg: #f7fafc;
+            --card: #ffffff;
+            --text: #2d3748;
+            --text-light: #718096;
+            --border: #e2e8f0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .logout-btn {
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 6px;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            padding: 15px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-top: 4px;
+        }
+
+        .filter-container {
+            padding: 0 15px 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .filter-select {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: white;
+            font-size: 14px;
+        }
+
+        .participant-list {
+            padding: 0 15px;
+        }
+
+        .participant-card {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .participant-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .participant-name {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .participant-details {
+            font-size: 14px;
+            color: var(--text-light);
+            line-height: 1.5;
+        }
+
+        .checkin-btn {
+            width: 100%;
+            padding: 12px;
+            background: var(--success);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .checkin-btn:disabled {
+            background: var(--border);
+            cursor: not-allowed;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .badge-attended {
+            background: var(--success);
+        }
+
+        .badge-pending {
+            background: var(--warning);
+        }
+
+        .badge-reserve {
+            background: #9f7aea;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .modal-content {
+            background: white;
+            margin: 50px 15px;
+            padding: 20px;
+            border-radius: 12px;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--text-light);
+            cursor: pointer;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text);
+        }
+
+        .form-input, .form-textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .submit-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        .submit-btn:disabled {
+            background: var(--border);
+            cursor: not-allowed;
+        }
+
+        .notification {
+            position: fixed;
+            top: 70px;
+            right: 15px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 2000;
+            max-width: 300px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .notification.success {
+            border-left: 4px solid var(--success);
+        }
+
+        .notification.error {
+            border-left: 4px solid var(--danger);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-light);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1>📋 CLT 출석관리</h1>
+            <button class="logout-btn" onclick="logout()">로그아웃</button>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-container">
+        <div class="stat-card">
+            <div class="stat-value" id="totalCount">0</div>
+            <div class="stat-label">총 참가자</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="attendedCount">0</div>
+            <div class="stat-label">출석완료</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="pendingCount">0</div>
+            <div class="stat-label">대기중</div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-container">
+        <select class="filter-select" id="dateFilter">
+            <option value="">모든 날짜</option>
+            <option value="9/22">9/22 (월)</option>
+            <option value="9/23">9/23 (화)</option>
+            <option value="9/24">9/24 (수)</option>
+            <option value="9/25">9/25 (목)</option>
+            <option value="9/26">9/26 (금)</option>
+        </select>
+        <select class="filter-select" id="timeFilter">
+            <option value="">모든 시간</option>
+            <option value="13:00">13:00</option>
+            <option value="13:30">13:30</option>
+            <option value="14:00">14:00</option>
+            <option value="14:30">14:30</option>
+            <option value="15:00">15:00</option>
+            <option value="15:30">15:30</option>
+            <option value="16:00">16:00</option>
+            <option value="16:30">16:30</option>
+        </select>
+    </div>
+
+    <!-- Participant List -->
+    <div class="participant-list" id="participantList">
+        <div class="loading">데이터를 불러오는 중...</div>
+    </div>
+
+    <!-- Check-in Modal -->
+    <div class="modal" id="checkinModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">체크인</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">참가자 정보</label>
+                <div id="participantInfo" style="padding: 10px; background: var(--bg); border-radius: 8px; margin-bottom: 15px;">
+                    <!-- Participant info will be displayed here -->
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">메모 (선택사항)</label>
+                <textarea class="form-textarea" id="attendanceNotes" rows="3" placeholder="추가 메모..."></textarea>
+            </div>
+
+            <button class="submit-btn" id="submitBtn" onclick="submitCheckin()">
+                체크인 완료
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Check authentication
+        function checkAuth() {
+            const session = sessionStorage.getItem('clt_session');
+            if (!session) {
+                window.location.href = 'login.html';
+                return null;
+            }
+
+            const sessionData = JSON.parse(session);
+            if (sessionData.expires < Date.now()) {
+                sessionStorage.removeItem('clt_session');
+                window.location.href = 'login.html';
+                return null;
+            }
+
+            return sessionData;
+        }
+
+        // Logout
+        function logout() {
+            if (confirm('로그아웃 하시겠습니까?')) {
+                sessionStorage.removeItem('clt_session');
+                window.location.href = 'login.html';
+            }
+        }
+
+        // Check auth on load
+        const currentUser = checkAuth();
+        if (!currentUser) {
+            throw new Error('Authentication required');
+        }
+
+        // Global variables
+        let participantsData = [];
+        let attendanceData = {};
+        let currentParticipant = null;
+
+        // Airtable configuration
+        const AIRTABLE_API_KEY = typeof AIRTABLE_CONFIG !== 'undefined' ? AIRTABLE_CONFIG.API_KEY : '';
+        const AIRTABLE_BASE_ID = typeof AIRTABLE_CONFIG !== 'undefined' ? AIRTABLE_CONFIG.BASE_ID : '';
+        const AIRTABLE_TABLE_ID = typeof AIRTABLE_CONFIG !== 'undefined' ? AIRTABLE_CONFIG.TABLE_ID : '';
+        const AIRTABLE_ATTENDANCE_TABLE_ID = typeof AIRTABLE_CONFIG !== 'undefined' ? AIRTABLE_CONFIG.ATTENDANCE_TABLE_ID : '';
+
+        // Load participants data
+        async function loadParticipants() {
+            try {
+                const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}`;
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${AIRTABLE_API_KEY}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load participants');
+                }
+
+                const data = await response.json();
+                participantsData = data.records.map(record => ({
+                    ID: record.fields.ID || 0,
+                    name: record.fields.name || '',
+                    setDate: formatDate(record.fields.setDate),
+                    setTime: record.fields.setTime || '',
+                    skinColor: record.fields.skinColor || '',
+                    skinTone: record.fields.skinTone || '',
+                    phone: record.fields.phone || '',
+                    email: record.fields.email || '',
+                    예비여부: record.fields.reserveStatus || false,
+                    PID: record.fields['P-ID'] || record.fields.PID || '',
+                    recordId: record.id
+                }));
+
+                await loadAttendanceData();
+                renderParticipants();
+                updateStats();
+            } catch (error) {
+                console.error('Error loading participants:', error);
+                showNotification('데이터 로드 실패', 'error');
+            }
+        }
+
+        // Load attendance data
+        async function loadAttendanceData() {
+            if (!AIRTABLE_ATTENDANCE_TABLE_ID) return;
+
+            try {
+                const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_ATTENDANCE_TABLE_ID}`;
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${AIRTABLE_API_KEY}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load attendance');
+                }
+
+                const data = await response.json();
+                attendanceData = {};
+
+                data.records.forEach(record => {
+                    const participantID = record.fields.participantID;
+                    if (participantID) {
+                        attendanceData[participantID] = {
+                            'A-ID': record.fields['A-ID'] || '',
+                            attendanceStatus: record.fields.attendanceStatus || '',
+                            checkinTime: record.fields.checkinTime || '',
+                            recordId: record.id
+                        };
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading attendance:', error);
+            }
+        }
+
+        // Format date
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            if (dateStr.includes('/')) return dateStr;
+
+            const date = new Date(dateStr);
+            return `${date.getMonth() + 1}/${date.getDate()}`;
+        }
+
+        // Render participants
+        function renderParticipants() {
+            const dateFilter = document.getElementById('dateFilter').value;
+            const timeFilter = document.getElementById('timeFilter').value;
+            const container = document.getElementById('participantList');
+
+            let filtered = participantsData.filter(p => {
+                if (dateFilter && p.setDate !== dateFilter) return false;
+                if (timeFilter && p.setTime !== timeFilter) return false;
+                return true;
+            });
+
+            // Sort by date, time, and ID
+            filtered.sort((a, b) => {
+                const dateCompare = (a.setDate || '').localeCompare(b.setDate || '');
+                if (dateCompare !== 0) return dateCompare;
+
+                const timeCompare = (a.setTime || '').localeCompare(b.setTime || '');
+                if (timeCompare !== 0) return timeCompare;
+
+                return (a.ID || 0) - (b.ID || 0);
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="loading">참가자가 없습니다</div>';
+                return;
+            }
+
+            container.innerHTML = filtered.map(p => {
+                const attendance = attendanceData[p.ID] || {};
+                const isAttended = attendance.attendanceStatus === 'Attended';
+
+                return `
+                    <div class="participant-card">
+                        <div class="participant-info">
+                            <div>
+                                <div class="participant-name">
+                                    ${p.name}
+                                    ${p.예비여부 ? '<span class="badge badge-reserve">예비</span>' : ''}
+                                </div>
+                                <div class="participant-details">
+                                    P-ID: ${p.PID || '-'} | ${p.setDate} ${p.setTime}<br>
+                                    타겟: ${p.skinColor} | 톤: ${p.skinTone || '-'}
+                                </div>
+                            </div>
+                            <div>
+                                ${isAttended ?
+                                    '<span class="badge badge-attended">출석완료</span>' :
+                                    '<span class="badge badge-pending">대기중</span>'
+                                }
+                            </div>
+                        </div>
+                        <button class="checkin-btn"
+                                onclick="openCheckinModal(${p.ID})"
+                                ${isAttended ? 'disabled' : ''}>
+                            ${isAttended ? '✓ 체크인 완료' : '체크인'}
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Update stats
+        function updateStats() {
+            const total = participantsData.length;
+            const attended = Object.values(attendanceData).filter(a => a.attendanceStatus === 'Attended').length;
+            const pending = total - attended;
+
+            document.getElementById('totalCount').textContent = total;
+            document.getElementById('attendedCount').textContent = attended;
+            document.getElementById('pendingCount').textContent = pending;
+        }
+
+        // Open checkin modal
+        function openCheckinModal(participantId) {
+            currentParticipant = participantsData.find(p => p.ID === participantId);
+            if (!currentParticipant) return;
+
+            document.getElementById('participantInfo').innerHTML = `
+                <strong>${currentParticipant.name}</strong><br>
+                P-ID: ${currentParticipant.PID || '-'}<br>
+                ${currentParticipant.setDate} ${currentParticipant.setTime}<br>
+                타겟: ${currentParticipant.skinColor} | 톤: ${currentParticipant.skinTone || '-'}
+                ${currentParticipant.예비여부 ? '<br><span class="badge badge-reserve">예비 참가자</span>' : ''}
+            `;
+
+            document.getElementById('attendanceNotes').value = '';
+            document.getElementById('checkinModal').style.display = 'block';
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('checkinModal').style.display = 'none';
+            currentParticipant = null;
+        }
+
+        // Submit checkin
+        async function submitCheckin() {
+            if (!currentParticipant) return;
+
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.textContent = '처리중...';
+
+            try {
+                const now = new Date();
+                const checkinData = {
+                    participantID: currentParticipant.ID,
+                    participantName: currentParticipant.name,
+                    'P-ID': currentParticipant.PID || '',
+                    'A-ID': `A${String(currentParticipant.ID).padStart(3, '0')}`,
+                    attendanceStatus: 'Attended',
+                    checkinTime: now.toISOString(),
+                    actualCheckinTime: now.toLocaleString('ko-KR'),
+                    notes: document.getElementById('attendanceNotes').value || '',
+                    checkedBy: currentUser.fullName || currentUser.username
+                };
+
+                // Check if record exists
+                const existingAttendance = attendanceData[currentParticipant.ID];
+
+                let response;
+                if (existingAttendance && existingAttendance.recordId) {
+                    // Update existing record
+                    const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_ATTENDANCE_TABLE_ID}/${existingAttendance.recordId}`;
+                    response = await fetch(url, {
+                        method: 'PATCH',
+                        headers: {
+                            'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            fields: checkinData
+                        })
+                    });
+                } else {
+                    // Create new record
+                    const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_ATTENDANCE_TABLE_ID}`;
+                    response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            records: [{
+                                fields: checkinData
+                            }]
+                        })
+                    });
+                }
+
+                if (!response.ok) {
+                    throw new Error('체크인 실패');
+                }
+
+                // Update local data
+                attendanceData[currentParticipant.ID] = {
+                    ...checkinData,
+                    recordId: existingAttendance?.recordId
+                };
+
+                showNotification('체크인 완료!', 'success');
+                closeModal();
+                renderParticipants();
+                updateStats();
+            } catch (error) {
+                console.error('Checkin error:', error);
+                showNotification('체크인 실패', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '체크인 완료';
+            }
+        }
+
+        // Show notification
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // Event listeners
+        document.getElementById('dateFilter').addEventListener('change', renderParticipants);
+        document.getElementById('timeFilter').addEventListener('change', renderParticipants);
+
+        // Close modal on backdrop click
+        document.getElementById('checkinModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        // Initialize
+        loadParticipants();
+    </script>
+</body>
+</html>
