@@ -1584,13 +1584,32 @@
                     throw new Error('AttendanceImages 테이블 ID가 설정되지 않았습니다.');
                 }
 
+                // IMPORTANT: Remove any image-related fields that might have been added
+                // These fields don't exist in Airtable and will cause 422 errors
+                delete attendanceData.idCardImageFront;
+                delete attendanceData.idCardImageBack;
+                delete attendanceData.bankbookImage;
+                delete attendanceData.idCardImageFrontBase64;
+                delete attendanceData.idCardImageBackBase64;
+                delete attendanceData.bankbookImageBase64;
+                delete attendanceData.imageData;
+                delete attendanceData.images;
+
+                // Remove any other potential image fields
+                Object.keys(attendanceData).forEach(key => {
+                    if (key.toLowerCase().includes('image') || key.toLowerCase().includes('photo')) {
+                        console.log(`Removing unexpected image field: ${key}`);
+                        delete attendanceData[key];
+                    }
+                });
+
                 addDebugLog('AttendanceImages 테이블에 저장 시도:', {
                     table: ATTENDANCE_TABLE_ID,
                     data: attendanceData
                 });
 
                 // Log the exact data being sent
-                console.log('Sending to Airtable - Full attendanceData:', attendanceData);
+                console.log('Sending to Airtable - Full attendanceData (after cleanup):', attendanceData);
                 console.log('checkinTime format:', checkinTimeFormatted);
                 console.log('checkinTime type:', typeof checkinTimeFormatted);
                 console.log('checkDate format:', formattedCheckDate);
@@ -2170,6 +2189,14 @@
                     checkTime: participant.setTime || '',
                     notes: `Changed from No-show to Attended - ${now.toLocaleString('en-US')}`
                 };
+
+                // Remove any image-related fields before saving
+                delete attendanceData.idCardImageFront;
+                delete attendanceData.idCardImageBack;
+                delete attendanceData.bankbookImage;
+                delete attendanceData.idCardImageFrontBase64;
+                delete attendanceData.idCardImageBackBase64;
+                delete attendanceData.bankbookImageBase64;
 
                 const response = await fetch(
                     `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${ATTENDANCE_TABLE_ID}`,
