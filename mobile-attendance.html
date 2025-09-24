@@ -620,27 +620,27 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">ID Card Front Photo (Required)</label>
+                    <label class="form-label">ID Card Front Photo (Optional)</label>
                     <div class="camera-container">
                         <div class="camera-preview" id="idFrontPreview">
                             <span style="color: var(--text-light);">📷 No photo</span>
                         </div>
                         <input type="file" id="idCardFrontInput" accept="image/*" capture="camera" style="display: none;">
                         <button class="camera-btn" onclick="document.getElementById('idCardFrontInput').click()">
-                            Take Front Photo
+                            Take Front Photo (Optional)
                         </button>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">ID Card Back Photo (Required)</label>
+                    <label class="form-label">ID Card Back Photo (Optional)</label>
                     <div class="camera-container">
                         <div class="camera-preview" id="idBackPreview">
                             <span style="color: var(--text-light);">📷 No photo</span>
                         </div>
                         <input type="file" id="idCardBackInput" accept="image/*" capture="camera" style="display: none;">
                         <button class="camera-btn" onclick="document.getElementById('idCardBackInput').click()">
-                            Take Back Photo
+                            Take Back Photo (Optional)
                         </button>
                     </div>
                 </div>
@@ -1245,8 +1245,10 @@
         // Check if form is complete
         function checkFormComplete() {
             const hasReward = selectedReward !== '';
-            const hasIdCardFront = idCardImageFront !== null;
-            const hasIdCardBack = idCardImageBack !== null;
+
+            // ID card photos are now optional
+            const hasIdCardFront = true;  // Always true - not required
+            const hasIdCardBack = true;   // Always true - not required
 
             // Check bankbook requirement
             let hasBankbook = true;
@@ -1255,7 +1257,8 @@
                 hasBankbook = isCheckLater || (bankbookImage !== null);
             }
 
-            document.getElementById('submitBtn').disabled = !(hasReward && hasIdCardFront && hasIdCardBack && hasBankbook);
+            // Only reward selection is required
+            document.getElementById('submitBtn').disabled = !hasReward;
         }
 
         // Image compression - 더 강한 압축 적용
