@@ -521,9 +521,6 @@
                 <div>
                     <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">날짜 *</label>
                     <input type="date" id="newDate"
-                           min="2025-09-22"
-                           max="2025-09-26"
-                           value="2025-09-22"
                            style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
                     <small style="color: #888; font-size: 12px;">9/22(월) ~ 9/26(금) 중 선택</small>
                 </div>
@@ -944,34 +941,48 @@
 
         // Airtable에 새 레코드 추가
         async function createAirtableRecord(participant) {
-            return ErrorHandler.handle(async () => {
+            // Convert date to YYYY-MM-DD format for Airtable
+            let airtableDate = participant.setDate;
+            if (airtableDate && !airtableDate.includes('-')) {
+                // Convert M/D to YYYY-MM-DD
+                const [month, day] = airtableDate.split('/');
+                const year = new Date().getFullYear();
+                airtableDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+            }
+
+            const requestBody = {
+                records: [{
+                    fields: {
+                        // ID는 Airtable에서 자동 생성되므로 제외
+                        name: SecurityUtils.sanitizeInput(participant.name, 'korean_name'),
+                        setDate: airtableDate,  // Date field expects YYYY-MM-DD format
+                        setTime: SecurityUtils.sanitizeInput(participant.setTime, 'time'),
+                        skinColor: SecurityUtils.sanitizeInput(participant.skinColor, 'alphanumeric'),
+                        skinTone: SecurityUtils.sanitizeInput(participant.skinTone || '', 'alphanumeric'),
+                        phone: SecurityUtils.sanitizeInput(participant.phone || '', 'phone'),
+                        email: SecurityUtils.sanitizeInput(participant.email || '', 'email'),
+                        reserveStatus: participant.예비여부 ? true : false,
+                        'P-ID': SecurityUtils.sanitizeInput(participant.PID || '', 'id'),
+                        'A-ID': participant['A-ID'] || '',  // A-ID 필드 추가
+                        status: SecurityUtils.sanitizeInput(participant.status || 'Pending', 'alphanumeric'),
+                        requestDate: participant.requestDate || null,
+                        confirmedDate: participant.confirmedDate || null,
+                        changeTime: participant.changeTime || null,
+                        desc: SecurityUtils.sanitizeInput(participant.desc || '', 'text')
+                    }
+                }]
+            };
+
+            console.log('Sending to Airtable:', JSON.stringify(requestBody, null, 2));
+
+            try {
                 const response = await ErrorHandler.fetchWithErrorHandling(AIRTABLE_API_URL, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        records: [{
-                            fields: {
-                                // ID는 Airtable에서 자동 생성되므로 제외
-                                name: SecurityUtils.sanitizeInput(participant.name, 'korean_name'),
-                                setDate: participant.setDate,  // Date field expects YYYY-MM-DD format
-                                setTime: SecurityUtils.sanitizeInput(participant.setTime, 'time'),
-                                skinColor: SecurityUtils.sanitizeInput(participant.skinColor, 'alphanumeric'),
-                                skinTone: SecurityUtils.sanitizeInput(participant.skinTone || '', 'alphanumeric'),
-                                phone: SecurityUtils.sanitizeInput(participant.phone || '', 'phone'),
-                                email: SecurityUtils.sanitizeInput(participant.email || '', 'email'),
-                                reserveStatus: participant.예비여부 ? true : false,
-                                'P-ID': SecurityUtils.sanitizeInput(participant.PID || '', 'id'),
-                                status: SecurityUtils.sanitizeInput(participant.status || 'Pending', 'alphanumeric'),
-                                requestDate: participant.requestDate || null,
-                                confirmedDate: participant.confirmedDate || null,
-                                changeTime: participant.changeTime || null,
-                                desc: SecurityUtils.sanitizeInput(participant.desc || '', 'text')
-                            }
-                        }]
-                    }),
+                    body: JSON.stringify(requestBody),
                     timeout: 30000
                 });
 
@@ -987,11 +998,11 @@
                 }
 
                 return true;
-            }, {
-                showNotification: true,
-                logError: true,
-                fallbackValue: false
-            });
+            } catch (error) {
+                console.error('Airtable Create Error:', error);
+                console.error('Request was:', requestBody);
+                throw error;
+            }
         }
 
         // 기본 함수들
@@ -1588,8 +1599,8 @@
         function hideAddParticipantForm() {
             document.getElementById('addParticipantModal').style.display = 'none';
             document.body.style.overflow = 'auto';
-            
-            // 폼 초기화
+
+            // 폼 초기화 - 모든 필드를 비움
             document.getElementById('newName').value = '';
             document.getElementById('newDate').value = '';
             document.getElementById('newTime').value = '';
@@ -1667,6 +1678,7 @@
                     email: validation.data.email || '',
                     예비여부: document.getElementById('newReserve').checked,
                     PID: validation.data.PID || '',
+                    'A-ID': '',  // A-ID 필드 추가 (초기값은 빈 문자열)
                     status: 'Pending',  // 영어 기본값
                     requestDate: '',
                     confirmedDate: '',
@@ -1674,12 +1686,8 @@
                     desc: validation.data.desc || ''
                 };
 
-                // Airtable에 추가 (전체 날짜 형식으로)
-                const airtableParticipant = {
-                    ...newParticipant,
-                    setDate: validation.data.setDate  // 원본 날짜 형식 (2025-09-22)
-                };
-                const success = await createAirtableRecord(airtableParticipant);
+                // Airtable에 추가 (날짜 형식 확인)
+                const success = await createAirtableRecord(newParticipant);
 
                 if (success) {
                     participantsData.push(newParticipant);
