@@ -1501,44 +1501,20 @@
                         // For now, we'll store base64 as text (not ideal for production)
                         // In production, upload to cloud storage first and use URLs
 
-                        // Store base64 images in Long Text fields
-                        // This works if your Airtable fields are set as Long Text type
-                        // If they are Attachment type, you need to change them to Long Text
+                        // Skip storing base64 images to Airtable (fields don't exist)
+                        // Only save image info in notes and localStorage
 
-                        if (frontBase64) {
-                            // Store as base64 string (if field is Long Text type)
-                            attendanceData.idCardImageFrontBase64 = frontBase64;
-                            console.log('Front image stored as base64, size:', (frontBase64.length / 1024).toFixed(2), 'KB');
-                            addDebugLog('신분증 앞면 Base64 저장', {
-                                size: `${(frontBase64.length / 1024).toFixed(2)} KB`
-                            });
-                        }
-
-                        if (backBase64) {
-                            // Store as base64 string (if field is Long Text type)
-                            attendanceData.idCardImageBackBase64 = backBase64;
-                            console.log('Back image stored as base64, size:', (backBase64.length / 1024).toFixed(2), 'KB');
-                            addDebugLog('신분증 뒷면 Base64 저장', {
-                                size: `${(backBase64.length / 1024).toFixed(2)} KB`
-                            });
-                        }
-
-                        if (bankbookBase64) {
-                            // Store as base64 string (if field is Long Text type)
-                            attendanceData.bankbookImageBase64 = bankbookBase64;
-                            console.log('Bankbook image stored as base64, size:', (bankbookBase64.length / 1024).toFixed(2), 'KB');
-                            addDebugLog('통장사본 Base64 저장', {
-                                size: `${(bankbookBase64.length / 1024).toFixed(2)} KB`
-                            });
-                        }
-
-                        // Also update notes for tracking
                         if (frontBase64 || backBase64 || bankbookBase64) {
-                            attendanceData.notes += '\n이미지 저장됨 (Base64 형식)';
-                            addDebugLog('이미지 Airtable 저장 준비 완료', {
-                                method: 'Long Text fields with Base64',
-                                totalImages: [frontBase64, backBase64, bankbookBase64].filter(Boolean).length
+                            attendanceData.notes += '\n이미지 저장됨 (로컬 저장소)';
+
+                            const imageCount = [frontBase64, backBase64, bankbookBase64].filter(Boolean).length;
+                            addDebugLog('이미지 로컬 저장 완료', {
+                                method: 'localStorage only',
+                                totalImages: imageCount,
+                                note: 'Airtable 이미지 필드 없음 - 로컬에만 저장'
                             });
+
+                            console.log(`${imageCount}개 이미지가 로컬에 저장됨 (Airtable 필드 없어서 업로드 스킵)`);
                         }
                     } catch (e) {
                         console.error('Image save error:', e);
@@ -2343,11 +2319,10 @@
                     bankbookValue: fields.bankbookImage
                 });
 
-                // Check if any images exist (both Attachment and Base64 fields)
+                // Check if any images exist (only Attachment fields - Base64 fields don't exist in Airtable)
                 const hasAttachmentImages = fields.idCardImageFront || fields.idCardImageBack || fields.bankbookImage;
-                const hasBase64Images = fields.idCardImageFrontBase64 || fields.idCardImageBackBase64 || fields.bankbookImageBase64;
 
-                if (!hasAttachmentImages && !hasBase64Images) {
+                if (!hasAttachmentImages) {
                     console.log('No images in Airtable record, checking localStorage...');
                     addDebugLog('Airtable에 이미지 없음, localStorage 확인 중...');
 
@@ -2489,17 +2464,10 @@
                                 </div>
                             </div>
 
-                            ${fields.idCardImageFront || fields.idCardImageFrontBase64 ? `
+                            ${fields.idCardImageFront ? `
                                 <div style="margin-bottom: 20px;">
                                     <h4 style="margin-bottom: 10px; color: var(--text);">📇 신분증 앞면</h4>
-                                    ${fields.idCardImageFrontBase64 ? `
-                                        <img src="${fields.idCardImageFrontBase64}"
-                                             alt="ID Card Front"
-                                             style="width: 100%; border-radius: 8px; border: 1px solid var(--border);">
-                                        <div style="margin-top: 5px; font-size: 11px; color: var(--text-light);">
-                                            Base64 이미지
-                                        </div>
-                                    ` : Array.isArray(fields.idCardImageFront) && fields.idCardImageFront[0] ? `
+                                    ${Array.isArray(fields.idCardImageFront) && fields.idCardImageFront[0] ? `
                                         <img src="${fields.idCardImageFront[0].url}"
                                              alt="ID Card Front"
                                              style="width: 100%; border-radius: 8px; border: 1px solid var(--border); cursor: pointer;"

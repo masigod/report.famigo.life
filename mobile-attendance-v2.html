@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>CLT 현장 출석 관리 V2</title>
+    <title>CLT On-site Attendance Management V3 (No Image)</title>
     <script src="env-config.js?v=20250922"></script>
     <script src="config-loader.js?v=20250922"></script>
     <script src="config.js?v=20250922"></script>
@@ -490,15 +490,15 @@
     <div class="header">
         <div class="header-content">
             <div>
-                <h1>CLT 현장 출석</h1>
+                <h1>CLT On-site Attendance</h1>
                 <div style="font-size: 12px; opacity: 0.9;" id="staffInfo">Loading...</div>
             </div>
-            <button class="logout-btn" onclick="logout()">로그아웃</button>
+            <button class="logout-btn" onclick="logout()">Logout</button>
         </div>
     </div>
 
     <!-- Debug Log Area -->
-    <div id="debugLog" style="background: #000; padding: 15px; margin: 10px; border-radius: 8px; max-height: 300px; overflow-y: auto; font-family: monospace; font-size: 11px; color: #0f0; white-space: pre-wrap; word-break: break-all; border: 2px solid #0f0;">
+    <div id="debugLog" style="display: none; background: #000; padding: 15px; margin: 10px; border-radius: 8px; max-height: 300px; overflow-y: auto; font-family: monospace; font-size: 11px; color: #0f0; white-space: pre-wrap; word-break: break-all; border: 2px solid #0f0;">
         <div style="font-weight: bold; margin-bottom: 10px; color: #0f0;">🔍 DEBUG LOG:</div>
         <div id="debugContent"></div>
     </div>
@@ -507,31 +507,31 @@
     <div id="mainView">
         <!-- Date Selector -->
         <div style="padding: 15px 20px; background: white; border-bottom: 1px solid #e0e0e0;">
-            <label style="display: block; font-size: 14px; color: #666; margin-bottom: 5px;">날짜 선택</label>
+            <label style="display: block; font-size: 14px; color: #666; margin-bottom: 5px;">Select Date</label>
             <div style="display: flex; gap: 10px;">
                 <input type="date" id="dateFilter" style="flex: 1; padding: 10px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 16px;">
-                <button onclick="document.getElementById('dateFilter').value=''; filterAndDisplayParticipants();" style="padding: 10px 15px; background: #667eea; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">전체보기</button>
+                <button onclick="document.getElementById('dateFilter').value=''; filterAndDisplayParticipants();" style="padding: 10px 15px; background: #667eea; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">Show All</button>
             </div>
         </div>
         <!-- Stats -->
         <div class="stats-container">
             <div class="stat-card">
                 <div class="stat-value" id="totalCount">0</div>
-                <div class="stat-label">전체</div>
+                <div class="stat-label">Total</div>
             </div>
             <div class="stat-card">
                 <div class="stat-value" id="attendedCount">0</div>
-                <div class="stat-label">출석</div>
+                <div class="stat-label">Attended</div>
             </div>
             <div class="stat-card">
                 <div class="stat-value" id="pendingCount">0</div>
-                <div class="stat-label">대기</div>
+                <div class="stat-label">Pending</div>
             </div>
         </div>
 
         <!-- Time Filter -->
         <div class="time-filter" id="timeFilter">
-            <button class="time-btn active" data-time="all">전체</button>
+            <button class="time-btn active" data-time="all">All</button>
             <button class="time-btn" data-time="13:00">13:00</button>
             <button class="time-btn" data-time="13:30">13:30</button>
             <button class="time-btn" data-time="14:00">14:00</button>
@@ -544,7 +544,7 @@
 
         <!-- Search -->
         <div class="search-container" style="position: relative;">
-            <input type="text" class="search-input" id="searchInput" placeholder="이름 또는 ID 번호로 검색...">
+            <input type="text" class="search-input" id="searchInput" placeholder="Search by name or ID number...">
             <span class="search-icon">🔍</span>
         </div>
 
@@ -552,7 +552,7 @@
         <div class="participant-list" id="participantList">
             <div class="loading">
                 <div class="spinner"></div>
-                <div>데이터를 불러오는 중...</div>
+                <div>Loading data...</div>
             </div>
         </div>
     </div>
@@ -576,15 +576,15 @@
     <div class="tab-bar">
         <div class="tab-item active" onclick="switchTab('main')">
             <div class="tab-icon">✓</div>
-            <div class="tab-label">출석체크</div>
+            <div class="tab-label">Attendance</div>
         </div>
         <div class="tab-item" onclick="switchTab('noshow')">
             <div class="tab-icon">✗</div>
-            <div class="tab-label">노쇼</div>
+            <div class="tab-label">No-show</div>
         </div>
         <div class="tab-item" onclick="switchTab('stats')">
             <div class="tab-icon">📊</div>
-            <div class="tab-label">통계</div>
+            <div class="tab-label">Statistics</div>
         </div>
     </div>
 
@@ -592,7 +592,7 @@
     <div class="modal" id="checkinModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 class="modal-title">체크인</h3>
+                <h3 class="modal-title">Check-in</h3>
                 <button class="modal-close" onclick="closeCheckinModal()">×</button>
             </div>
             <div class="modal-body">
@@ -601,22 +601,71 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">리워드 방식</label>
+                    <label class="form-label">On-site Number (A-ID)</label>
+                    <input type="text" id="aidInput" placeholder="e.g., A101, B202" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px;">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Reward Type</label>
                     <div class="reward-options">
                         <div class="reward-option" onclick="selectReward('mobile')" data-reward="mobile">
                             <div class="reward-icon">📱</div>
-                            <div>모바일 상품권</div>
+                            <div>Gift-Card</div>
                         </div>
                         <div class="reward-option" onclick="selectReward('cash')" data-reward="cash">
                             <div class="reward-icon">💵</div>
-                            <div>현금</div>
+                            <div>Transfer</div>
                         </div>
                     </div>
                 </div>
 
+                <div class="form-group">
+                    <label class="form-label">ID Card Front Photo (Required)</label>
+                    <div class="camera-container">
+                        <div class="camera-preview" id="idFrontPreview">
+                            <span style="color: var(--text-light);">📷 No photo</span>
+                        </div>
+                        <input type="file" id="idCardFrontInput" accept="image/*" capture="camera" style="display: none;">
+                        <button class="camera-btn" onclick="document.getElementById('idCardFrontInput').click()">
+                            Take Front Photo
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">ID Card Back Photo (Required)</label>
+                    <div class="camera-container">
+                        <div class="camera-preview" id="idBackPreview">
+                            <span style="color: var(--text-light);">📷 No photo</span>
+                        </div>
+                        <input type="file" id="idCardBackInput" accept="image/*" capture="camera" style="display: none;">
+                        <button class="camera-btn" onclick="document.getElementById('idCardBackInput').click()">
+                            Take Back Photo
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group" id="bankbookGroup" style="display: none;">
+                    <label class="form-label">Bankbook Photo</label>
+                    <div style="margin-bottom: 10px;">
+                        <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-light);">
+                            <input type="checkbox" id="bankbookLaterCheck" checked style="width: 18px; height: 18px;">
+                            <span>Check Later</span>
+                        </label>
+                    </div>
+                    <div class="camera-container" id="bankbookCameraContainer" style="display: none;">
+                        <div class="camera-preview" id="bankbookPreview">
+                            <span style="color: var(--text-light);">📷 No photo</span>
+                        </div>
+                        <input type="file" id="bankbookInput" accept="image/*" capture="camera" style="display: none;">
+                        <button class="camera-btn" onclick="document.getElementById('bankbookInput').click()">
+                            Take Bankbook Photo
+                        </button>
+                    </div>
+                </div>
 
                 <button class="submit-btn" id="submitBtn" onclick="submitCheckin()" disabled>
-                    체크인 완료
+                    Complete Check-in
                 </button>
             </div>
         </div>
@@ -630,7 +679,7 @@
         const AIRTABLE_API_KEY = typeof AIRTABLE_CONFIG !== 'undefined' ? AIRTABLE_CONFIG.API_KEY : '';
         const AIRTABLE_BASE_ID = typeof AIRTABLE_CONFIG !== 'undefined' ? AIRTABLE_CONFIG.BASE_ID : 'appZcPs57spwdoKQH';
         const AIRTABLE_TABLE_ID = typeof AIRTABLE_CONFIG !== 'undefined' ? AIRTABLE_CONFIG.TABLE_ID : 'tblxMzwX1wWJKIOhY';
-        const ATTENDANCE_TABLE_ID = typeof AIRTABLE_CONFIG !== 'undefined' ? AIRTABLE_CONFIG.ATTENDANCE_TABLE_ID : '';
+        const ATTENDANCE_TABLE_ID = typeof AIRTABLE_CONFIG !== 'undefined' ? AIRTABLE_CONFIG.ATTENDANCE_TABLE_ID : 'tblUnxGfJXHp2qSHp';
 
         // Debug: Log configuration on load
         console.log('Configuration loaded:', {
@@ -645,7 +694,8 @@
         let participantsData = [];     // Filtered data
         let currentParticipant = null;
         let selectedReward = '';
-        let idCardImage = null;
+        let idCardImageFront = null;
+        let idCardImageBack = null;
         let bankbookImage = null;
         let currentUser = null;
         let airtableRecords = {};
@@ -698,10 +748,11 @@
                 if (!currentUser) return;
 
                 // Display staff info (sanitized)
-                document.getElementById('staffInfo').textContent = `스태프: ${SecurityUtils.sanitizeHTML(currentUser.fullName)}`;
+                document.getElementById('staffInfo').textContent = `Staff: ${SecurityUtils.sanitizeHTML(currentUser.fullName)}`;
 
-                // Set today's date as default
-                const today = new Date().toISOString().split('T')[0];
+                // Set today's date as default (Seoul timezone)
+                const koreaTime = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Seoul"}));
+                const today = koreaTime.toISOString().split('T')[0];
                 const dateFilter = document.getElementById('dateFilter');
                 if (dateFilter) {
                     dateFilter.value = today;
@@ -865,7 +916,9 @@
                             participant.checkinTime = fields.checkinTime;
                             participant.rewardType = fields.rewardType;
                             participant.checkinStaff = fields.staffName;
-                            addDebugLog(`참가자 ${participantID} 출석 상태 업데이트: ${fields.attendanceStatus}`);
+                            participant.aID = fields['A-ID'] || '';  // Load A-ID field
+                            participant.attendanceRecordId = record.id;  // Store Airtable record ID for updates
+                            addDebugLog(`참가자 ${participantID} 출석 상태 업데이트: ${fields.attendanceStatus} (Record ID: ${record.id}, A-ID: ${fields['A-ID'] || 'none'})`);
                         }
                     }
                 });
@@ -977,25 +1030,31 @@
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
             const listContainer = document.getElementById('participantList');
 
-            let filtered = participantsData.filter(p => {
+            // If searching, use all data instead of filtered data
+            let dataToFilter = searchTerm ? allParticipantsData : participantsData;
+
+            let filtered = dataToFilter.filter(p => {
                 if (timeFilter !== 'all' && p.setTime !== timeFilter) return false;
                 if (searchTerm) {
                     const matchName = p.name && p.name.toLowerCase().includes(searchTerm);
                     const matchID = p.ID && p.ID.toString().includes(searchTerm);
                     const matchPID = p.ID && (`P-${p.ID}`).toLowerCase().includes(searchTerm.toLowerCase());
-                    if (!matchName && !matchID && !matchPID) return false;
+                    const matchAID = p.aID && p.aID.toLowerCase().includes(searchTerm);
+                    if (!matchName && !matchID && !matchPID && !matchAID) return false;
                 }
                 return true;
             });
 
             // No need to filter by today since loadParticipants already filters by selected date
 
-            // Display date info if date is selected
+            // Display date info if date is selected (but not when searching)
             const selectedDate = document.getElementById('dateFilter').value;
             let dateHeader = '';
-            if (selectedDate) {
+            if (selectedDate && !searchTerm) {
                 const date = new Date(selectedDate);
-                const dateStr = `${date.getMonth() + 1}월 ${date.getDate()}일`;
+                const monthNames = ["January", "February", "March", "April", "May", "June",
+                    "July", "August", "September", "October", "November", "December"];
+                const dateStr = `${monthNames[date.getMonth()]} ${date.getDate()}`;
                 const filterDate = `${date.getMonth() + 1}/${date.getDate()}`;
 
                 // Log filtering info
@@ -1005,7 +1064,13 @@
 
                 dateHeader = `
                     <div style="padding: 10px 15px; background: var(--primary); color: white; margin: -20px -20px 15px; text-align: center; font-weight: bold; border-radius: 8px 8px 0 0;">
-                        📅 ${dateStr} 예약자 (${filtered.length}명)
+                        📅 ${dateStr} Reservations (${filtered.length} people)
+                    </div>
+                `;
+            } else if (searchTerm) {
+                dateHeader = `
+                    <div style="padding: 10px 15px; background: #059669; color: white; margin: -20px -20px 15px; text-align: center; font-weight: bold; border-radius: 8px 8px 0 0;">
+                        🔍 Search Results from All Data (${filtered.length} found)
                     </div>
                 `;
             }
@@ -1013,19 +1078,21 @@
             if (filtered.length === 0) {
                 if (selectedDate) {
                     const date = new Date(selectedDate);
-                    const dateStr = `${date.getMonth() + 1}월 ${date.getDate()}일`;
+                    const monthNames = ["January", "February", "March", "April", "May", "June",
+                        "July", "August", "September", "October", "November", "December"];
+                    const dateStr = `${monthNames[date.getMonth()]} ${date.getDate()}`;
                     listContainer.innerHTML = `
                         <div style="text-align: center; padding: 40px; color: #999;">
                             <div style="font-size: 48px; margin-bottom: 10px;">📅</div>
-                            <div>${dateStr}에 예약된 참가자가 없습니다</div>
-                            <div style="font-size: 12px; margin-top: 10px; color: #667eea;">💡 전체보기를 눌러 다른 날짜를 확인하세요</div>
+                            <div>No participants reserved for ${dateStr}</div>
+                            <div style="font-size: 12px; margin-top: 10px; color: #667eea;">💡 Click 'Show All' to check other dates</div>
                         </div>
                     `;
                 } else {
                     listContainer.innerHTML = `
                         <div style="text-align: center; padding: 40px; color: #999;">
                             <div style="font-size: 48px; margin-bottom: 10px;">🔍</div>
-                            <div>검색 결과가 없습니다</div>
+                            <div>No search results</div>
                         </div>
                     `;
                 }
@@ -1035,7 +1102,14 @@
             const html = dateHeader + filtered.map(p => `
                 <div class="participant-card" onclick="openCheckinModal(${p.ID})">
                     <div class="participant-header">
-                        <div class="participant-name">${p.name || '이름 없음'}</div>
+                        <div>
+                            <div class="participant-name">${p.name || 'No name'}</div>
+                            ${p.status !== 'Confirmed' ? `
+                                <span style="display: inline-block; padding: 2px 6px; background: #fef3c7; color: #92400e; font-size: 10px; border-radius: 4px; margin-left: 8px;">
+                                    ${p.status || 'Unknown'}
+                                </span>
+                            ` : ''}
+                        </div>
                         <div class="participant-status status-${getStatusClass(p.attendanceStatus)}">
                             ${getStatusText(p.attendanceStatus)}
                         </div>
@@ -1043,13 +1117,27 @@
                     <div class="participant-info">
                         <div>📅 ${p.setDate || ''} ${p.setTime || ''}</div>
                         <div>🎨 ${p.skinColor || ''}</div>
-                        <div>🆔 P-${p.ID || 'ID 없음'}</div>
-                        <div>📞 ${p.phone || '연락처 없음'}</div>
+                        <div>🆔 P-${p.ID || 'No ID'}</div>
+                        ${p.aID ? `<div style="font-weight: 600; color: var(--primary);">🏷️ ${p.aID}</div>` : '<div style="color: var(--text-light);">🏷️ No A-ID</div>'}
+                        <div>📞 ${p.phone || 'No phone'}</div>
                     </div>
                     ${p.attendanceStatus !== 'Attended' ?
-                        '<button class="checkin-btn">체크인</button>' :
-                        `<div style="text-align: center; color: var(--success); font-size: 14px;">
-                            ✓ ${p.checkinTime ? new Date(p.checkinTime).toLocaleTimeString('ko-KR', {hour: '2-digit', minute: '2-digit'}) : ''} 체크인 완료
+                        '<button class="checkin-btn">Check-in</button>' :
+                        `<div style="text-align: center;">
+                            <div style="color: var(--success); font-size: 14px; margin-bottom: 8px;">
+                                ✓ ${p.checkinTime ? new Date(p.checkinTime).toLocaleTimeString('ko-KR', {hour: '2-digit', minute: '2-digit'}) : ''} Checked in
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="checkin-btn" onclick="editAttendance(${p.ID})" style="background: #718096; font-size: 12px; padding: 8px; width: 100%;">
+                                    Edit
+                                </button>
+                                <!-- 이미지 보기 버튼 임시 숨김 (보안 문제) -->
+                                <!--
+                                <button class="checkin-btn" onclick="viewImages(${p.ID})" style="background: #4a5568; font-size: 12px; padding: 8px; flex: 1;">
+                                    View Images
+                                </button>
+                                -->
+                            </div>
                         </div>`
                     }
                 </div>
@@ -1067,17 +1155,18 @@
 
         // Get status text
         function getStatusText(status) {
-            if (status === 'Attended') return '출석';
-            if (status === 'No-show') return '노쇼';
-            return '대기';
+            if (status === 'Attended') return 'Attended';
+            if (status === 'No-show') return 'No-show';
+            return 'Pending';
         }
 
         // Update statistics
         function updateStats() {
-            // Use currently filtered participants data
-            const total = participantsData.length;
-            const attended = participantsData.filter(p => p.attendanceStatus === 'Attended').length;
-            const pending = participantsData.filter(p => !p.attendanceStatus || p.attendanceStatus === 'Pending' || p.attendanceStatus === 'Confirmed').length;
+            // Only count Confirmed status participants for statistics
+            const confirmedParticipants = participantsData.filter(p => p.status === 'Confirmed');
+            const total = confirmedParticipants.length;
+            const attended = confirmedParticipants.filter(p => p.attendanceStatus === 'Attended').length;
+            const pending = confirmedParticipants.filter(p => !p.attendanceStatus || p.attendanceStatus === 'Pending').length;
 
             addDebugLog('통계 업데이트:', {
                 total: total,
@@ -1098,7 +1187,7 @@
 
             // Skip if already attended
             if (currentParticipant.attendanceStatus === 'Attended') {
-                showNotification('이미 체크인 완료된 참가자입니다', 'error');
+                showNotification('This participant has already been checked in', 'error');
                 return;
             }
 
@@ -1114,13 +1203,19 @@
 
             // Reset form
             selectedReward = '';
-            idCardImage = null;
+            idCardImageFront = null;
+            idCardImageBack = null;
             bankbookImage = null;
+
+            // Reset bankbook checkbox to default (checked)
+            document.getElementById('bankbookLaterCheck').checked = true;
+            document.getElementById('bankbookCameraContainer').style.display = 'none';
+            document.getElementById('aidInput').value = '';  // Reset A-ID field
             document.querySelectorAll('.reward-option').forEach(el => el.classList.remove('selected'));
-            // 이미지 프리뷰 UI 제거됨 - 관련 코드 제거
-            // document.getElementById('idPreview').innerHTML = '<span style="color: var(--text-light);">📷 사진 없음</span>';
-            // document.getElementById('bankbookPreview').innerHTML = '<span style="color: var(--text-light);">📷 사진 없음</span>';
-            // document.getElementById('bankbookGroup').style.display = 'none';
+            document.getElementById('idFrontPreview').innerHTML = '<span style="color: var(--text-light);">📷 No photo</span>';
+            document.getElementById('idBackPreview').innerHTML = '<span style="color: var(--text-light);">📷 No photo</span>';
+            document.getElementById('bankbookPreview').innerHTML = '<span style="color: var(--text-light);">📷 사진 없음</span>';
+            document.getElementById('bankbookGroup').style.display = 'none';
             document.getElementById('submitBtn').disabled = true;
 
             // Show modal
@@ -1141,8 +1236,8 @@
             });
             document.querySelector(`[data-reward="${type}"]`).classList.add('selected');
 
-            // bankbookGroup UI는 이미 제거됨 - 이 라인 제거
-            // document.getElementById('bankbookGroup').style.display = type === 'cash' ? 'block' : 'none';
+            // Show/hide bankbook section
+            document.getElementById('bankbookGroup').style.display = type === 'cash' ? 'block' : 'none';
 
             checkFormComplete();
         }
@@ -1150,177 +1245,21 @@
         // Check if form is complete
         function checkFormComplete() {
             const hasReward = selectedReward !== '';
-            // 이미지 업로드 임시 비활성화 - 리워드 선택만 확인
-            // const hasIdCard = idCardImage !== null;
-            // const hasBankbook = selectedReward === 'cash' ? bankbookImage !== null : true;
-            // document.getElementById('submitBtn').disabled = !(hasReward && hasIdCard && hasBankbook);
+            const hasIdCardFront = idCardImageFront !== null;
+            const hasIdCardBack = idCardImageBack !== null;
 
-            document.getElementById('submitBtn').disabled = !hasReward;
+            // Check bankbook requirement
+            let hasBankbook = true;
+            if (selectedReward === 'cash') {
+                const isCheckLater = document.getElementById('bankbookLaterCheck').checked;
+                hasBankbook = isCheckLater || (bankbookImage !== null);
+            }
+
+            document.getElementById('submitBtn').disabled = !(hasReward && hasIdCardFront && hasIdCardBack && hasBankbook);
         }
 
-        // View stored images from Airtable
-        // 보안 문제로 임시 비활성화 - 나중에 재사용 가능
-        /*
-        window.viewImages = async function(participantId) {
-            console.log('viewImages called for participant:', participantId);
-            addDebugLog('viewImages 호출됨 - Airtable에서 이미지 조회:', { participantId });
-
-            try {
-                // Show loading message
-                showNotification('이미지를 불러오는 중...', 'info');
-
-                // Fetch from AttendanceImages table with filter
-                const filterFormula = `{participantID}=${participantId}`;
-                const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${ATTENDANCE_TABLE_ID}?filterByFormula=${encodeURIComponent(filterFormula)}`;
-
-                console.log('Fetching images from Airtable:', url);
-                addDebugLog('Airtable 이미지 조회 URL:', url);
-
-                const response = await fetch(url, {
-                    headers: {
-                        'Authorization': `Bearer ${AIRTABLE_API_KEY}`
-                    }
-                });
-
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch images: ${response.status}`);
-                }
-
-                const data = await response.json();
-                console.log('Airtable response:', data);
-
-                if (!data.records || data.records.length === 0) {
-                    showNotification('저장된 이미지가 없습니다', 'info');
-                    return;
-                }
-
-                // Get the latest record
-                const latestRecord = data.records[data.records.length - 1];
-                const fields = latestRecord.fields;
-
-                // Create modal to display images
-                const modal = document.createElement('div');
-                modal.className = 'modal active';
-                modal.style.zIndex = '2000';
-
-                let imagesHtml = '';
-
-                // Check for Base64 images first
-                if (fields.idCardImageFrontBase64) {
-                    imagesHtml += `
-                        <div style="margin-bottom: 15px;">
-                            <h4>신분증 (앞면)</h4>
-                            <img src="${fields.idCardImageFrontBase64}" style="width: 100%; border-radius: 8px;">
-                        </div>
-                    `;
-                }
-
-                if (fields.idCardImageBackBase64) {
-                    imagesHtml += `
-                        <div style="margin-bottom: 15px;">
-                            <h4>신분증 (뒷면)</h4>
-                            <img src="${fields.idCardImageBackBase64}" style="width: 100%; border-radius: 8px;">
-                        </div>
-                    `;
-                }
-
-                if (fields.bankbookImageBase64) {
-                    imagesHtml += `
-                        <div style="margin-bottom: 15px;">
-                            <h4>통장사본</h4>
-                            <img src="${fields.bankbookImageBase64}" style="width: 100%; border-radius: 8px;">
-                        </div>
-                    `;
-                }
-
-                // If no images found
-                if (!imagesHtml) {
-                    imagesHtml = `
-                        <div style="text-align: center; padding: 40px;">
-                            <div style="font-size: 48px; margin-bottom: 20px;">📷</div>
-                            <p>저장된 이미지가 없습니다</p>
-                        </div>
-                    `;
-                }
-
-                modal.innerHTML = `
-                    <div class="modal-content" style="max-width: 700px;">
-                        <div class="modal-header">
-                            <h3 class="modal-title">저장된 이미지</h3>
-                            <button class="modal-close" onclick="this.closest('.modal').remove()">×</button>
-                        </div>
-                        <div class="modal-body" style="max-height: 80vh; overflow-y: auto;">
-                            <div style="margin-bottom: 15px; padding: 12px; background: #f3f4f6; border-radius: 8px;">
-                                <div><strong>참가자:</strong> ${fields.participantName || 'Unknown'}</div>
-                                <div><strong>체크인 시간:</strong> ${fields.checkinTime || 'N/A'}</div>
-                                <div><strong>담당자:</strong> ${fields.staffName || 'N/A'}</div>
-                            </div>
-                            ${imagesHtml}
-                            <button onclick="this.closest('.modal').remove()" style="width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 20px;">
-                                닫기
-                            </button>
-                        </div>
-                    </div>
-                `;
-
-                document.body.appendChild(modal);
-
-            } catch (error) {
-                console.error('Error viewing images:', error);
-                addDebugLog('이미지 조회 오류:', error.message);
-                showNotification('이미지 로드 실패', 'error');
-            }
-        };
-        */
-
-        // Capture and store image with Base64
-        // 보안 문제로 임시 비활성화 - 나중에 재사용 가능
-        /*
-        window.captureImage = async function(type) {
-            console.log('captureImage called for type:', type);
-
-            // Create file input
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = 'image/*';
-            input.capture = 'camera';
-
-            return new Promise((resolve) => {
-                input.onchange = async (e) => {
-                    const file = e.target.files[0];
-                    if (!file) {
-                        resolve(null);
-                        return;
-                    }
-
-                    try {
-                        // Compress image
-                        const compressedBlob = await compressImage(file, 400, 0.3);
-
-                        // Convert to Base64
-                        const reader = new FileReader();
-                        reader.onload = () => {
-                            const base64String = reader.result;
-                            console.log(`${type} image captured, size:`, (base64String.length / 1024).toFixed(2), 'KB');
-                            resolve(base64String);
-                        };
-                        reader.readAsDataURL(compressedBlob);
-
-                    } catch (error) {
-                        console.error('Error capturing image:', error);
-                        resolve(null);
-                    }
-                };
-
-                input.click();
-            });
-        };
-        */
-
-        // Image compression
-        // 보안 문제로 임시 비활성화 - 나중에 재사용 가능
-        /*
-        function compressImage(file, maxWidth = 800, quality = 0.7) {
+        // Image compression - 더 강한 압축 적용
+        function compressImage(file, maxWidth = 400, quality = 0.3) {
             return new Promise((resolve) => {
                 const reader = new FileReader();
                 reader.onload = (e) => {
@@ -1350,7 +1289,6 @@
                 reader.readAsDataURL(file);
             });
         }
-        */
 
         // Submit check-in
         async function submitCheckin() {
@@ -1383,9 +1321,9 @@
                 // Map reward type to Airtable values
                 let rewardTypeValue = 'None';
                 if (selectedReward === 'mobile') {
-                    rewardTypeValue = 'MobileVoucher';
+                    rewardTypeValue = 'Gift-Card';
                 } else if (selectedReward === 'cash') {
-                    rewardTypeValue = 'Cash';
+                    rewardTypeValue = 'Transfer';
                 }
 
                 // Format datetime for Airtable
@@ -1409,35 +1347,249 @@
                 // Airtable Date field requires YYYY-MM-DD format (date only, no time)
                 const todayDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-                // Prepare data without problematic checkinTime field first
+                // Get A-ID value from input
+                const aidValue = document.getElementById('aidInput').value.trim();
+
+                // Prepare data matching exact Airtable schema
+                // checkinTime is Date type in Airtable (date only, no time)
+                const checkinDateOnly = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+                // Get bankbook check status
+                const bankbookCheck = selectedReward === 'cash' ?
+                    document.getElementById('bankbookLaterCheck').checked : false;
+
                 const attendanceData = {
                     participantID: parseInt(currentParticipant.ID) || 0,
                     participantName: currentParticipant.name || '',
-                    // checkinTime field removed - causing validation errors
+                    checkinTime: checkinDateOnly,  // Date field - YYYY-MM-DD format
                     attendanceStatus: 'Attended',
                     rewardType: rewardTypeValue,
                     staffName: currentUser.fullName || '',
                     staffID: currentUser.username || '',
                     checkDate: formattedCheckDate || '',  // Date when appointment was scheduled
                     checkTime: currentParticipant.setTime || '',  // Time slot (Single line text)
-                    actualCheckinTime: now.toLocaleTimeString('ko-KR', {hour: '2-digit', minute: '2-digit'}),  // Actual check-in time as text
-                    notes: `체크인 완료 - ${now.toLocaleString('ko-KR')}`
+                    'A-ID': aidValue || '',  // New field for on-site ID
+                    bankbookCheck: bankbookCheck,  // New field for bankbook check later status
+                    notes: `Check-in completed - ${now.toLocaleString('en-US')}${aidValue ? ` | A-ID: ${aidValue}` : ''}${bankbookCheck ? ' | Bankbook: Check Later' : ''}`
                 };
 
                 // Detailed logging for debugging
                 console.log('=== ATTENDANCE DATA DEBUG ===');
                 console.log('participantID:', attendanceData.participantID, typeof attendanceData.participantID);
                 console.log('participantName:', attendanceData.participantName, typeof attendanceData.participantName);
+                console.log('checkinTime:', attendanceData.checkinTime, typeof attendanceData.checkinTime);
                 console.log('attendanceStatus:', attendanceData.attendanceStatus, typeof attendanceData.attendanceStatus);
                 console.log('rewardType:', attendanceData.rewardType, typeof attendanceData.rewardType);
                 console.log('staffName:', attendanceData.staffName, typeof attendanceData.staffName);
                 console.log('staffID:', attendanceData.staffID, typeof attendanceData.staffID);
                 console.log('checkDate:', attendanceData.checkDate, typeof attendanceData.checkDate);
                 console.log('checkTime:', attendanceData.checkTime, typeof attendanceData.checkTime);
-                console.log('actualCheckinTime:', attendanceData.actualCheckinTime, typeof attendanceData.actualCheckinTime);
                 console.log('notes:', attendanceData.notes, typeof attendanceData.notes);
                 console.log('=== END DEBUG ===');
 
+                // Handle image data
+                if (idCardImageFront || idCardImageBack || bankbookImage) {
+                    let imageNote = '이미지 첨부: ';
+
+                    // Convert images to base64 for temporary storage in notes
+                    const imageDataPromises = [];
+
+                    if (idCardImageFront) {
+                        imageNote += '신분증 앞면 ';
+                        imageDataPromises.push(
+                            new Promise((resolve) => {
+                                const reader = new FileReader();
+                                reader.onloadend = () => {
+                                    // Store base64 data in notes temporarily
+                                    // Note: This is a temporary solution - consider external storage for production
+                                    resolve(`[신분증 앞면 이미지 크기: ${(reader.result.length / 1024).toFixed(2)}KB]`);
+                                };
+                                reader.readAsDataURL(idCardImageFront);
+                            })
+                        );
+                    }
+
+                    if (idCardImageBack) {
+                        imageNote += '신분증 뒷면 ';
+                        imageDataPromises.push(
+                            new Promise((resolve) => {
+                                const reader = new FileReader();
+                                reader.onloadend = () => {
+                                    // Store base64 data in notes temporarily
+                                    // Note: This is a temporary solution - consider external storage for production
+                                    resolve(`[신분증 뒷면 이미지 크기: ${(reader.result.length / 1024).toFixed(2)}KB]`);
+                                };
+                                reader.readAsDataURL(idCardImageBack);
+                            })
+                        );
+                    }
+
+                    if (bankbookImage) {
+                        imageNote += '통장사본';
+                        imageDataPromises.push(
+                            new Promise((resolve) => {
+                                const reader = new FileReader();
+                                reader.onloadend = () => {
+                                    resolve(`[통장사본 이미지 크기: ${(reader.result.length / 1024).toFixed(2)}KB]`);
+                                };
+                                reader.readAsDataURL(bankbookImage);
+                            })
+                        );
+                    }
+
+                    const imageSizes = await Promise.all(imageDataPromises);
+                    attendanceData.notes += `\n${imageNote}\n${imageSizes.join('\n')}`;
+
+                    // Store images in localStorage temporarily (for demo/testing)
+                    // In production, use proper image hosting service
+                    try {
+                        const imageKey = `images_${currentParticipant.ID}_${Date.now()}`;
+                        console.log('Attempting to save images with key:', imageKey);
+                        addDebugLog('이미지 저장 시도:', { key: imageKey, participantID: currentParticipant.ID });
+
+                        // Convert images to base64 with size check
+                        const frontBase64 = idCardImageFront ? await blobToBase64(idCardImageFront) : null;
+                        const backBase64 = idCardImageBack ? await blobToBase64(idCardImageBack) : null;
+                        const bankbookBase64 = bankbookImage ? await blobToBase64(bankbookImage) : null;
+
+                        // Check sizes
+                        const totalSize = (frontBase64?.length || 0) + (backBase64?.length || 0) + (bankbookBase64?.length || 0);
+                        console.log('Total image data size:', (totalSize / 1024 / 1024).toFixed(2), 'MB');
+                        addDebugLog('이미지 데이터 크기:', {
+                            totalMB: (totalSize / 1024 / 1024).toFixed(2),
+                            frontKB: frontBase64 ? (frontBase64.length / 1024).toFixed(2) : 0,
+                            backKB: backBase64 ? (backBase64.length / 1024).toFixed(2) : 0,
+                            bankbookKB: bankbookBase64 ? (bankbookBase64.length / 1024).toFixed(2) : 0
+                        });
+
+                        const imageData = {
+                            participantID: currentParticipant.ID,
+                            timestamp: new Date().toISOString(),
+                            idCardFront: frontBase64,
+                            idCardBack: backBase64,
+                            bankbook: bankbookBase64
+                        };
+
+                        // Try to save to localStorage
+                        localStorage.setItem(imageKey, JSON.stringify(imageData));
+
+                        // Verify save was successful
+                        const savedData = localStorage.getItem(imageKey);
+                        if (savedData) {
+                            console.log('Images successfully saved to localStorage');
+                            addDebugLog('이미지 저장 성공 확인됨:', imageKey);
+
+                            // List all image keys for this participant
+                            const allKeys = [];
+                            for (let i = 0; i < localStorage.length; i++) {
+                                const key = localStorage.key(i);
+                                if (key && key.startsWith(`images_${currentParticipant.ID}_`)) {
+                                    allKeys.push(key);
+                                }
+                            }
+                            console.log('All image keys for participant:', allKeys);
+                            addDebugLog('참가자의 모든 이미지 키:', allKeys);
+                        } else {
+                            console.error('Failed to verify image save');
+                            addDebugLog('이미지 저장 확인 실패');
+                        }
+
+                        attendanceData.notes += `\n이미지 저장 키: ${imageKey}`;
+
+                        // Add image URLs to attendanceData for Airtable
+                        // Note: Airtable Attachment fields require public URLs
+                        // For now, we'll store base64 as text (not ideal for production)
+                        // In production, upload to cloud storage first and use URLs
+
+                        // Store base64 images in Long Text fields
+                        // This works if your Airtable fields are set as Long Text type
+                        // If they are Attachment type, you need to change them to Long Text
+
+                        if (frontBase64) {
+                            // Store as base64 string (if field is Long Text type)
+                            attendanceData.idCardImageFrontBase64 = frontBase64;
+                            console.log('Front image stored as base64, size:', (frontBase64.length / 1024).toFixed(2), 'KB');
+                            addDebugLog('신분증 앞면 Base64 저장', {
+                                size: `${(frontBase64.length / 1024).toFixed(2)} KB`
+                            });
+                        }
+
+                        if (backBase64) {
+                            // Store as base64 string (if field is Long Text type)
+                            attendanceData.idCardImageBackBase64 = backBase64;
+                            console.log('Back image stored as base64, size:', (backBase64.length / 1024).toFixed(2), 'KB');
+                            addDebugLog('신분증 뒷면 Base64 저장', {
+                                size: `${(backBase64.length / 1024).toFixed(2)} KB`
+                            });
+                        }
+
+                        if (bankbookBase64) {
+                            // Store as base64 string (if field is Long Text type)
+                            attendanceData.bankbookImageBase64 = bankbookBase64;
+                            console.log('Bankbook image stored as base64, size:', (bankbookBase64.length / 1024).toFixed(2), 'KB');
+                            addDebugLog('통장사본 Base64 저장', {
+                                size: `${(bankbookBase64.length / 1024).toFixed(2)} KB`
+                            });
+                        }
+
+                        // Also update notes for tracking
+                        if (frontBase64 || backBase64 || bankbookBase64) {
+                            attendanceData.notes += '\n이미지 저장됨 (Base64 형식)';
+                            addDebugLog('이미지 Airtable 저장 준비 완료', {
+                                method: 'Long Text fields with Base64',
+                                totalImages: [frontBase64, backBase64, bankbookBase64].filter(Boolean).length
+                            });
+                        }
+                    } catch (e) {
+                        console.error('Image save error:', e);
+                        addDebugLog('이미지 저장 실패:', e.message);
+
+                        // Try to save without images if localStorage is full
+                        if (e.name === 'QuotaExceededError') {
+                            showNotification('저장 공간이 부족합니다. 이미지를 저장할 수 없습니다.', 'error');
+                            addDebugLog('localStorage 용량 초과');
+                        }
+                    }
+                }
+
+                // Helper function to convert blob to base64
+                async function blobToBase64(blob) {
+                    return new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(reader.result);
+                        reader.readAsDataURL(blob);
+                    });
+                }
+
+                // Helper function to upload image to Cloudinary (free tier available)
+                async function uploadToCloudinary(base64Image, publicId) {
+                    try {
+                        // Cloudinary free unsigned upload
+                        // You need to create a free account at cloudinary.com
+                        // and set up an unsigned upload preset
+                        const CLOUDINARY_URL = 'https://api.cloudinary.com/v1_1/demo/image/upload';
+                        const UPLOAD_PRESET = 'docs_upload_example_us_preset'; // Demo preset
+
+                        const formData = new FormData();
+                        formData.append('file', base64Image);
+                        formData.append('upload_preset', UPLOAD_PRESET);
+                        formData.append('public_id', publicId);
+
+                        const response = await fetch(CLOUDINARY_URL, {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            return data.secure_url;
+                        }
+                        return null;
+                    } catch (error) {
+                        console.error('Cloudinary upload failed:', error);
+                        return null;
+                    }
+                }
 
                 // Debug: Log attempt (DO NOT use recordId for anything)
                 addDebugLog('체크인 시도 - AttendanceImages 테이블에만 저장:', {
@@ -1469,58 +1621,83 @@
                 console.log('  - ISO no Z:', now.toISOString().substring(0, 19));
                 console.log('  - Local string:', now.toLocaleString('ko-KR'));
 
-                // IMPORTANT: Only POST to AttendanceImages, never PATCH to Participants
-                const apiUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${ATTENDANCE_TABLE_ID}`;
-                const requestBody = {
-                    records: [{
-                        fields: attendanceData
-                    }]
-                };
-
-                addDebugLog('API 요청 정보:', {
-                    url: apiUrl,
-                    method: 'POST',
-                    table: ATTENDANCE_TABLE_ID,
-                    fields: Object.keys(attendanceData),
-                    data: attendanceData
-                });
-
+                // Check if record exists (UPDATE) or new (CREATE)
                 let response;
-                try {
-                    response = await fetch(apiUrl, {
+                const isUpdate = currentParticipant.attendanceRecordId;
+
+                if (isUpdate) {
+                    // UPDATE existing record
+                    const updateUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${ATTENDANCE_TABLE_ID}/${currentParticipant.attendanceRecordId}`;
+
+                    addDebugLog('기존 레코드 업데이트:', {
+                        recordId: currentParticipant.attendanceRecordId,
+                        method: 'PATCH',
+                        data: attendanceData
+                    });
+
+                    response = await fetch(updateUrl, {
+                        method: 'PATCH',
+                        headers: {
+                            'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            fields: attendanceData
+                        })
+                    });
+                } else {
+                    // CREATE new record
+                    const createUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${ATTENDANCE_TABLE_ID}`;
+
+                    addDebugLog('새 레코드 생성:', {
+                        method: 'POST',
+                        data: attendanceData
+                    });
+
+                    response = await fetch(createUrl, {
                         method: 'POST',
                         headers: {
                             'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
                             'Content-Type': 'application/json'
                         },
-                        body: JSON.stringify(requestBody)
+                        body: JSON.stringify({
+                            records: [{
+                                fields: attendanceData
+                            }]
+                        })
                     });
 
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        console.error('Airtable API Error:', errorData);
-                        addDebugLog('API 오류 상세:', errorData);
+                }
 
-                        // Log specific field error details
-                        if (errorData.error && errorData.error.type === 'INVALID_VALUE_FOR_COLUMN') {
-                            console.error('Field validation error - full data:', attendanceData);
-                            console.error('Error details:', errorData);
-                            addDebugLog('필드 검증 실패 - 전체 데이터:', attendanceData);
-                            addDebugLog('에러 상세:', errorData);
-                        }
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error('Airtable API Error:', errorData);
+                    addDebugLog('API 오류 상세:', errorData);
 
-                        if (errorData.error && errorData.error.message) {
-                            throw new Error(`Airtable: ${errorData.error.type} - ${errorData.error.message}`);
-                        } else {
-                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                        }
+                    // Log specific field error details
+                    if (errorData.error && errorData.error.type === 'INVALID_VALUE_FOR_COLUMN') {
+                        console.error('Field validation error - full data:', attendanceData);
+                        console.error('Error details:', errorData);
+                        addDebugLog('필드 검증 실패 - 전체 데이터:', attendanceData);
+                        addDebugLog('에러 상세:', errorData);
                     }
 
-                    const result = await response.json();
+                    if (errorData.error && errorData.error.message) {
+                        throw new Error(`Airtable: ${errorData.error.type} - ${errorData.error.message}`);
+                    } else {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                }
+
+                const result = await response.json();
+
+                if (isUpdate) {
+                    addDebugLog('AttendanceImages 레코드 업데이트 성공:', result);
+                } else {
+                    // Store the new record ID for future updates
+                    currentParticipant.attendanceRecordId = result.records ? result.records[0].id : result.id;
                     addDebugLog('AttendanceImages 레코드 생성 성공:', result);
-                } catch (error) {
-                    console.error('Fetch error:', error);
-                    throw error;
+                    addDebugLog('새 레코드 ID 저장:', currentParticipant.attendanceRecordId);
                 }
 
                 // Update local participant data
@@ -1528,7 +1705,8 @@
                     attendanceStatus: 'Attended',
                     checkinTime: now.toISOString(),
                     rewardType: rewardTypeValue,
-                    checkinStaff: currentUser.fullName
+                    checkinStaff: currentUser.fullName,
+                    aID: aidValue || ''
                 };
 
                 Object.assign(currentParticipant, updateData);
@@ -1539,7 +1717,7 @@
                     Object.assign(allParticipantsData[index], updateData);
                 }
 
-                ErrorHandler.showNotification('체크인 완료!', 'success');
+                ErrorHandler.showNotification('Check-in completed!', 'success');
                 closeCheckinModal();
                 filterAndDisplayParticipants();
                 updateStats();
@@ -1566,7 +1744,8 @@
                 // Ensure today's date is set if the field is empty when focused
                 dateFilter.addEventListener('focus', () => {
                     if (!dateFilter.value) {
-                        const today = new Date().toISOString().split('T')[0];
+                        const koreaTime = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Seoul"}));
+                        const today = koreaTime.toISOString().split('T')[0];
                         dateFilter.value = today;
                         addDebugLog('📅 빈 날짜 필드에 오늘 날짜 설정:', today);
                     }
@@ -1585,31 +1764,98 @@
             // Search
             document.getElementById('searchInput').addEventListener('input', displayParticipants);
 
-            // 이미지 입력 이벤트 리스너 (UI는 숨겨져 있지만 기능은 유지)
-            // 이 리스너는 submitCheckin 함수에서 동적으로 처리되므로 여기서는 주석 유지
-            /*
-            // ID card input
-            document.getElementById('idCardInput').addEventListener('change', async (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    idCardImage = await compressImage(file);
-                    const url = URL.createObjectURL(idCardImage);
-                    document.getElementById('idPreview').innerHTML = `<img src="${url}" alt="ID Card">`;
-                    checkFormComplete();
+            // ID card front input
+            const idFrontInput = document.getElementById('idCardFrontInput');
+            if (!idFrontInput) {
+                console.error('ID Card Front Input element not found!');
+                addDebugLog('ERROR: ID Card Front Input element not found');
+            } else {
+                console.log('ID Card Front Input found, adding listener');
+                addDebugLog('ID Card Front Input found successfully');
+                idFrontInput.addEventListener('change', async (e) => {
+                    console.log('ID Card Front file selected:', e.target.files[0]);
+                    addDebugLog('ID Card Front file selected', {
+                        fileName: e.target.files[0]?.name,
+                        fileSize: e.target.files[0]?.size
+                    });
+                    const file = e.target.files[0];
+                    if (file) {
+                        try {
+                            idCardImageFront = await compressImage(file);
+                            const url = URL.createObjectURL(idCardImageFront);
+                            document.getElementById('idFrontPreview').innerHTML = `<img src="${url}" alt="ID Card Front">`;
+                            console.log('ID Card Front image processed successfully');
+                            addDebugLog('ID Card Front image processed successfully');
+                            checkFormComplete();
+                        } catch (error) {
+                            console.error('Error processing ID Card Front:', error);
+                            addDebugLog('Error processing ID Card Front:', error.message);
+                            showNotification('Failed to process image', 'error');
+                        }
+                    }
+                });
+            }
+
+            // ID card back input
+            const idBackInput = document.getElementById('idCardBackInput');
+            if (!idBackInput) {
+                console.error('ID Card Back Input element not found!');
+            } else {
+                console.log('ID Card Back Input found, adding listener');
+                idBackInput.addEventListener('change', async (e) => {
+                    console.log('ID Card Back file selected:', e.target.files[0]);
+                    const file = e.target.files[0];
+                    if (file) {
+                        try {
+                            idCardImageBack = await compressImage(file);
+                            const url = URL.createObjectURL(idCardImageBack);
+                            document.getElementById('idBackPreview').innerHTML = `<img src="${url}" alt="ID Card Back">`;
+                            console.log('ID Card Back image processed successfully');
+                            checkFormComplete();
+                        } catch (error) {
+                            console.error('Error processing ID Card Back:', error);
+                            showNotification('Failed to process image', 'error');
+                        }
+                    }
+                });
+            }
+
+            // Bankbook later checkbox
+            document.getElementById('bankbookLaterCheck').addEventListener('change', (e) => {
+                const isChecked = e.target.checked;
+                document.getElementById('bankbookCameraContainer').style.display = isChecked ? 'none' : 'block';
+
+                if (isChecked) {
+                    // Clear bankbook image if "Check Later" is selected
+                    bankbookImage = null;
+                    document.getElementById('bankbookPreview').innerHTML = '<span style="color: var(--text-light);">📷 No photo</span>';
                 }
+                checkFormComplete();
             });
 
             // Bankbook input
-            document.getElementById('bankbookInput').addEventListener('change', async (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    bankbookImage = await compressImage(file);
-                    const url = URL.createObjectURL(bankbookImage);
-                    document.getElementById('bankbookPreview').innerHTML = `<img src="${url}" alt="Bankbook">`;
-                    checkFormComplete();
-                }
-            });
-            */
+            const bankbookInput = document.getElementById('bankbookInput');
+            if (!bankbookInput) {
+                console.error('Bankbook Input element not found!');
+            } else {
+                console.log('Bankbook Input found, adding listener');
+                bankbookInput.addEventListener('change', async (e) => {
+                    console.log('Bankbook file selected:', e.target.files[0]);
+                    const file = e.target.files[0];
+                    if (file) {
+                        try {
+                            bankbookImage = await compressImage(file);
+                            const url = URL.createObjectURL(bankbookImage);
+                            document.getElementById('bankbookPreview').innerHTML = `<img src="${url}" alt="Bankbook">`;
+                            console.log('Bankbook image processed successfully');
+                            checkFormComplete();
+                        } catch (error) {
+                            console.error('Error processing Bankbook:', error);
+                            showNotification('Failed to process image', 'error');
+                        }
+                    }
+                });
+            }
         }
 
         // Switch tabs
@@ -1630,8 +1876,8 @@
 
         // Display no-shows
         function displayNoShows() {
-            const today = new Date();
-            const todayStr = `${today.getMonth() + 1}/${today.getDate()}`;
+            const koreaTime = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Seoul"}));
+            const todayStr = `${koreaTime.getMonth() + 1}/${koreaTime.getDate()}`;
 
             const noShows = participantsData.filter(p =>
                 p.setDate === todayStr && p.attendanceStatus === 'No-show'
@@ -1640,85 +1886,285 @@
             const html = noShows.map(p => `
                 <div class="participant-card">
                     <div class="participant-header">
-                        <div class="participant-name">${p.name || '이름 없음'}</div>
+                        <div class="participant-name">${p.name || 'No name'}</div>
                         <div class="participant-status status-noshow">노쇼</div>
                     </div>
                     <div class="participant-info">
                         <div>📅 ${p.setDate} ${p.setTime}</div>
-                        <div>📞 ${p.phone || '연락처 없음'}</div>
+                        <div>📞 ${p.phone || 'No phone'}</div>
                     </div>
                     <button class="checkin-btn" onclick="changeToAttended(${p.ID})" style="background: var(--success);">
-                        출석으로 변경
+                        Change to Attended
                     </button>
                 </div>
             `).join('');
 
             document.getElementById('noshowList').innerHTML = html ||
-                '<div class="loading">노쇼 참가자가 없습니다</div>';
+                '<div class="loading">No no-show participants</div>';
         }
 
         // Display statistics
         function displayStats() {
-            const today = new Date();
-            const todayStr = `${today.getMonth() + 1}/${today.getDate()}`;
+            const selectedDate = document.getElementById('dateFilter').value;
+            // Only show statistics for Confirmed status participants
+            let displayParticipants = participantsData.filter(p => p.status === 'Confirmed');
+            let dateLabel = 'All Period';
 
-            const todayParticipants = participantsData.filter(p => p.setDate === todayStr);
-            const attended = todayParticipants.filter(p => p.attendanceStatus === 'Attended');
-            const pending = todayParticipants.filter(p => !p.attendanceStatus || p.attendanceStatus === 'Pending');
-            const noshow = todayParticipants.filter(p => p.attendanceStatus === 'No-show');
+            if (selectedDate) {
+                // Keep date filter but only for Confirmed participants
+                const date = new Date(selectedDate);
+                const monthNames = ["January", "February", "March", "April", "May", "June",
+                    "July", "August", "September", "October", "November", "December"];
+                dateLabel = `${monthNames[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+            }
 
-            const mobileCount = attended.filter(p => p.rewardType === 'MobileVoucher').length;
-            const cashCount = attended.filter(p => p.rewardType === 'Cash').length;
+            const attended = displayParticipants.filter(p => p.attendanceStatus === 'Attended');
+            const pending = displayParticipants.filter(p => !p.attendanceStatus || p.attendanceStatus === 'Pending');
+            const noshow = displayParticipants.filter(p => p.attendanceStatus === 'No-show');
+
+            const mobileCount = attended.filter(p => p.rewardType === 'Gift-Card' || p.rewardType === 'MobileVoucher').length;
+            const transferCount = attended.filter(p => p.rewardType === 'Transfer' || p.rewardType === 'Cash').length;
+
+            // Group by time slots for detailed stats
+            const timeSlots = {};
+            displayParticipants.forEach(p => {
+                const slot = p.setTime || 'Time TBD';
+                if (!timeSlots[slot]) {
+                    timeSlots[slot] = { total: 0, attended: 0, pending: 0, noshow: 0 };
+                }
+                timeSlots[slot].total++;
+                if (p.attendanceStatus === 'Attended') timeSlots[slot].attended++;
+                else if (p.attendanceStatus === 'No-show') timeSlots[slot].noshow++;
+                else timeSlots[slot].pending++;
+            });
 
             const html = `
                 <div style="background: white; border-radius: 10px; padding: 20px; margin-bottom: 15px;">
-                    <h3 style="margin-bottom: 15px;">출석 현황</h3>
+                    <h3 style="margin-bottom: 15px;">📊 ${dateLabel} Attendance Status</h3>
+                    <div style="padding: 8px; background: #e0f2fe; border-radius: 6px; margin-bottom: 12px; font-size: 13px; color: #0369a1;">
+                        ℹ️ Only participants with Confirmed status are counted
+                    </div>
                     <div style="display: grid; gap: 10px;">
                         <div style="display: flex; justify-content: space-between;">
-                            <span>전체 참가자</span>
-                            <strong>${todayParticipants.length}명</strong>
+                            <span>Confirmed Participants</span>
+                            <strong>${displayParticipants.length} people</strong>
                         </div>
                         <div style="display: flex; justify-content: space-between;">
-                            <span>출석</span>
-                            <strong style="color: var(--success);">${attended.length}명</strong>
+                            <span>✅ Attended</span>
+                            <strong style="color: var(--success);">${attended.length} people</strong>
                         </div>
                         <div style="display: flex; justify-content: space-between;">
-                            <span>대기</span>
-                            <strong style="color: var(--warning);">${pending.length}명</strong>
+                            <span>⏳ Pending</span>
+                            <strong style="color: var(--warning);">${pending.length} people</strong>
                         </div>
                         <div style="display: flex; justify-content: space-between;">
-                            <span>노쇼</span>
-                            <strong style="color: var(--danger);">${noshow.length}명</strong>
+                            <span>❌ No-show</span>
+                            <strong style="color: var(--danger);">${noshow.length} people</strong>
+                        </div>
+                    </div>
+                    ${displayParticipants.length > 0 ? `
+                        <div style="margin-top: 15px; padding: 10px; background: var(--bg); border-radius: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-size: 14px;">Attendance Rate</span>
+                                <strong style="font-size: 24px; color: var(--primary);">
+                                    ${Math.round((attended.length / displayParticipants.length) * 100)}%
+                                </strong>
+                            </div>
+                            <div style="margin-top: 10px; height: 10px; background: #e0e0e0; border-radius: 5px; overflow: hidden;">
+                                <div style="height: 100%; background: var(--success); width: ${(attended.length / displayParticipants.length) * 100}%;"></div>
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+
+                <div style="background: white; border-radius: 10px; padding: 20px; margin-bottom: 15px;">
+                    <h3 style="margin-bottom: 15px;">💰 Reward Status</h3>
+                    <div style="display: grid; gap: 10px;">
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>🎁 Gift-Card</span>
+                            <strong>${mobileCount} people</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>💵 Transfer</span>
+                            <strong>${transferCount} people</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>➖ No Reward</span>
+                            <strong>${attended.filter(p => !p.rewardType || p.rewardType === 'None').length} people</strong>
                         </div>
                     </div>
                 </div>
 
                 <div style="background: white; border-radius: 10px; padding: 20px;">
-                    <h3 style="margin-bottom: 15px;">리워드 현황</h3>
+                    <h3 style="margin-bottom: 15px;">⏰ Time Slot Status</h3>
                     <div style="display: grid; gap: 10px;">
-                        <div style="display: flex; justify-content: space-between;">
-                            <span>모바일 상품권</span>
-                            <strong>${mobileCount}명</strong>
-                        </div>
-                        <div style="display: flex; justify-content: space-between;">
-                            <span>현금</span>
-                            <strong>${cashCount}명</strong>
-                        </div>
-                    </div>
-                </div>
-
-                <div style="margin-top: 20px; text-align: center;">
-                    <div style="font-size: 12px; color: var(--text-light);">
-                        출석률: ${todayParticipants.length > 0 ?
-                            Math.round((attended.length / todayParticipants.length) * 100) : 0}%
+                        ${Object.entries(timeSlots)
+                            .sort((a, b) => a[0].localeCompare(b[0]))
+                            .map(([time, stats]) => `
+                                <div style="border-left: 3px solid var(--primary); padding-left: 10px;">
+                                    <div style="font-weight: 600; margin-bottom: 5px;">${time}</div>
+                                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; font-size: 12px;">
+                                        <span>Total: ${stats.total}</span>
+                                        <span style="color: var(--success);">Attended: ${stats.attended}</span>
+                                        <span style="color: var(--warning);">Pending: ${stats.pending}</span>
+                                        <span style="color: var(--danger);">No-show: ${stats.noshow}</span>
+                                    </div>
+                                </div>
+                            `).join('')}
                     </div>
                 </div>
             `;
 
             document.getElementById('statsView').innerHTML = `
-                <h2 style="margin-bottom: 20px;">오늘의 통계</h2>
+                <h2 style="margin-bottom: 20px;">Today's Statistics</h2>
                 ${html}
             `;
+        }
+
+        // Edit attendance record
+        window.editAttendance = async function(participantId) {
+            console.log('editAttendance called for participant:', participantId);
+            addDebugLog('editAttendance 호출됨:', { participantId });
+
+            try {
+                currentParticipant = participantsData.find(p => p.ID === participantId);
+                if (!currentParticipant) {
+                    console.error('Participant not found:', participantId);
+                    addDebugLog('참가자를 찾을 수 없음:', { participantId });
+                    showNotification('참가자를 찾을 수 없습니다', 'error');
+                    return;
+                }
+
+            // Pre-fill with existing data
+            const existingReward = currentParticipant.rewardType;
+
+            // Display participant info
+            document.getElementById('checkinInfo').innerHTML = `
+                <div style="font-weight: 600; font-size: 18px; margin-bottom: 8px;">${currentParticipant.name}</div>
+                <div style="color: var(--text-light); font-size: 14px;">
+                    <div>🆔 P-${currentParticipant.ID || 'ID 없음'}</div>
+                    <div>📅 ${currentParticipant.setDate || ''} ${currentParticipant.setTime || ''}</div>
+                    <div>📞 ${currentParticipant.phone || '연락처 없음'}</div>
+                    <div style="margin-top: 8px; padding: 8px; background: #e8f8f5; border-radius: 6px;">
+                        <strong>Current Status:</strong> Attended<br>
+                        <strong>Check-in Time:</strong> ${currentParticipant.checkinTime ? new Date(currentParticipant.checkinTime).toLocaleString('ko-KR') : '-'}<br>
+                        <strong>Reward:</strong> ${existingReward === 'Gift-Card' || existingReward === 'MobileVoucher' ? 'Gift-Card' : existingReward === 'Cash' || existingReward === 'Transfer' ? 'Transfer' : 'None'}<br>
+                        <strong>A-ID:</strong> ${currentParticipant.aID || 'Not assigned'}
+                    </div>
+                </div>
+            `;
+
+            // Pre-fill A-ID
+            document.getElementById('aidInput').value = currentParticipant.aID || '';
+
+            // Set existing reward type
+            selectedReward = (existingReward === 'Gift-Card' || existingReward === 'MobileVoucher') ? 'mobile' : (existingReward === 'Cash' || existingReward === 'Transfer') ? 'cash' : '';
+            if (selectedReward) {
+                document.querySelectorAll('.reward-option').forEach(el => el.classList.remove('selected'));
+                document.querySelector(`[data-reward="${selectedReward}"]`).classList.add('selected');
+            }
+
+            // Load existing images from localStorage
+            const imageKeys = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith(`images_${participantId}_`)) {
+                    imageKeys.push(key);
+                }
+            }
+
+            // Clear previous images
+            idCardImageFront = null;
+            idCardImageBack = null;
+            bankbookImage = null;
+            document.getElementById('idFrontPreview').innerHTML = '<span style="color: var(--text-light);">📷 No photo</span>';
+            document.getElementById('idBackPreview').innerHTML = '<span style="color: var(--text-light);">📷 No photo</span>';
+            document.getElementById('bankbookPreview').innerHTML = '<span style="color: var(--text-light);">📷 사진 없음</span>';
+
+            if (imageKeys.length > 0) {
+                // Get the latest image set
+                const latestKey = imageKeys.sort().pop();
+                try {
+                    const imageDataString = localStorage.getItem(latestKey);
+                    if (!imageDataString) {
+                        console.error('No data for key:', latestKey);
+                        addDebugLog('이미지 데이터 없음:', { key: latestKey });
+                    } else {
+                        const imageData = JSON.parse(imageDataString);
+                        console.log('Loading existing images:', imageData);
+                        addDebugLog('기존 이미지 로드 중:', {
+                            hasfront: !!imageData.idCardFront,
+                            hasBack: !!imageData.idCardBack,
+                            hasBankbook: !!imageData.bankbook
+                        });
+
+                        // Display existing images
+                        // New structure with front and back
+                        if (imageData.idCardFront) {
+                            document.getElementById('idFrontPreview').innerHTML = `
+                                <img src="${imageData.idCardFront}" alt="ID Card Front" style="width: 100%; height: auto;">
+                                <div style="text-align: center; font-size: 12px; color: var(--success); margin-top: 5px;">
+                                    ✓ Front image loaded
+                                </div>
+                            `;
+                            fetch(imageData.idCardFront)
+                                .then(res => res.blob())
+                                .then(blob => { idCardImageFront = blob; })
+                                .catch(err => console.error('Failed to load front image:', err));
+                        }
+
+                        if (imageData.idCardBack) {
+                            document.getElementById('idBackPreview').innerHTML = `
+                                <img src="${imageData.idCardBack}" alt="ID Card Back" style="width: 100%; height: auto;">
+                                <div style="text-align: center; font-size: 12px; color: var(--success); margin-top: 5px;">
+                                    ✓ Back image loaded
+                                </div>
+                            `;
+                            fetch(imageData.idCardBack)
+                                .then(res => res.blob())
+                                .then(blob => { idCardImageBack = blob; })
+                                .catch(err => console.error('Failed to load back image:', err));
+                        }
+
+                        if (imageData.bankbook) {
+                            document.getElementById('bankbookPreview').innerHTML = `
+                                <img src="${imageData.bankbook}" alt="Bankbook" style="width: 100%; height: auto;">
+                                <div style="text-align: center; font-size: 12px; color: var(--success); margin-top: 5px;">
+                                    ✓ Existing image loaded
+                                </div>
+                            `;
+                            // Convert base64 back to blob for potential re-upload
+                            fetch(imageData.bankbook)
+                                .then(res => res.blob())
+                                .then(blob => { bankbookImage = blob; })
+                                .catch(err => console.error('Failed to load bankbook image:', err));
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error loading images:', error);
+                    addDebugLog('이미지 로드 오류:', error.message);
+                }
+
+                // Show bankbook group if cash was selected
+                if (selectedReward === 'cash') {
+                    document.getElementById('bankbookGroup').style.display = 'block';
+                }
+            }
+
+                // Update button text
+                document.getElementById('submitBtn').textContent = 'Update';
+                document.getElementById('submitBtn').disabled = false;
+
+                // Show modal
+                document.getElementById('checkinModal').classList.add('active');
+
+                console.log('Edit modal opened successfully');
+                addDebugLog('편집 모달 열림');
+            } catch (error) {
+                console.error('Error in editAttendance:', error);
+                addDebugLog('editAttendance 오류:', error.message);
+                showNotification('편집 모드를 열 수 없습니다', 'error');
+            }
         }
 
         // Change no-show to attended
@@ -1726,21 +2172,393 @@
             return ErrorHandler.handle(async () => {
                 const participant = allParticipantsData.find(p => p.ID === participantId);
                 if (!participant) {
-                    throw new Error('참가자를 찾을 수 없습니다.');
+                    throw new Error('Participant not found.');
                 }
 
-                // Update attendance status
+                // Save to AttendanceImages
+                const now = new Date();
+                const checkinDateOnly = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+                const attendanceData = {
+                    participantID: parseInt(participant.ID) || 0,
+                    participantName: participant.name || '',
+                    checkinTime: checkinDateOnly,
+                    attendanceStatus: 'Attended',
+                    rewardType: 'None',
+                    staffName: currentUser.fullName || '',
+                    staffID: currentUser.username || '',
+                    checkDate: participant.setDate || '',
+                    checkTime: participant.setTime || '',
+                    notes: `Changed from No-show to Attended - ${now.toLocaleString('en-US')}`
+                };
+
+                const response = await fetch(
+                    `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${ATTENDANCE_TABLE_ID}`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            records: [{
+                                fields: attendanceData
+                            }]
+                        })
+                    }
+                );
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(`Failed to update: ${error.error?.message || response.statusText}`);
+                }
+
+                // Update local data
                 participant.attendanceStatus = 'Attended';
-                participant.checkinTime = new Date().toISOString();
+                participant.checkinTime = checkinDateOnly;
                 participant.checkinStaff = currentUser.fullName;
 
-                ErrorHandler.showNotification(`${participant.name}의 상태가 출석으로 변경되었습니다.`, 'success');
+                ErrorHandler.showNotification(`${participant.name}'s status has been changed to Attended.`, 'success');
                 filterAndDisplayParticipants();
                 updateStats();
             }, {
                 showNotification: true,
                 logError: true
             });
+        }
+
+        // Debug function to list all localStorage keys
+        window.debugLocalStorage = function() {
+            console.log('=== localStorage Debug Info ===');
+            console.log('Total items:', localStorage.length);
+            const imageKeys = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                console.log(`Key ${i}:`, key);
+                if (key && key.includes('images_')) {
+                    imageKeys.push(key);
+                }
+            }
+            console.log('Image keys found:', imageKeys);
+            return imageKeys;
+        };
+
+        // View stored images from Airtable
+        window.viewImages = async function(participantId) {
+            console.log('viewImages called for participant:', participantId);
+            addDebugLog('viewImages 호출됨 - Airtable에서 이미지 조회:', { participantId });
+
+            try {
+                // Show loading message
+                showNotification('이미지를 불러오는 중...', 'info');
+
+                // Fetch from AttendanceImages table with filter
+                const filterFormula = `{participantID}=${participantId}`;
+                const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${ATTENDANCE_TABLE_ID}?filterByFormula=${encodeURIComponent(filterFormula)}`;
+
+                console.log('Fetching images from Airtable:', url);
+                addDebugLog('Airtable 이미지 조회 URL:', url);
+
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${AIRTABLE_API_KEY}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch images: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('Airtable full response:', data);
+                if (data.records && data.records.length > 0) {
+                    console.log('First record:', data.records[0]);
+                    console.log('First record fields:', data.records[0].fields);
+                    console.log('All field names:', Object.keys(data.records[0].fields));
+                }
+                addDebugLog('Airtable 응답 데이터:', {
+                    recordCount: data.records.length,
+                    firstRecord: data.records[0]?.fields,
+                    fieldNames: data.records[0] ? Object.keys(data.records[0].fields) : []
+                });
+
+                if (!data.records || data.records.length === 0) {
+                    console.log('No records found for participant:', participantId);
+                    addDebugLog('참가자 레코드 없음', { participantId });
+
+                    // Try to find participant data to show info
+                    const participant = participantsData.find(p => p.ID === participantId);
+
+                    // Show modal with no images message
+                    const modal = document.createElement('div');
+                    modal.className = 'modal active';
+                    modal.style.zIndex = '2000';
+                    modal.innerHTML = `
+                        <div class="modal-content" style="max-width: 600px;">
+                            <div class="modal-header">
+                                <h3 class="modal-title">이미지 정보</h3>
+                                <button class="modal-close" onclick="this.closest('.modal').remove()">×</button>
+                            </div>
+                            <div class="modal-body">
+                                <div style="padding: 20px; text-align: center;">
+                                    <div style="font-size: 48px; margin-bottom: 20px;">📷</div>
+                                    <h4>저장된 이미지가 없습니다</h4>
+                                    ${participant ? `
+                                        <div style="margin-top: 20px; padding: 15px; background: #f3f4f6; border-radius: 8px; text-align: left;">
+                                            <div style="margin-bottom: 8px;"><strong>참가자:</strong> ${participant.name || 'Unknown'}</div>
+                                            <div style="margin-bottom: 8px;"><strong>ID:</strong> ${participantId}</div>
+                                            <div style="margin-bottom: 8px;"><strong>체크인 시간:</strong> ${participant.checkinTime ? new Date(participant.checkinTime).toLocaleString('ko-KR') : 'N/A'}</div>
+                                            <div><strong>리워드:</strong> ${participant.rewardType || 'None'}</div>
+                                        </div>
+                                    ` : ''}
+                                    <button onclick="this.closest('.modal').remove()" style="margin-top: 20px; padding: 10px 20px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer;">
+                                        닫기
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    document.body.appendChild(modal);
+                    return;
+                }
+
+                // Get the latest record (if multiple exist)
+                const latestRecord = data.records[data.records.length - 1];
+                const fields = latestRecord.fields;
+
+                console.log('Image fields from Airtable:', fields);
+                console.log('idCardImageFront value:', fields.idCardImageFront);
+                console.log('idCardImageBack value:', fields.idCardImageBack);
+                console.log('bankbookImage value:', fields.bankbookImage);
+
+                addDebugLog('Airtable 이미지 필드 상세:', {
+                    hasIdCardFront: !!fields.idCardImageFront,
+                    hasIdCardBack: !!fields.idCardImageBack,
+                    hasBankbook: !!fields.bankbookImage,
+                    idCardFrontType: typeof fields.idCardImageFront,
+                    idCardBackType: typeof fields.idCardImageBack,
+                    bankbookType: typeof fields.bankbookImage,
+                    idCardFrontValue: fields.idCardImageFront,
+                    idCardBackValue: fields.idCardImageBack,
+                    bankbookValue: fields.bankbookImage
+                });
+
+                // Check if any images exist (both Attachment and Base64 fields)
+                const hasAttachmentImages = fields.idCardImageFront || fields.idCardImageBack || fields.bankbookImage;
+                const hasBase64Images = fields.idCardImageFrontBase64 || fields.idCardImageBackBase64 || fields.bankbookImageBase64;
+
+                if (!hasAttachmentImages && !hasBase64Images) {
+                    console.log('No images in Airtable record, checking localStorage...');
+                    addDebugLog('Airtable에 이미지 없음, localStorage 확인 중...');
+
+                    // Fallback to localStorage
+                    const imageKeys = [];
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i);
+                        if (key && (key.startsWith(`images_${participantId}_`) || key.includes(`_${participantId}_`))) {
+                            imageKeys.push(key);
+                            console.log('Found localStorage image key:', key);
+                        }
+                    }
+
+                    if (imageKeys.length > 0) {
+                        // Found images in localStorage
+                        const latestKey = imageKeys.sort().pop();
+                        const localImageData = localStorage.getItem(latestKey);
+
+                        if (localImageData) {
+                            try {
+                                const parsedData = JSON.parse(localImageData);
+                                console.log('Found localStorage images:', parsedData);
+                                addDebugLog('localStorage에서 이미지 발견', {
+                                    hasfront: !!parsedData.idCardFront,
+                                    hasBack: !!parsedData.idCardBack,
+                                    hasBankbook: !!parsedData.bankbook
+                                });
+
+                                // Display localStorage images
+                                const modal = document.createElement('div');
+                                modal.className = 'modal active';
+                                modal.style.zIndex = '2000';
+                                modal.innerHTML = `
+                                    <div class="modal-content" style="max-width: 700px;">
+                                        <div class="modal-header">
+                                            <h3 class="modal-title">저장된 이미지 (로컬 저장소)</h3>
+                                            <button class="modal-close" onclick="this.closest('.modal').remove()">×</button>
+                                        </div>
+                                        <div class="modal-body" style="max-height: 80vh; overflow-y: auto;">
+                                            <div style="margin-bottom: 15px; padding: 12px; background: #fef3c7; border-radius: 8px;">
+                                                <p style="margin: 0; color: #92400e; font-size: 14px;">
+                                                    ⚠️ 이 이미지는 브라우저에 임시 저장된 것입니다. 서버에는 아직 업로드되지 않았습니다.
+                                                </p>
+                                            </div>
+                                            <div style="margin-bottom: 15px; padding: 12px; background: #f3f4f6; border-radius: 8px; font-size: 13px;">
+                                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                                    <div><strong>참가자:</strong> ${fields.participantName || 'Unknown'}</div>
+                                                    <div><strong>ID:</strong> ${participantId}</div>
+                                                    <div><strong>체크인:</strong> ${fields.checkinTime || 'N/A'}</div>
+                                                    <div><strong>리워드:</strong> ${fields.rewardType || 'None'}</div>
+                                                </div>
+                                            </div>
+
+                                            ${parsedData.idCardFront ? `
+                                                <div style="margin-bottom: 20px;">
+                                                    <h4 style="margin-bottom: 10px;">📇 신분증 앞면</h4>
+                                                    <img src="${parsedData.idCardFront}" style="width: 100%; border-radius: 8px; border: 1px solid var(--border);">
+                                                </div>
+                                            ` : '<div style="margin-bottom: 15px; color: var(--text-light);">신분증 앞면 이미지 없음</div>'}
+
+                                            ${parsedData.idCardBack ? `
+                                                <div style="margin-bottom: 20px;">
+                                                    <h4 style="margin-bottom: 10px;">📇 신분증 뒷면</h4>
+                                                    <img src="${parsedData.idCardBack}" style="width: 100%; border-radius: 8px; border: 1px solid var(--border);">
+                                                </div>
+                                            ` : '<div style="margin-bottom: 15px; color: var(--text-light);">신분증 뒷면 이미지 없음</div>'}
+
+                                            ${parsedData.bankbook ? `
+                                                <div style="margin-bottom: 20px;">
+                                                    <h4 style="margin-bottom: 10px;">💳 통장사본</h4>
+                                                    <img src="${parsedData.bankbook}" style="width: 100%; border-radius: 8px; border: 1px solid var(--border);">
+                                                </div>
+                                            ` : '<div style="color: var(--text-light);">통장사본 이미지 없음</div>'}
+                                        </div>
+                                    </div>
+                                `;
+                                document.body.appendChild(modal);
+                                return;
+                            } catch (e) {
+                                console.error('Failed to parse localStorage image data:', e);
+                            }
+                        }
+                    }
+
+                    console.log('No images found anywhere');
+                    showNotification('이 참가자의 이미지가 없습니다', 'warning');
+
+                    // Show info modal
+                    const modal = document.createElement('div');
+                    modal.className = 'modal active';
+                    modal.style.zIndex = '2000';
+                    modal.innerHTML = `
+                        <div class="modal-content" style="max-width: 600px;">
+                            <div class="modal-header">
+                                <h3 class="modal-title">이미지 정보</h3>
+                                <button class="modal-close" onclick="this.closest('.modal').remove()">×</button>
+                            </div>
+                            <div class="modal-body">
+                                <div style="padding: 20px;">
+                                    <div style="margin-bottom: 15px; padding: 15px; background: #f3f4f6; border-radius: 8px;">
+                                        <div style="margin-bottom: 8px;"><strong>참가자 이름:</strong> ${fields.participantName || 'Unknown'}</div>
+                                        <div style="margin-bottom: 8px;"><strong>참가자 ID:</strong> ${fields.participantID || participantId}</div>
+                                        <div style="margin-bottom: 8px;"><strong>체크인 시간:</strong> ${fields.checkinTime || 'N/A'}</div>
+                                        <div style="margin-bottom: 8px;"><strong>리워드:</strong> ${fields.rewardType || 'None'}</div>
+                                        <div><strong>A-ID:</strong> ${fields['A-ID'] || 'Not assigned'}</div>
+                                    </div>
+                                    <div style="text-align: center; padding: 20px; background: #fef3c7; border-radius: 8px;">
+                                        <div style="font-size: 48px; margin-bottom: 10px;">📷</div>
+                                        <p style="margin: 0; color: #92400e;">이미지가 업로드되지 않았습니다</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    document.body.appendChild(modal);
+                    return;
+                }
+
+
+                // Create modal to display images from Airtable
+                const modal = document.createElement('div');
+                modal.className = 'modal active';
+                modal.style.zIndex = '2000';
+                modal.innerHTML = `
+                    <div class="modal-content" style="max-width: 700px;">
+                        <div class="modal-header">
+                            <h3 class="modal-title">저장된 이미지</h3>
+                            <button class="modal-close" onclick="this.closest('.modal').remove()">×</button>
+                        </div>
+                        <div class="modal-body" style="max-height: 80vh; overflow-y: auto;">
+                            <div style="margin-bottom: 15px; padding: 12px; background: #f3f4f6; border-radius: 8px; font-size: 13px;">
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                    <div><strong>참가자:</strong> ${fields.participantName || 'Unknown'}</div>
+                                    <div><strong>ID:</strong> ${fields.participantID || participantId}</div>
+                                    <div><strong>체크인:</strong> ${fields.checkinTime || 'N/A'}</div>
+                                    <div><strong>리워드:</strong> ${fields.rewardType || 'None'}</div>
+                                    <div><strong>A-ID:</strong> ${fields['A-ID'] || 'Not assigned'}</div>
+                                    <div><strong>직원:</strong> ${fields.staffName || 'N/A'}</div>
+                                </div>
+                            </div>
+
+                            ${fields.idCardImageFront || fields.idCardImageFrontBase64 ? `
+                                <div style="margin-bottom: 20px;">
+                                    <h4 style="margin-bottom: 10px; color: var(--text);">📇 신분증 앞면</h4>
+                                    ${fields.idCardImageFrontBase64 ? `
+                                        <img src="${fields.idCardImageFrontBase64}"
+                                             alt="ID Card Front"
+                                             style="width: 100%; border-radius: 8px; border: 1px solid var(--border);">
+                                        <div style="margin-top: 5px; font-size: 11px; color: var(--text-light);">
+                                            Base64 이미지
+                                        </div>
+                                    ` : Array.isArray(fields.idCardImageFront) && fields.idCardImageFront[0] ? `
+                                        <img src="${fields.idCardImageFront[0].url}"
+                                             alt="ID Card Front"
+                                             style="width: 100%; border-radius: 8px; border: 1px solid var(--border); cursor: pointer;"
+                                             onclick="window.open('${fields.idCardImageFront[0].url}', '_blank')">
+                                        <div style="margin-top: 5px; font-size: 11px; color: var(--text-light);">
+                                            클릭하여 원본 크기로 보기
+                                        </div>
+                                    ` : `<div style="color: var(--text-light);">이미지 로드 오류</div>`}
+                                </div>
+                            ` : '<div style="margin-bottom: 15px; padding: 10px; background: #fef3c7; border-radius: 6px; color: #92400e;">⚠️ 신분증 앞면 이미지 없음</div>'}
+
+                            ${fields.idCardImageBack ? `
+                                <div style="margin-bottom: 20px;">
+                                    <h4 style="margin-bottom: 10px; color: var(--text);">📇 신분증 뒷면</h4>
+                                    ${Array.isArray(fields.idCardImageBack) && fields.idCardImageBack[0] ? `
+                                        <img src="${fields.idCardImageBack[0].url}"
+                                             alt="ID Card Back"
+                                             style="width: 100%; border-radius: 8px; border: 1px solid var(--border); cursor: pointer;"
+                                             onclick="window.open('${fields.idCardImageBack[0].url}', '_blank')">
+                                        <div style="margin-top: 5px; font-size: 11px; color: var(--text-light);">
+                                            클릭하여 원본 크기로 보기
+                                        </div>
+                                    ` : `<div style="color: var(--text-light);">이미지 URL 형식이 올바르지 않습니다</div>`}
+                                </div>
+                            ` : '<div style="margin-bottom: 15px; padding: 10px; background: #fef3c7; border-radius: 6px; color: #92400e;">⚠️ 신분증 뒷면 이미지 없음</div>'}
+
+                            ${fields.bankbookImage ? `
+                                <div style="margin-bottom: 20px;">
+                                    <h4 style="margin-bottom: 10px; color: var(--text);">💳 통장사본</h4>
+                                    ${Array.isArray(fields.bankbookImage) && fields.bankbookImage[0] ? `
+                                        <img src="${fields.bankbookImage[0].url}"
+                                             alt="Bankbook"
+                                             style="width: 100%; border-radius: 8px; border: 1px solid var(--border); cursor: pointer;"
+                                             onclick="window.open('${fields.bankbookImage[0].url}', '_blank')">
+                                        <div style="margin-top: 5px; font-size: 11px; color: var(--text-light);">
+                                            클릭하여 원본 크기로 보기
+                                        </div>
+                                    ` : `<div style="color: var(--text-light);">이미지 URL 형식이 올바르지 않습니다</div>`}
+                                </div>
+                            ` : fields.rewardType === 'Transfer' && fields.bankbookCheck ?
+                                '<div style="margin-bottom: 15px; padding: 10px; background: #dbeafe; border-radius: 6px; color: #1e40af;">ℹ️ 통장사본 나중에 확인 예정</div>' :
+                                '<div style="margin-bottom: 15px; padding: 10px; background: #fef3c7; border-radius: 6px; color: #92400e;">⚠️ 통장사본 이미지 없음</div>'}
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+                console.log('Modal with Airtable images displayed');
+                addDebugLog('Airtable 이미지 모달 표시됨', {
+                    hasImages: {
+                        front: !!fields.idCardImageFront,
+                        back: !!fields.idCardImageBack,
+                        bankbook: !!fields.bankbookImage
+                    }
+                });
+            } catch (error) {
+                console.error('Error in viewImages:', error);
+                addDebugLog('viewImages 오류:', error.message);
+                showNotification('이미지 표시 중 오류가 발생했습니다', 'error');
+            }
         }
 
         // Show notification
@@ -1750,7 +2568,7 @@
 
         // Logout
         function logout() {
-            if (confirm('로그아웃 하시겠습니까?')) {
+            if (confirm('Are you sure you want to logout?')) {
                 sessionStorage.removeItem('clt_session');
                 window.location.href = 'login.html';
             }

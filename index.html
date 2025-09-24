@@ -1633,6 +1633,8 @@
                     desc: document.getElementById('newNotes').value
                 };
 
+                console.log('Form data collected:', formData);
+
                 // Validate form data
                 const schema = {
                     name: { required: true, type: 'korean_name', minLength: 2, maxLength: 50, label: '참가자명' },
