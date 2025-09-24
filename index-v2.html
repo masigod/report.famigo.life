@@ -1,0 +1,1763 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>아모레퍼시픽 파운데이션 CLT 통합 관리 시스템 v5.3 (Test)</title>
+    <script src="env-config.js?v=2"></script>
+    <script src="config-loader.js?v=2"></script>
+    <script src="config.js?v=2"></script>
+    <script src="security-utils.js?v=2"></script>
+    <script src="error-handler.js?v=2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #1a1a1a;
+            --secondary: #ff6b35;
+            --accent: #4ecdc4;
+            --warm: #ff9a76;
+            --cool: #679bff;
+            --neutral: #95a5a6;
+            --olive: #8fbc8f;
+            --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --success: #28a745;
+            --warning: #ffc107;
+            --danger: #dc3545;
+            --info: #17a2b8;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+
+        .header {
+            background: var(--bg-gradient);
+            color: white;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-card .label {
+            font-size: 10px;
+            color: #666;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+
+        .stat-card .value {
+            font-size: 20px;
+            font-weight: bold;
+            background: var(--bg-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stat-card .detail {
+            font-size: 10px;
+            color: #999;
+            margin-top: 2px;
+        }
+
+        .filters {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .filter-group label {
+            font-size: 12px;
+            color: #666;
+        }
+
+        select, input {
+            padding: 8px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--bg-gradient);
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-warning {
+            background: var(--warning);
+            color: white;
+        }
+
+        .participants-table {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .table-container {
+            overflow-x: auto;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 13px;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .pid-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .pid-badge.pending {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .tone-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .tone-cool { background: var(--cool); }
+        .tone-warm { background: var(--warm); }
+        .tone-neutral { background: var(--neutral); }
+        .tone-olive { background: var(--olive); }
+
+        .reserve-badge {
+            background: #fff3e0;
+            color: #e65100;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-left: 5px;
+            border: 1px solid #ffb74d;
+        }
+
+        tr.reserve-row {
+            background-color: #fff8e1 !important;
+        }
+
+        tr.reserve-row:hover {
+            background-color: #fff3e0 !important;
+        }
+
+        .action-btn {
+            padding: 5px 8px;
+            border: none;
+            border-radius: 6px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #e3f2fd;
+            color: #1976d2;
+            margin: 0 2px;
+        }
+
+        .action-btn:hover {
+            background: #1976d2;
+            color: white;
+        }
+
+        .loading-indicator {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .success-message, .error-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            z-index: 1000;
+            max-width: 400px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .success-message {
+            background: #28a745;
+        }
+
+        .error-message {
+            background: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container" style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h1>🎨 아모레퍼시픽 파운데이션 CLT 통합 관리 시스템 v5.3 (Test)</h1>
+                <div style="font-size: 14px; opacity: 0.9;">
+                    Foundation Color Matching CLT - Request/Confirm Date Management + Full Airtable Integration
+                    <span id="storageIndicator" style="margin-left: 10px; padding: 4px 8px; background: rgba(255,255,255,0.2); border-radius: 4px;">💾 로컬 저장소</span>
+                    <span id="syncStatus" style="margin-left: 10px; padding: 4px 8px; background: rgba(40,167,69,0.8); border-radius: 4px;">✅ 준비완료</span>
+                </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <span id="userInfo" style="font-size: 14px; color: white; opacity: 0.9;"></span>
+                <button onclick="logout()" style="padding: 8px 16px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); border-radius: 5px; color: white; cursor: pointer; font-weight: 500; transition: background 0.2s;">Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Dashboard Stats -->
+        <div class="dashboard">
+            <div class="stat-card">
+                <div class="label">총 참가자</div>
+                <div class="value" id="totalCount">150</div>
+                <div class="detail" id="totalDetail">정규: 0 | 예비: 0</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">일자별 분포</div>
+                <div class="value" id="dateDistribution">5일</div>
+                <div class="detail" id="dateDistributionDetail">9/22~26 각 30명</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">P-ID 매칭</div>
+                <div class="value" id="matchedCount">150</div>
+                <div class="detail">매칭률: <span id="matchRate">100%</span></div>
+            </div>
+            <div class="stat-card">
+                <div class="label">요청/확정 현황</div>
+                <div class="value" id="requestConfirmCount">0/0</div>
+                <div class="detail" id="requestConfirmDetail">요청: 0건 | 확정: 0건</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">출석 현황</div>
+                <div class="value" id="attendanceCount">0/0</div>
+                <div class="detail" id="attendanceDetail">체크인: 0 | 미참석: 0</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">A-ID 발급</div>
+                <div class="value" id="aidCount">0</div>
+                <div class="detail" id="aidDetail">발급률: 0%</div>
+            </div>
+        </div>
+
+        <!-- Feedback Status Summary -->
+        <div class="dashboard" style="margin-bottom: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 10px; border-radius: 8px;">
+            <div style="grid-column: 1 / -1; color: white; font-size: 14px; font-weight: 600; margin-bottom: 8px;">
+                피드백 상태 현황 <span id="selectedDateDisplay" style="font-weight: normal; opacity: 0.9;"></span>
+            </div>
+            <div class="stat-card" style="background: rgba(255,255,255,0.95); padding: 8px;">
+                <div class="label" style="font-size: 10px;">🔄 Pending</div>
+                <div class="value" style="font-size: 18px;" id="pendingCount">0</div>
+                <div class="detail" style="font-size: 9px;" id="pendingPercent">0%</div>
+            </div>
+            <div class="stat-card" style="background: rgba(255,255,255,0.95); padding: 8px;">
+                <div class="label" style="font-size: 10px;">🔧 Ongoing</div>
+                <div class="value" style="font-size: 18px;" id="ongoingCount">0</div>
+                <div class="detail" style="font-size: 9px;" id="ongoingPercent">0%</div>
+            </div>
+            <div class="stat-card" style="background: rgba(255,255,255,0.95); padding: 8px;">
+                <div class="label" style="font-size: 10px;">📤 Sent</div>
+                <div class="value" style="font-size: 18px;" id="sentCount">0</div>
+                <div class="detail" style="font-size: 9px;" id="sentPercent">0%</div>
+            </div>
+            <div class="stat-card" style="background: rgba(255,255,255,0.95); padding: 8px;">
+                <div class="label" style="font-size: 10px;">✅ Confirmed</div>
+                <div class="value" style="font-size: 18px;" id="confirmedCount">0</div>
+                <div class="detail" style="font-size: 9px;" id="confirmedPercent">0%</div>
+            </div>
+            <div class="stat-card" style="background: rgba(255,255,255,0.95); padding: 8px;">
+                <div class="label" style="font-size: 10px;">📝 Requested</div>
+                <div class="value" style="font-size: 18px;" id="requestedCount">0</div>
+                <div class="detail" style="font-size: 9px;" id="requestedPercent">0%</div>
+            </div>
+            <div class="stat-card" style="background: rgba(255,255,255,0.95); padding: 8px;">
+                <div class="label" style="font-size: 10px;">❌ Cancelled</div>
+                <div class="value" style="font-size: 18px;" id="cancelledCount">0</div>
+                <div class="detail" style="font-size: 9px;" id="cancelledPercent">0%</div>
+            </div>
+            <div class="stat-card" style="background: rgba(255,255,255,0.95); padding: 8px;">
+                <div class="label" style="font-size: 10px;">🔁 Duplicate</div>
+                <div class="value" style="font-size: 18px;" id="duplicateCount">0</div>
+                <div class="detail" style="font-size: 9px;" id="duplicatePercent">0%</div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters">
+            <div class="filter-group">
+                <label>날짜</label>
+                <select id="dateFilter">
+                    <option value="">전체</option>
+                    <option value="9/22">9/22 (월)</option>
+                    <option value="9/23">9/23 (화)</option>
+                    <option value="9/24">9/24 (수)</option>
+                    <option value="9/25">9/25 (목)</option>
+                    <option value="9/26">9/26 (금)</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>시간대</label>
+                <select id="timeFilter">
+                    <option value="">전체</option>
+                    <option value="13:00">13:00-13:30</option>
+                    <option value="13:30">13:30-14:00</option>
+                    <option value="14:00">14:00-14:30</option>
+                    <option value="14:30">14:30-15:00</option>
+                    <option value="15:00">15:00-15:30</option>
+                    <option value="15:30">15:30-16:00</option>
+                    <option value="16:00">16:00-16:30</option>
+                    <option value="16:30">16:30-17:00</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>타겟</label>
+                <select id="targetFilter">
+                    <option value="">전체</option>
+                    <option value="1(F)">1(F)</option>
+                    <option value="2(L)">2(L)</option>
+                    <option value="3(LM)">3(LM)</option>
+                    <option value="4(M)">4(M)</option>
+                    <option value="5(MD)">5(MD)</option>
+                    <option value="6(D)">6(D)</option>
+                    <option value="7(R)">7(R)</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>톤</label>
+                <select id="toneFilter">
+                    <option value="">전체</option>
+                    <option value="Cool">Cool</option>
+                    <option value="Warm">Warm</option>
+                    <option value="Neutral">Neutral</option>
+                    <option value="Olive">Olive</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>출석상태</label>
+                <select id="attendanceStatusFilter">
+                    <option value="">전체</option>
+                    <option value="Attended">Attended</option>
+                    <option value="No-show">No-show</option>
+                    <option value="Pending">Pending</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Feedback Status</label>
+                <select id="feedbackFilter">
+                    <option value="">All</option>
+                    <option value="Pending">🔄 Pending</option>
+                    <option value="Ongoing">🔧 Ongoing</option>
+                    <option value="Sent">📤 Sent</option>
+                    <option value="Confirmed">✅ Confirmed</option>
+                    <option value="Requested">📝 Requested</option>
+                    <option value="Cancelled">❌ Cancelled</option>
+                    <option value="Duplicate">🔁 Duplicate</option>
+                </select>
+            </div>
+            <div class="filter-group" style="flex: 1;">
+                <label>검색 (이름)</label>
+                <input type="text" placeholder="Elena, Madison..." id="searchInput">
+            </div>
+            <button class="btn btn-primary" onclick="showCSVData()">📄 CSV 데이터 보기</button>
+            <button class="btn btn-success" onclick="showAddParticipantForm()">➕ 새 참가자 추가</button>
+        </div>
+
+        <!-- Table -->
+        <div class="participants-table">
+            <div class="table-container">
+                <table id="participantsTable">
+                    <thead>
+                        <tr>
+                            <th width="40">ID</th>
+                            <th width="80">P-ID</th>
+                            <th width="80">A-ID</th>
+                            <th width="80">날짜</th>
+                            <th width="80">시간</th>
+                            <th>이름</th>
+                            <th width="60">타겟</th>
+                            <th width="80">톤</th>
+                            <th>전화번호</th>
+                            <th>이메일</th>
+                            <th width="60">예비여부</th>
+                            <th width="100">출석상태</th>
+                            <th width="120">피드백상태</th>
+                            <th width="120">요청일자</th>
+                            <th width="120">확정일자</th>
+                            <th width="100">시간변경</th>
+                            <th width="180">비고</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <tr>
+                            <td colspan="17" class="loading-indicator">데이터를 로드하는 중...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div style="margin-top: 20px; padding: 10px; background: white; border-radius: 8px; text-align: center;">
+            <span id="statusBar" style="color: #666; font-size: 14px;">총 <span id="totalParticipants">150</span>명 중 <span id="displayCount">0</span>명 표시</span>
+        </div>
+    </div>
+
+    <!-- 새 참가자 추가 모달 -->
+    <div id="addParticipantModal" onclick="closeModalOnBackdrop(event)" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;">
+        <div onclick="event.stopPropagation();" style="background: white; margin: 50px auto; padding: 30px; border-radius: 12px; max-width: 600px; max-height: 90vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                <h2 style="margin: 0; color: #333;">➕ 새 참가자 추가</h2>
+                <button onclick="hideAddParticipantForm()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #999;">×</button>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div>
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">참가자명 *</label>
+                    <input type="text" id="newName" placeholder="참가자 이름" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;">
+                </div>
+                
+                <div>
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">날짜 *</label>
+                    <input type="date" id="newDate"
+                           style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                    <small style="color: #888; font-size: 12px;">9/22(월) ~ 9/26(금) 중 선택</small>
+                </div>
+                
+                <div>
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">시간 *</label>
+                    <select id="newTime" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;">
+                        <option value="">선택하세요</option>
+                        <option value="13:00">13:00</option>
+                        <option value="13:30">13:30</option>
+                        <option value="14:00">14:00</option>
+                        <option value="14:30">14:30</option>
+                        <option value="15:00">15:00</option>
+                        <option value="15:30">15:30</option>
+                        <option value="16:00">16:00</option>
+                        <option value="16:30">16:30</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">타겟 *</label>
+                    <select id="newTarget" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;">
+                        <option value="">선택하세요</option>
+                        <option value="1(F)">1(F)</option>
+                        <option value="2(L)">2(L)</option>
+                        <option value="3(LM)">3(LM)</option>
+                        <option value="4(M)">4(M)</option>
+                        <option value="5(MD)">5(MD)</option>
+                        <option value="6(D)">6(D)</option>
+                        <option value="7(R)">7(R)</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">톤</label>
+                    <select id="newTone" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;">
+                        <option value="">선택하세요</option>
+                        <option value="Cool">Cool</option>
+                        <option value="Warm">Warm</option>
+                        <option value="Neutral">Neutral</option>
+                        <option value="Olive">Olive</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">전화번호</label>
+                    <input type="text" id="newPhone" placeholder="전화번호" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;">
+                </div>
+                
+                <div style="grid-column: 1 / -1;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">이메일</label>
+                    <input type="email" id="newEmail" placeholder="이메일 주소" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;">
+                </div>
+                
+                <div>
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">P-ID</label>
+                    <input type="text" id="newPID" placeholder="P018, P019..." style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;">
+                </div>
+                
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <input type="checkbox" id="newReserve" style="transform: scale(1.2);">
+                    <label for="newReserve" style="font-weight: 600; color: #555;">예비 참가자</label>
+                </div>
+                
+                <div style="grid-column: 1 / -1;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">비고</label>
+                    <textarea id="newNotes" placeholder="특이사항이나 요청사항..." style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; height: 80px; resize: vertical;"></textarea>
+                </div>
+            </div>
+            
+            <div style="margin-top: 25px; display: flex; gap: 10px; justify-content: flex-end;">
+                <button onclick="hideAddParticipantForm()" style="padding: 12px 24px; border: 2px solid #ddd; background: white; border-radius: 8px; cursor: pointer; font-weight: 600;">취소</button>
+                <button onclick="addNewParticipant()" style="padding: 12px 24px; border: none; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 8px; cursor: pointer; font-weight: 600;">➕ 추가하기</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 인증 체크
+        function checkAuth() {
+            const session = sessionStorage.getItem('clt_session');
+            if (!session) {
+                window.location.href = 'login.html';
+                return null;
+            }
+
+            const sessionData = JSON.parse(session);
+            if (sessionData.expires < Date.now()) {
+                sessionStorage.removeItem('clt_session');
+                window.location.href = 'login.html';
+                return null;
+            }
+
+            return sessionData;
+        }
+
+        // 로그아웃 함수
+        function logout() {
+            if (confirm('로그아웃 하시겠습니까?')) {
+                sessionStorage.removeItem('clt_session');
+                window.location.href = 'login.html';
+            }
+        }
+
+        // 세션 체크 및 role 기반 리디렉션 (페이지 로드시)
+        const currentUser = checkAuth();
+        if (!currentUser) {
+            // 인증 실패시 페이지 중단
+            throw new Error('Authentication required');
+        }
+
+        // Role-based redirection
+        const userRole = currentUser.role || currentUser.userType;
+        if (userRole === 'staff') {
+            // Staff 사용자는 모바일 페이지로 리다이렉트
+            window.location.href = 'mobile-attendance.html';
+        } else if (userRole === 'viewer') {
+            // Viewer 사용자는 리포트 페이지로 리다이렉트
+            window.location.href = 'report.html';
+        }
+        // admin, manager는 현재 페이지 유지
+
+        // Airtable 설정 (config.js에서 가져옴)
+        const AIRTABLE_API_KEY = typeof AIRTABLE_CONFIG !== 'undefined' ? AIRTABLE_CONFIG.API_KEY : 'YOUR_API_KEY_HERE';
+        const AIRTABLE_BASE_ID = typeof AIRTABLE_CONFIG !== 'undefined' ? AIRTABLE_CONFIG.BASE_ID : 'appZcPs57spwdoKQH';
+        const AIRTABLE_TABLE_ID = typeof AIRTABLE_CONFIG !== 'undefined' ? AIRTABLE_CONFIG.TABLE_ID : 'tblxMzwX1wWJKIOhY';
+        const AIRTABLE_ATTENDANCE_TABLE_ID = typeof AIRTABLE_CONFIG !== 'undefined' ? AIRTABLE_CONFIG.ATTENDANCE_TABLE_ID : 'tblUnxGfJXHp2qSHp';
+        const AIRTABLE_API_URL = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}`;
+        const AIRTABLE_ATTENDANCE_API_URL = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_ATTENDANCE_TABLE_ID}`;
+
+        // 전역 변수
+        let participantsData = [];
+        let attendanceData = {}; // AttendanceImages data by participant ID
+        let airtableRecords = {}; // Record ID 저장용
+
+        // AttendanceImages 테이블에서 데이터 가져오기
+        async function fetchAttendanceData() {
+            return ErrorHandler.handle(async () => {
+                console.log('AttendanceImages 데이터 가져오기 시작...');
+
+                let allRecords = [];
+                let offset = '';
+
+                do {
+                    const url = offset
+                        ? `${AIRTABLE_ATTENDANCE_API_URL}?pageSize=100&offset=${offset}`
+                        : `${AIRTABLE_ATTENDANCE_API_URL}?pageSize=100`;
+
+                    const response = await ErrorHandler.fetchWithErrorHandling(url, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+                            'Content-Type': 'application/json'
+                        },
+                        timeout: 30000
+                    });
+
+                    const data = await response.json();
+                    console.log(`AttendanceImages 받은 레코드 수: ${data.records.length}`);
+
+                    allRecords = allRecords.concat(data.records);
+                    offset = data.offset || '';
+
+                } while (offset);
+
+                console.log(`AttendanceImages 전체 받은 데이터: ${allRecords.length}개`);
+
+                // AttendanceImages 데이터를 participant ID를 키로 하는 객체로 변환
+                attendanceData = {};
+                allRecords.forEach(record => {
+                    // 첫 번째 레코드의 필드 구조 확인 (디버깅용)
+                    if (Object.keys(attendanceData).length === 0) {
+                        console.log('AttendanceImages 필드 목록:', Object.keys(record.fields));
+                        console.log('AttendanceImages 첫 번째 레코드:', record.fields);
+                    }
+
+                    const participantID = record.fields.participantID;
+                    if (participantID) {
+                        // attendanceStatus 필드명 확인 - 가능한 필드명들 체크
+                        // AttendanceImages 테이블의 정확한 필드명 사용
+                        const status = record.fields.attendanceStatus ||
+                                      record.fields.AttendanceStatus ||
+                                      record.fields['attendance-status'] ||
+                                      record.fields.status ||
+                                      '';
+
+                        // 디버깅: 각 레코드의 attendanceStatus 값 확인
+                        if (status) {
+                            console.log(`ID ${participantID}: attendanceStatus = '${status}'`);
+                        }
+
+                        attendanceData[participantID] = {
+                            'A-ID': record.fields['A-ID'] || '',
+                            attendanceStatus: status,
+                            checkinTime: record.fields.checkinTime || '',
+                            actualCheckinTime: record.fields.actualCheckinTime || ''
+                        };
+                    }
+                });
+
+                console.log('AttendanceImages 데이터 처리 완료:', attendanceData);
+            }).catch(error => {
+                console.warn('AttendanceImages 데이터 로드 실패:', error.message);
+                // AttendanceImages 로드 실패는 경고만 하고 계속 진행
+                attendanceData = {};
+            });
+        }
+
+        // Airtable에서 데이터 가져오기
+        async function fetchAirtableData() {
+            return ErrorHandler.handle(async () => {
+                console.log('Airtable 데이터 가져오기 시작...');
+                console.log('API URL:', AIRTABLE_API_URL);
+
+                let allRecords = [];
+                let offset = '';
+                // 페이지네이션을 통해 모든 레코드 가져오기
+                do {
+                    const url = offset
+                        ? `${AIRTABLE_API_URL}?pageSize=100&offset=${offset}`
+                        : `${AIRTABLE_API_URL}?pageSize=100`;
+
+                    const response = await ErrorHandler.fetchWithErrorHandling(url, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+                            'Content-Type': 'application/json'
+                        },
+                        timeout: 30000
+                    });
+
+                    console.log('Response status:', response.status);
+
+                    const data = await response.json();
+                    console.log(`받은 레코드 수: ${data.records.length}`);
+
+                    allRecords = allRecords.concat(data.records);
+                    offset = data.offset || '';
+
+                } while (offset);
+
+                console.log(`전체 받은 데이터: ${allRecords.length}개`);
+
+                // 첫 번째 레코드의 필드 구조 확인 (디버깅용)
+                if (allRecords.length > 0) {
+                    console.log('첫 번째 레코드 필드 목록:', Object.keys(allRecords[0].fields));
+                    console.log('첫 번째 레코드 데이터:', allRecords[0].fields);
+                }
+
+                if (!allRecords || allRecords.length === 0) {
+                    console.log('레코드가 없습니다. 샘플 데이터를 사용합니다.');
+                    // 샘플 데이터 사용
+                    participantsData = [
+                        {ID: 1, setDate: "9/22", setTime: "13:00", name: "테스트 참가자 1", skinColor: "2(L)", skinTone: "Cool", phone: "010-1234-5678", email: "test1@example.com", 예비여부: false, PID: "P001", status: "Pending", requestDate: "", confirmedDate: "", desc: ""},
+                        {ID: 2, setDate: "9/22", setTime: "13:30", name: "테스트 참가자 2", skinColor: "3(LM)", skinTone: "Warm", phone: "010-2345-6789", email: "test2@example.com", 예비여부: false, PID: "P002", status: "Pending", requestDate: "", confirmedDate: "", desc: ""},
+                        {ID: 3, setDate: "9/23", setTime: "14:00", name: "테스트 참가자 3", skinColor: "4(M)", skinTone: "Neutral", phone: "010-3456-7890", email: "test3@example.com", 예비여부: true, PID: "P003", status: "Pending", requestDate: "", confirmedDate: "", desc: ""}
+                    ];
+                    document.getElementById('syncStatus').innerHTML = '⚠️ 샘플 데이터';
+                } else {
+                    // Airtable 데이터를 내부 형식으로 변환
+                    participantsData = allRecords.map((record, index) => {
+                        console.log('Processing record:', record);
+                        const recordID = record.fields.ID || (index + 1);
+                        airtableRecords[recordID] = record.id;
+
+                        // 날짜 포맷 변환 (2025-09-22 -> 9/22)
+                        let formattedDate = record.fields.setDate || '';
+                        if (formattedDate && formattedDate.includes('-')) {
+                            const dateParts = formattedDate.split('-');
+                            if (dateParts.length === 3) {
+                                const month = parseInt(dateParts[1]);
+                                const day = parseInt(dateParts[2]);
+                                formattedDate = `${month}/${day}`;
+                            }
+                        }
+
+                        // 시간 텍스트 처리 (single text field)
+                        // DB에 "13:00", "13:30", "14:00" 형식으로 저장됨
+                        // 가능한 필드명들 확인: setTime, time, Time, 시간
+                        let formattedTime = record.fields.setTime || record.fields.time || record.fields.Time || record.fields['시간'] || '';
+                        console.log(`ID ${record.fields.ID}: 시간 필드 확인 - setTime='${record.fields.setTime}', time='${record.fields.time}', Time='${record.fields.Time}', 시간='${record.fields['시간']}'`);
+
+                        // 텍스트로 저장된 시간을 그대로 사용 (이미 HH:MM 형식)
+                        // 공백 제거
+                        formattedTime = formattedTime.trim();
+
+                        // 만약 다른 형식이 있다면 변환
+                        if (formattedTime && !formattedTime.includes(':')) {
+                            // "1300" -> "13:00" 형식으로 변환 (필요시)
+                            if (formattedTime.length === 4) {
+                                formattedTime = formattedTime.substr(0, 2) + ':' + formattedTime.substr(2, 2);
+                            }
+                        }
+
+                        // 시간 형식 검증 및 정규화
+                        if (formattedTime && formattedTime.includes(':')) {
+                            const timeParts = formattedTime.split(':');
+                            if (timeParts.length === 2) {
+                                const hour = timeParts[0].padStart(2, '0');
+                                const minute = timeParts[1].padStart(2, '0');
+                                formattedTime = `${hour}:${minute}`;
+                            }
+                        }
+
+                        console.log(`ID ${record.fields.ID}: 변환된 시간 값 = '${formattedTime}'`);
+
+                        return {
+                            ID: recordID,
+                            setDate: formattedDate,
+                            setTime: formattedTime,
+                            name: record.fields.name || '',
+                            skinColor: record.fields.skinColor || '',
+                            skinTone: record.fields.skinTone || '',
+                            phone: record.fields.phone || '',
+                            email: record.fields.email || '',
+                            예비여부: record.fields.reserveStatus === true || record.fields.reserveStatus === 'true',
+                            PID: record.fields['P-ID'] || record.fields.PID || '',
+                            status: record.fields.status || 'Pending',  // 기본값을 영어로
+                            requestDate: record.fields.requestDate || '',
+                            confirmedDate: record.fields.confirmedDate || '',
+                            desc: record.fields.desc || ''
+                        };
+                    });
+                    document.getElementById('syncStatus').innerHTML = '✅ Airtable 연동';
+                }
+
+                console.log('처리된 데이터:', participantsData);
+
+                // AttendanceImages 데이터 로드 후 병합
+                await fetchAttendanceData();
+
+                // AttendanceImages 데이터를 participantsData에 병합
+                participantsData.forEach(participant => {
+                    const attendance = attendanceData[participant.ID];
+                    if (attendance) {
+                        participant['A-ID'] = attendance['A-ID'];
+                        participant.attendanceStatus = attendance.attendanceStatus;
+                        participant.checkinTime = attendance.checkinTime;
+                        participant.actualCheckinTime = attendance.actualCheckinTime;
+                    }
+                });
+
+                loadParticipants();
+                updateStats();
+            }, {
+                showNotification: true,
+                logError: true,
+                fallbackValue: null
+            }).catch(error => {
+                ErrorHandler.logError(error, { context: 'fetchAirtableData' });
+
+                // CORS 에러일 경우 안내
+                if (error.message.includes('Failed to fetch') || error.message.includes('CORS')) {
+                    ErrorHandler.showNotification('CORS 에러: 로컬에서는 샘플 데이터를 사용합니다. 배포 후 정상 작동합니다.', 'error');
+
+                    // 샘플 데이터로 대체
+                    participantsData = [
+                        {ID: 1, setDate: "9/22", setTime: "13:00", name: "샘플 참가자 1", skinColor: "2(L)", skinTone: "Cool", phone: "010-1234-5678", email: "sample1@example.com", 예비여부: false, PID: "P001", status: "대기", requestDate: "", confirmedDate: "", desc: ""},
+                        {ID: 2, setDate: "9/22", setTime: "13:30", name: "샘플 참가자 2", skinColor: "3(LM)", skinTone: "Warm", phone: "010-2345-6789", email: "sample2@example.com", 예비여부: false, PID: "P002", status: "대기", requestDate: "", confirmedDate: "", desc: ""},
+                        {ID: 3, setDate: "9/23", setTime: "14:00", name: "샘플 참가자 3", skinColor: "4(M)", skinTone: "Neutral", phone: "010-3456-7890", email: "sample3@example.com", 예비여부: true, PID: "P003", status: "대기", requestDate: "", confirmedDate: "", desc: ""}
+                    ];
+                    document.getElementById('syncStatus').innerHTML = '⚠️ 샘플 데이터 (CORS)';
+                    loadParticipants();
+                    updateStats();
+                } else {
+                    ErrorHandler.showNotification('Airtable 연결 실패: ' + error.message, 'error');
+                    document.getElementById('syncStatus').innerHTML = '❌ 연결 실패';
+                }
+            });
+        }
+
+        // Airtable 레코드 업데이트
+        async function updateAirtableRecord(participantId, fieldName, value) {
+            return ErrorHandler.handle(async () => {
+                const recordId = airtableRecords[participantId];
+                if (!recordId) {
+                    ErrorHandler.logError(new Error('Record ID not found'), { participantId, fieldName, value });
+                    return false;
+                }
+
+                console.log(`Airtable 업데이트 시작: Record ID=${recordId}, Field=${fieldName}, Value=${value}`);
+
+                // 날짜 필드 처리 - Date 타입 필드는 YYYY-MM-DD 형식 필요
+                let fieldValue = value;
+                if (fieldName === 'requestDate' || fieldName === 'confirmedDate' || fieldName === 'setDate') {
+                    if (value === '' || value === null || value === undefined) {
+                        fieldValue = null;
+                    } else if (value && !value.includes('-')) {
+                        // M/D 형식을 YYYY-MM-DD로 변환
+                        const [month, day] = value.split('/');
+                        const year = new Date().getFullYear();
+                        fieldValue = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                    }
+                }
+                const response = await ErrorHandler.fetchWithErrorHandling(`${AIRTABLE_API_URL}/${recordId}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        fields: {
+                            [fieldName]: fieldValue
+                        }
+                    }),
+                    timeout: 30000
+                });
+
+                const result = await response.json();
+                console.log('Airtable 업데이트 성공:', result);
+                return true;
+            }, {
+                showNotification: true,
+                logError: true,
+                fallbackValue: false
+            });
+        }
+
+        // Airtable에 새 레코드 추가
+        async function createAirtableRecord(participant) {
+            // Convert date to YYYY-MM-DD format for Airtable
+            let airtableDate = participant.setDate;
+            if (airtableDate && !airtableDate.includes('-')) {
+                // Convert M/D to YYYY-MM-DD
+                const [month, day] = airtableDate.split('/');
+                const year = new Date().getFullYear();
+                airtableDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+            }
+
+            const requestBody = {
+                records: [{
+                    fields: {
+                        // ID는 Airtable에서 자동 생성되므로 제외
+                        name: SecurityUtils.sanitizeInput(participant.name, 'korean_name'),
+                        setDate: airtableDate,  // Date field expects YYYY-MM-DD format
+                        setTime: SecurityUtils.sanitizeInput(participant.setTime, 'time'),
+                        skinColor: SecurityUtils.sanitizeInput(participant.skinColor, 'alphanumeric'),
+                        skinTone: SecurityUtils.sanitizeInput(participant.skinTone || '', 'alphanumeric'),
+                        phone: SecurityUtils.sanitizeInput(participant.phone || '', 'phone'),
+                        email: SecurityUtils.sanitizeInput(participant.email || '', 'email'),
+                        reserveStatus: participant.예비여부 ? true : false,
+                        'P-ID': SecurityUtils.sanitizeInput(participant.PID || '', 'id'),
+                        'A-ID': participant['A-ID'] || '',  // A-ID 필드 추가
+                        status: SecurityUtils.sanitizeInput(participant.status || 'Pending', 'alphanumeric'),
+                        requestDate: participant.requestDate || null,
+                        confirmedDate: participant.confirmedDate || null,
+                        changeTime: participant.changeTime || null,
+                        desc: SecurityUtils.sanitizeInput(participant.desc || '', 'text')
+                    }
+                }]
+            };
+
+            console.log('Sending to Airtable:', JSON.stringify(requestBody, null, 2));
+
+            // 직접 fetch를 사용하여 더 자세한 오류 정보 얻기
+            try {
+                const response = await fetch(AIRTABLE_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                console.log('Response status:', response.status);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Airtable Error Response:', errorText);
+
+                    try {
+                        const errorJson = JSON.parse(errorText);
+                        console.error('Airtable Error Details:', errorJson);
+
+                        if (errorJson.error) {
+                            if (errorJson.error.type === 'INVALID_REQUEST_UNKNOWN') {
+                                console.error('Unknown field in request. Check if all fields exist in Airtable.');
+                            } else if (errorJson.error.type === 'INVALID_VALUE_FOR_COLUMN') {
+                                console.error('Invalid value for a column. Check field types and values.');
+                            }
+
+                            throw new Error(`Airtable Error: ${JSON.stringify(errorJson.error)}`);
+                        }
+                    } catch (e) {
+                        console.error('Could not parse error as JSON:', e);
+                    }
+
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+
+                const data = await response.json();
+                if (data.records && data.records.length > 0) {
+                    const createdRecord = data.records[0];
+                    // Airtable이 자동 생성한 ID를 가져옴
+                    if (createdRecord.fields.ID) {
+                        participant.ID = createdRecord.fields.ID;
+                    }
+                    // Record ID 저장
+                    airtableRecords[participant.ID] = createdRecord.id;
+                }
+
+                return true;
+            } catch (error) {
+                console.error('Airtable Create Error:', error);
+                console.error('Request was:', requestBody);
+                throw error;
+            }
+        }
+
+        // 기본 함수들
+        function loadParticipants() {
+            const tbody = document.getElementById('tableBody');
+            const dateFilter = document.getElementById('dateFilter').value;
+            const timeFilter = document.getElementById('timeFilter').value;
+            const targetFilter = document.getElementById('targetFilter').value;
+            const toneFilter = document.getElementById('toneFilter').value;
+            const attendanceStatusFilter = document.getElementById('attendanceStatusFilter').value;
+            const feedbackFilter = document.getElementById('feedbackFilter').value;
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+
+            let filtered = participantsData.filter(p => {
+                if (dateFilter && p.setDate !== dateFilter) return false;
+                if (timeFilter && p.setTime !== timeFilter) return false;
+                if (targetFilter && p.skinColor !== targetFilter) return false;
+                if (toneFilter && p.skinTone !== toneFilter) return false;
+                if (attendanceStatusFilter) {
+                    if (attendanceStatusFilter === 'Pending') {
+                        // Pending 필터 선택시: 값이 없거나 Pending인 경우 표시
+                        if (p.attendanceStatus && p.attendanceStatus !== '' && p.attendanceStatus !== 'Pending') return false;
+                    } else {
+                        // 다른 상태 필터 선택시: 정확히 일치하는 경우만 표시
+                        if (p.attendanceStatus !== attendanceStatusFilter) return false;
+                    }
+                }
+                if (feedbackFilter && p.status !== feedbackFilter) return false;
+                if (searchTerm && !p.name.toLowerCase().includes(searchTerm)) return false;
+                return true;
+            });
+
+            // 날짜, 시간, ID 순으로 정렬
+            filtered.sort((a, b) => {
+                // 날짜를 숫자로 변환하는 함수 (M/D 형식)
+                const parseDate = (dateStr) => {
+                    if (!dateStr) return 99999;
+                    const parts = dateStr.split('/');
+                    if (parts.length === 2) {
+                        const month = parseInt(parts[0]);
+                        const day = parseInt(parts[1]);
+                        return month * 100 + day; // 예: 9/22 -> 922
+                    }
+                    return 99999;
+                };
+
+                // 시간을 숫자로 변환하는 함수 (HH:MM 형식)
+                const parseTime = (timeStr) => {
+                    if (!timeStr) return 9999;
+                    // "13:00" -> 1300, "13:30" -> 1330
+                    const timeParts = timeStr.split(':');
+                    if (timeParts.length === 2) {
+                        const hour = parseInt(timeParts[0]) || 0;
+                        const minute = parseInt(timeParts[1]) || 0;
+                        return hour * 100 + minute;
+                    }
+                    return 9999;
+                };
+
+                // 1. 먼저 날짜로 비교
+                const dateA = parseDate(a.setDate);
+                const dateB = parseDate(b.setDate);
+
+                if (dateA !== dateB) {
+                    return dateA - dateB;
+                }
+
+                // 2. 날짜가 같으면 시간으로 비교
+                const timeA = parseTime(a.setTime);
+                const timeB = parseTime(b.setTime);
+
+                if (timeA !== timeB) {
+                    return timeA - timeB;
+                }
+
+                // 3. 날짜와 시간이 같으면 ID로 비교
+                return (a.ID || 0) - (b.ID || 0);
+            });
+
+            const html = filtered.map(p => {
+                // 출석 상태에 따른 배지 스타일 결정 - 톤 배지와 동일한 스타일, 부드러운 색상
+                let attendanceBadge = '';
+                if (p.attendanceStatus === 'Attended') {
+                    attendanceBadge = '<span style="display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; background: #5cb85c; color: white;">Attended</span>';
+                } else if (p.attendanceStatus === 'No-show') {
+                    attendanceBadge = '<span style="display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; background: #d9534f; color: white;">No-show</span>';
+                } else {
+                    // Pending이거나 값이 없는 경우 모두 Pending으로 표시
+                    attendanceBadge = '<span style="display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; background: #f0ad4e; color: white;">Pending</span>';
+                }
+
+                return `
+                <tr class="${p.예비여부 ? 'reserve-row' : ''}">
+                    <td>${p.ID}</td>
+                    <td><span class="pid-badge">${p.PID || '대기'}</span></td>
+                    <td><span style="font-weight: bold; color: #1976d2;">${p['A-ID'] || '-'}</span></td>
+                    <td>${p.setDate}</td>
+                    <td>${p.setTime}</td>
+                    <td>
+                        ${p.name}
+                        ${p.예비여부 ? '<span class="reserve-badge">예비</span>' : ''}
+                    </td>
+                    <td>${p.skinColor}</td>
+                    <td>${p.skinTone ? `<span class="tone-badge tone-${p.skinTone.toLowerCase()}">${p.skinTone}</span>` : '-'}</td>
+                    <td>${p.phone?.substring(0, 15) || '-'}</td>
+                    <td>${p.email?.substring(0, 25) || '-'}</td>
+                    <td>${p.예비여부 ? '예비' : '정규'}</td>
+                    <td>${attendanceBadge}</td>
+                    <td>
+                        <select onchange="updateFeedbackStatus(${p.ID}, this.value)" style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
+                            <option value="Pending" ${p.status === 'Pending' || p.status === '대기' ? 'selected' : ''}>🔄 Pending</option>
+                            <option value="Ongoing" ${p.status === 'Ongoing' || p.status === '진행중' ? 'selected' : ''}>🔧 Ongoing</option>
+                            <option value="Sent" ${p.status === 'Sent' || p.status === '전송' ? 'selected' : ''}>📤 Sent</option>
+                            <option value="Confirmed" ${p.status === 'Confirmed' || p.status === '확정' ? 'selected' : ''}>✅ Confirmed</option>
+                            <option value="Requested" ${p.status === 'Requested' || p.status === '수정요청' ? 'selected' : ''}>📝 Requested</option>
+                            <option value="Cancelled" ${p.status === 'Cancelled' || p.status === '취소' ? 'selected' : ''}>❌ Cancelled</option>
+                            <option value="Duplicate" ${p.status === 'Duplicate' ? 'selected' : ''}>🔁 Duplicate</option>
+                        </select>
+                    </td>
+                    <td>
+                        <input type="date" value="${p.requestDate || ''}" onchange="updateRequestDate(${p.ID}, this.value)" style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; width: 110px;">
+                    </td>
+                    <td>
+                        <input type="date" value="${p.confirmedDate || ''}" onchange="updateConfirmDate(${p.ID}, this.value)" style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; width: 110px;">
+                    </td>
+                    <td>
+                        <select onchange="updateChangeTime(${p.ID}, this.value)" style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; width: 90px;" ${p.status === 'Confirmed' || p.status === '확정' ? '' : 'disabled'}>
+                            <option value="">-</option>
+                            <option value="13:00" ${p.changeTime === '13:00' ? 'selected' : ''}>13:00</option>
+                            <option value="13:30" ${p.changeTime === '13:30' ? 'selected' : ''}>13:30</option>
+                            <option value="14:00" ${p.changeTime === '14:00' ? 'selected' : ''}>14:00</option>
+                            <option value="14:30" ${p.changeTime === '14:30' ? 'selected' : ''}>14:30</option>
+                            <option value="15:00" ${p.changeTime === '15:00' ? 'selected' : ''}>15:00</option>
+                            <option value="15:30" ${p.changeTime === '15:30' ? 'selected' : ''}>15:30</option>
+                            <option value="16:00" ${p.changeTime === '16:00' ? 'selected' : ''}>16:00</option>
+                            <option value="16:30" ${p.changeTime === '16:30' ? 'selected' : ''}>16:30</option>
+                        </select>
+                    </td>
+                    <td>
+                        <input type="text" value="${p.desc || ''}" onchange="updateNotes(${p.ID}, this.value)" placeholder="비고..." style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; width: 160px;">
+                    </td>
+                </tr>
+                `;
+            }).join('');
+
+            tbody.innerHTML = html || '<tr><td colspan="17" style="text-align: center; padding: 40px;">필터 조건에 맞는 데이터가 없습니다</td></tr>';
+
+            document.getElementById('displayCount').textContent = filtered.length;
+            document.getElementById('totalParticipants').textContent = participantsData.length;
+
+            // 필터 변경시 통계 업데이트
+            updateStats();
+        }
+
+        function updateStats() {
+            // 현재 필터된 데이터 가져오기
+            const dateFilter = document.getElementById('dateFilter').value;
+            const timeFilter = document.getElementById('timeFilter').value;
+            const targetFilter = document.getElementById('targetFilter').value;
+            const toneFilter = document.getElementById('toneFilter').value;
+            const attendanceStatusFilter = document.getElementById('attendanceStatusFilter').value;
+            const feedbackFilter = document.getElementById('feedbackFilter').value;
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+
+            // 필터 적용
+            let filtered = participantsData.filter(p => {
+                if (dateFilter && p.setDate !== dateFilter) return false;
+                if (timeFilter && p.setTime !== timeFilter) return false;
+                if (targetFilter && p.skinColor !== targetFilter) return false;
+                if (toneFilter && p.skinTone !== toneFilter) return false;
+                if (attendanceStatusFilter) {
+                    if (attendanceStatusFilter === 'Pending') {
+                        // Pending 필터 선택시: 값이 없거나 Pending인 경우 표시
+                        if (p.attendanceStatus && p.attendanceStatus !== '' && p.attendanceStatus !== 'Pending') return false;
+                    } else {
+                        // 다른 상태 필터 선택시: 정확히 일치하는 경우만 표시
+                        if (p.attendanceStatus !== attendanceStatusFilter) return false;
+                    }
+                }
+                if (feedbackFilter && p.status !== feedbackFilter) return false;
+                if (searchTerm && !p.name.toLowerCase().includes(searchTerm)) return false;
+                return true;
+            });
+
+            // Duplicate 상태를 제외한 데이터만 집계 대상
+            const nonDuplicateFiltered = filtered.filter(p => p.status !== 'Duplicate');
+
+            // 기본 통계 (Duplicate 제외)
+            const total = nonDuplicateFiltered.length;
+            const regular = nonDuplicateFiltered.filter(p => !p.예비여부).length;
+            const reserve = nonDuplicateFiltered.filter(p => p.예비여부).length;
+            const matched = nonDuplicateFiltered.filter(p => p.PID && p.PID !== '').length;
+            const matchRate = total > 0 ? Math.round((matched / total) * 100) : 0;
+
+            const requestCount = nonDuplicateFiltered.filter(p => p.requestDate && p.requestDate.trim() !== '').length;
+            const confirmCount = nonDuplicateFiltered.filter(p => p.confirmedDate && p.confirmedDate.trim() !== '').length;
+
+            // 출석 통계 추가
+            const checkedInCount = nonDuplicateFiltered.filter(p => p.attendanceStatus === 'Attended').length;
+            const noShowCount = nonDuplicateFiltered.filter(p => p.attendanceStatus === 'No-show').length;
+            const pendingAttendanceCount = nonDuplicateFiltered.filter(p => !p.attendanceStatus || p.attendanceStatus === '' || p.attendanceStatus === 'Pending').length;
+            const aidIssuedCount = nonDuplicateFiltered.filter(p => p['A-ID'] && p['A-ID'] !== '').length;
+            const aidRate = total > 0 ? Math.round((aidIssuedCount / total) * 100) : 0;
+
+            // 피드백 상태별 집계 (필터된 데이터 기준)
+            const pendingCount = filtered.filter(p => p.status === 'Pending' || p.status === '대기').length;
+            const ongoingCount = filtered.filter(p => p.status === 'Ongoing' || p.status === '진행중').length;
+            const sentCount = filtered.filter(p => p.status === 'Sent' || p.status === '전송').length;
+            const confirmedStatusCount = filtered.filter(p => p.status === 'Confirmed' || p.status === '확정').length;
+            const requestedCount = filtered.filter(p => p.status === 'Requested' || p.status === '수정요청').length;
+            const cancelledCount = filtered.filter(p => p.status === 'Cancelled' || p.status === '취소').length;
+            const duplicateCount = filtered.filter(p => p.status === 'Duplicate').length;
+
+            // 기본 통계 업데이트
+            document.getElementById('totalCount').textContent = total;
+            document.getElementById('totalDetail').textContent = `정규: ${regular} | 예비: ${reserve}`;
+            document.getElementById('matchedCount').textContent = matched;
+            document.getElementById('matchRate').textContent = `${matchRate}%`;
+            document.getElementById('requestConfirmCount').textContent = `${requestCount}/${confirmCount}`;
+            document.getElementById('requestConfirmDetail').textContent = `요청: ${requestCount}건 | 확정: ${confirmCount}건`;
+
+            // 출석 통계 업데이트
+            document.getElementById('attendanceCount').textContent = `${checkedInCount}/${total}`;
+            document.getElementById('attendanceDetail').textContent = `체크인: ${checkedInCount} | 미참석: ${noShowCount}`;
+            document.getElementById('aidCount').textContent = aidIssuedCount;
+            document.getElementById('aidDetail').textContent = `발급률: ${aidRate}%`;
+
+            // 선택된 날짜 표시
+            if (dateFilter) {
+                document.getElementById('selectedDateDisplay').textContent = `- ${dateFilter}`;
+            } else {
+                document.getElementById('selectedDateDisplay').textContent = '- 전체';
+            }
+
+            // 날짜별 분포 업데이트 (필터 적용시)
+            if (dateFilter) {
+                document.getElementById('dateDistribution').textContent = dateFilter;
+                document.getElementById('dateDistributionDetail').textContent = `${total}명`;
+            } else {
+                // 전체 날짜 분포 계산 (Duplicate 제외)
+                const dateCounts = {};
+                nonDuplicateFiltered.forEach(p => {
+                    if (p.setDate) {
+                        dateCounts[p.setDate] = (dateCounts[p.setDate] || 0) + 1;
+                    }
+                });
+                const uniqueDates = Object.keys(dateCounts).length;
+                document.getElementById('dateDistribution').textContent = `${uniqueDates}일`;
+                const dateDetail = Object.entries(dateCounts)
+                    .sort((a, b) => a[0].localeCompare(b[0]))
+                    .map(([date, count]) => `${date}: ${count}명`)
+                    .join(' | ');
+                document.getElementById('dateDistributionDetail').textContent = dateDetail || '날짜별 분포';
+            }
+
+            // 피드백 상태 통계 업데이트
+            document.getElementById('pendingCount').textContent = pendingCount;
+            document.getElementById('pendingPercent').textContent = total > 0 ? `${Math.round((pendingCount / total) * 100)}%` : '0%';
+
+            document.getElementById('ongoingCount').textContent = ongoingCount;
+            document.getElementById('ongoingPercent').textContent = total > 0 ? `${Math.round((ongoingCount / total) * 100)}%` : '0%';
+
+            document.getElementById('sentCount').textContent = sentCount;
+            document.getElementById('sentPercent').textContent = total > 0 ? `${Math.round((sentCount / total) * 100)}%` : '0%';
+
+            document.getElementById('confirmedCount').textContent = confirmedStatusCount;
+            document.getElementById('confirmedPercent').textContent = total > 0 ? `${Math.round((confirmedStatusCount / total) * 100)}%` : '0%';
+
+            document.getElementById('requestedCount').textContent = requestedCount;
+            document.getElementById('requestedPercent').textContent = total > 0 ? `${Math.round((requestedCount / total) * 100)}%` : '0%';
+
+            document.getElementById('cancelledCount').textContent = cancelledCount;
+            document.getElementById('cancelledPercent').textContent = total > 0 ? `${Math.round((cancelledCount / total) * 100)}%` : '0%';
+
+            document.getElementById('duplicateCount').textContent = duplicateCount;
+            document.getElementById('duplicatePercent').textContent = total > 0 ? `${Math.round((duplicateCount / total) * 100)}%` : '0%';
+        }
+
+        async function updateFeedbackStatus(participantId, newStatus) {
+            return ErrorHandler.handle(async () => {
+                const participant = participantsData.find(p => p.ID === participantId);
+                if (!participant) {
+                    throw new Error('참가자를 찾을 수 없습니다.');
+                }
+
+                console.log(`피드백 상태 변경: ID ${participantId}, ${participant.status} -> ${newStatus}`);
+                participant.status = newStatus;
+
+                // Airtable 업데이트 - 영어 값 전송
+                const success = await updateAirtableRecord(participantId, 'status', newStatus);
+                if (success) {
+                    ErrorHandler.showNotification(`${participant.name}의 피드백 상태가 '${newStatus}'로 변경되었습니다.`, 'success');
+                    console.log(`Airtable 업데이트 성공: ID ${participantId}`);
+                } else {
+                    ErrorHandler.showNotification(`${participant.name}의 피드백 상태 저장 실패\n(Airtable의 status 필드에 ${newStatus} 옵션이 있는지 확인하세요)`, 'error');
+                    // 로컬 상태는 유지
+                }
+                updateStats();
+            }, {
+                showNotification: true,
+                logError: true
+            });
+        }
+
+        async function updateRequestDate(participantId, newDate) {
+            return ErrorHandler.handle(async () => {
+                const participant = participantsData.find(p => p.ID === participantId);
+                if (!participant) {
+                    throw new Error('참가자를 찾을 수 없습니다.');
+                }
+
+                participant.requestDate = newDate;
+
+                // Airtable 업데이트 - 빈 문자열 대신 null 전송
+                const valueToSend = (newDate === '' || newDate === null) ? null : newDate;
+                const success = await updateAirtableRecord(participantId, 'requestDate', valueToSend);
+
+                if (newDate && newDate.trim() !== '') {
+                    participant.status = 'Requested';
+                    await updateAirtableRecord(participantId, 'status', 'Requested');
+                    loadParticipants(); // 화면 새로고침
+                }
+
+                if (success) {
+                    ErrorHandler.showNotification(`${participant.name}의 요청일자가 업데이트되었습니다.`, 'success');
+                }
+                updateStats();
+            }, {
+                showNotification: true,
+                logError: true
+            });
+        }
+
+        async function updateConfirmDate(participantId, newDate) {
+            return ErrorHandler.handle(async () => {
+                const participant = participantsData.find(p => p.ID === participantId);
+                if (!participant) {
+                    throw new Error('참가자를 찾을 수 없습니다.');
+                }
+
+                participant.confirmedDate = newDate;
+
+                // Airtable 업데이트 - 빈 문자열 대신 null 전송
+                const valueToSend = (newDate === '' || newDate === null) ? null : newDate;
+                const success = await updateAirtableRecord(participantId, 'confirmedDate', valueToSend);
+
+                if (newDate && newDate.trim() !== '') {
+                    participant.status = 'Confirmed';
+                    await updateAirtableRecord(participantId, 'status', 'Confirmed');
+                    loadParticipants(); // 화면 새로고침
+                }
+
+                if (success) {
+                    ErrorHandler.showNotification(`${participant.name}의 확정일자가 업데이트되었습니다.`, 'success');
+                }
+                updateStats();
+            }, {
+                showNotification: true,
+                logError: true
+            });
+        }
+
+        async function updateChangeTime(participantId, newTime) {
+            return ErrorHandler.handle(async () => {
+                const participant = participantsData.find(p => p.ID === participantId);
+                if (!participant) {
+                    throw new Error('참가자를 찾을 수 없습니다.');
+                }
+
+                participant.changeTime = newTime;
+
+                // Airtable에 changeTime 업데이트
+                const success = await updateAirtableRecord(participantId, 'changeTime', newTime);
+
+                // 3가지 조건 확인: Confirmed 상태, 확정일자 있음, 시간변경 선택됨
+                if ((participant.status === 'Confirmed' || participant.status === '확정') &&
+                    participant.confirmedDate &&
+                    participant.confirmedDate.trim() !== '' &&
+                    newTime && newTime !== '') {
+
+                    // setDate를 confirmedDate로 변경
+                    const oldDate = participant.setDate;
+                    const oldTime = participant.setTime;
+
+                    // confirmedDate를 YYYY-MM-DD 형식으로 변환 (Airtable 저장용)
+                    let newDateForAirtable = participant.confirmedDate;
+                    let displayDate = participant.confirmedDate;
+
+                    console.log('시간변경 처리 시작:', {
+                        confirmedDate: participant.confirmedDate,
+                        currentSetDate: participant.setDate,
+                        newTime: newTime
+                    });
+
+                    // confirmedDate가 YYYY-MM-DD 형식인 경우
+                    if (newDateForAirtable && newDateForAirtable.includes('-')) {
+                        // 이미 YYYY-MM-DD 형식이므로 그대로 사용
+                        const [year, month, day] = newDateForAirtable.split('-');
+                        displayDate = `${parseInt(month)}/${parseInt(day)}`; // M/D 형식으로 변환
+                        console.log('YYYY-MM-DD 형식 감지:', newDateForAirtable, '→', displayDate);
+                    }
+                    // confirmedDate가 M/D 형식인 경우
+                    else if (newDateForAirtable && newDateForAirtable.includes('/')) {
+                        const [month, day] = newDateForAirtable.split('/');
+                        const year = new Date().getFullYear();
+                        newDateForAirtable = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                        displayDate = `${parseInt(month)}/${parseInt(day)}`; // M/D 형식 유지
+                        console.log('M/D 형식 감지:', participant.confirmedDate, '→', newDateForAirtable);
+                    }
+
+                    console.log('최종 날짜 형식:', {
+                        airtableFormat: newDateForAirtable,
+                        displayFormat: displayDate
+                    });
+
+                    // 로컬 데이터 업데이트 (M/D 형식으로 저장)
+                    participant.setDate = displayDate;
+                    participant.setTime = newTime;
+
+                    // Airtable에 업데이트 (YYYY-MM-DD 형식으로)
+                    const dateUpdateSuccess = await updateAirtableRecord(participantId, 'setDate', newDateForAirtable);
+                    const timeUpdateSuccess = await updateAirtableRecord(participantId, 'setTime', newTime);
+
+                    if (dateUpdateSuccess && timeUpdateSuccess) {
+                        ErrorHandler.showNotification(
+                            `${participant.name}의 예약이 변경되었습니다.\n` +
+                            `${oldDate} ${oldTime} → ${displayDate} ${newTime}`,
+                            'success'
+                        );
+
+                        // 옵션 1: 로컬 데이터만 업데이트하고 테이블 새로고침
+                        loadParticipants();
+
+                        // 옵션 2: 전체 데이터를 Airtable에서 다시 가져오기 (더 안전하지만 느림)
+                        // await fetchAirtableData();
+                        // 위 주석을 해제하면 전체 데이터를 다시 가져옵니다.
+                    } else {
+                        // 업데이트 실패시 원래 값으로 복원
+                        participant.setDate = oldDate;
+                        participant.setTime = oldTime;
+                        ErrorHandler.showNotification('예약 변경 중 오류가 발생했습니다.', 'error');
+                    }
+                } else if (success) {
+                    ErrorHandler.showNotification(`${participant.name}의 시간변경 옵션이 저장되었습니다.`, 'success');
+                }
+            }, {
+                showNotification: true,
+                logError: true
+            });
+        }
+
+        async function updateNotes(participantId, newNotes) {
+            return ErrorHandler.handle(async () => {
+                const participant = participantsData.find(p => p.ID === participantId);
+                if (!participant) {
+                    throw new Error('참가자를 찾을 수 없습니다.');
+                }
+
+                // Sanitize input
+                const sanitizedNotes = SecurityUtils.sanitizeInput(newNotes, 'text');
+                participant.desc = sanitizedNotes;
+
+                // Airtable 업데이트
+                await updateAirtableRecord(participantId, 'desc', sanitizedNotes);
+            }, {
+                showNotification: false,
+                logError: true
+            });
+        }
+
+        function showNotification(message, type = 'success') {
+            ErrorHandler.showNotification(message, type);
+        }
+
+        function showCSVData() {
+            // 현재 필터 조건 가져오기
+            const dateFilter = document.getElementById('dateFilter').value;
+            const timeFilter = document.getElementById('timeFilter').value;
+            const targetFilter = document.getElementById('targetFilter').value;
+            const toneFilter = document.getElementById('toneFilter').value;
+            const attendanceStatusFilter = document.getElementById('attendanceStatusFilter').value;
+            const feedbackFilter = document.getElementById('feedbackFilter').value;
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+
+            // 필터 적용
+            let filtered = participantsData.filter(p => {
+                if (dateFilter && p.setDate !== dateFilter) return false;
+                if (timeFilter && p.setTime !== timeFilter) return false;
+                if (targetFilter && p.skinColor !== targetFilter) return false;
+                if (toneFilter && p.skinTone !== toneFilter) return false;
+                if (attendanceStatusFilter) {
+                    if (attendanceStatusFilter === 'Pending') {
+                        // Pending 필터 선택시: 값이 없거나 Pending인 경우 표시
+                        if (p.attendanceStatus && p.attendanceStatus !== '' && p.attendanceStatus !== 'Pending') return false;
+                    } else {
+                        // 다른 상태 필터 선택시: 정확히 일치하는 경우만 표시
+                        if (p.attendanceStatus !== attendanceStatusFilter) return false;
+                    }
+                }
+                if (feedbackFilter && p.status !== feedbackFilter) return false;
+                if (searchTerm && !p.name.toLowerCase().includes(searchTerm)) return false;
+                return true;
+            });
+
+            // 날짜, 시간, ID 순으로 정렬
+            filtered.sort((a, b) => {
+                const parseDate = (dateStr) => {
+                    if (!dateStr) return 99999;
+                    const parts = dateStr.split('/');
+                    if (parts.length === 2) {
+                        const month = parseInt(parts[0]);
+                        const day = parseInt(parts[1]);
+                        return month * 100 + day;
+                    }
+                    return 99999;
+                };
+
+                const parseTime = (timeStr) => {
+                    if (!timeStr) return 9999;
+                    const timeParts = timeStr.split(':');
+                    if (timeParts.length === 2) {
+                        const hour = parseInt(timeParts[0]) || 0;
+                        const minute = parseInt(timeParts[1]) || 0;
+                        return hour * 100 + minute;
+                    }
+                    return 9999;
+                };
+
+                const dateA = parseDate(a.setDate);
+                const dateB = parseDate(b.setDate);
+                if (dateA !== dateB) return dateA - dateB;
+
+                const timeA = parseTime(a.setTime);
+                const timeB = parseTime(b.setTime);
+                if (timeA !== timeB) return timeA - timeB;
+
+                return (a.ID || 0) - (b.ID || 0);
+            });
+
+            const headers = ['ID', 'name', 'setDate', 'setTime', 'skinColor', 'skinTone', 'phone', 'email', 'reserveStatus', 'P-ID', 'A-ID', 'attendanceStatus', 'status', 'requestDate', 'confirmedDate', 'desc'];
+
+            let csvContent = headers.join(',') + '\n';
+
+            filtered.forEach(p => {
+                const row = [
+                    p.ID || '',
+                    `"${p.name || ''}"`,
+                    p.setDate || '',
+                    p.setTime || '',
+                    p.skinColor || '',
+                    p.skinTone || '',
+                    p.phone || '',
+                    p.email || '',
+                    p.예비여부 ? 'TRUE' : 'FALSE',
+                    p.PID || '',
+                    p['A-ID'] || '',
+                    p.attendanceStatus || '',
+                    p.status || '대기',
+                    p.requestDate || '',
+                    p.confirmedDate || '',
+                    `"${p.desc || ''}"`
+                ];
+                csvContent += row.join(',') + '\n';
+            });
+            
+            const modal = document.createElement('div');
+            modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+            modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;';
+            
+            const content = document.createElement('div');
+            content.onclick = (e) => e.stopPropagation();
+            content.style.cssText = 'background: white; margin: 50px auto; padding: 30px; border-radius: 12px; max-width: 90%; max-height: 80vh; overflow-y: auto;';
+            
+            content.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0;">📄 CSV 데이터 (필터링된 ${filtered.length}명)</h2>
+                    <button onclick="this.parentElement.parentElement.parentElement.remove()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #999;">×</button>
+                </div>
+                <textarea readonly style="width: 100%; height: 400px; font-family: monospace; font-size: 12px; border: 2px solid #e0e0e0; border-radius: 8px; padding: 10px;">${csvContent}</textarea>
+                <div style="margin-top: 15px; text-align: right;">
+                    <button onclick="navigator.clipboard.writeText(this.parentElement.previousElementSibling.value).then(() => { alert('✅ CSV 데이터가 클립보드에 복사되었습니다!'); })" style="padding: 10px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">📋 클립보드 복사</button>
+                </div>
+            `;
+            
+            modal.appendChild(content);
+            document.body.appendChild(modal);
+        }
+
+        function showAddParticipantForm() {
+            document.getElementById('addParticipantModal').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function hideAddParticipantForm() {
+            document.getElementById('addParticipantModal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+
+            // 폼 초기화 - 모든 필드를 비움
+            document.getElementById('newName').value = '';
+            document.getElementById('newDate').value = '';
+            document.getElementById('newTime').value = '';
+            document.getElementById('newTarget').value = '';
+            document.getElementById('newTone').value = '';
+            document.getElementById('newPhone').value = '';
+            document.getElementById('newEmail').value = '';
+            document.getElementById('newPID').value = '';
+            document.getElementById('newReserve').checked = false;
+            document.getElementById('newNotes').value = '';
+        }
+
+        function closeModalOnBackdrop(event) {
+            if (event.target === event.currentTarget) {
+                hideAddParticipantForm();
+            }
+        }
+
+        async function addNewParticipant() {
+            return ErrorHandler.handle(async () => {
+                const formData = {
+                    name: document.getElementById('newName').value,
+                    setDate: document.getElementById('newDate').value,
+                    setTime: document.getElementById('newTime').value,
+                    skinColor: document.getElementById('newTarget').value,
+                    skinTone: document.getElementById('newTone').value,
+                    phone: document.getElementById('newPhone').value,
+                    email: document.getElementById('newEmail').value,
+                    PID: document.getElementById('newPID').value,
+                    desc: document.getElementById('newNotes').value
+                };
+
+                console.log('Form data collected:', formData);
+
+                // Validate form data
+                const schema = {
+                    name: { required: true, type: 'korean_name', minLength: 2, maxLength: 50, label: '참가자명' },
+                    setDate: { required: true, type: 'date', label: '날짜' },
+                    setTime: { required: true, type: 'time', label: '시간' },
+                    skinColor: { required: true, type: 'alphanumeric', label: '타겟' },
+                    skinTone: { required: false, type: 'alphanumeric' },
+                    phone: { required: false, type: 'phone' },
+                    email: { required: false, type: 'email' },
+                    PID: { required: false, type: 'id' },
+                    desc: { required: false, type: 'text', maxLength: 500 }
+                };
+
+                const validation = SecurityUtils.validateFormData(formData, schema);
+                if (!validation.isValid) {
+                    const errorMessages = Object.values(validation.errors).join('\n');
+                    ErrorHandler.showNotification('입력 오류:\n' + errorMessages, 'error');
+                    return;
+                }
+
+                const maxId = Math.max(...participantsData.map(p => p.ID), 0);
+                const newId = maxId + 1;
+
+                // 날짜 표시용으로 변환 (2025-09-22 -> 9/22)
+                let displayDate = validation.data.setDate;
+                if (displayDate && displayDate.includes('-')) {
+                    const dateParts = displayDate.split('-');
+                    if (dateParts.length === 3) {
+                        const month = parseInt(dateParts[1]);
+                        const day = parseInt(dateParts[2]);
+                        displayDate = `${month}/${day}`;
+                    }
+                }
+
+                const newParticipant = {
+                    ID: newId,
+                    setDate: displayDate,  // 표시용 (9/22)
+                    setTime: validation.data.setTime,
+                    name: validation.data.name,
+                    skinColor: validation.data.skinColor,
+                    skinTone: validation.data.skinTone || '',
+                    phone: validation.data.phone || '',
+                    email: validation.data.email || '',
+                    예비여부: document.getElementById('newReserve').checked,
+                    PID: validation.data.PID || '',
+                    'A-ID': '',  // A-ID 필드 추가 (초기값은 빈 문자열)
+                    status: 'Pending',  // 영어 기본값
+                    requestDate: '',
+                    confirmedDate: '',
+                    changeTime: '',  // 시간변경 필드 추가
+                    desc: validation.data.desc || ''
+                };
+
+                // Airtable에 추가 (날짜 형식 확인)
+                const success = await createAirtableRecord(newParticipant);
+
+                if (success) {
+                    participantsData.push(newParticipant);
+                    loadParticipants();
+                    updateStats();
+                    hideAddParticipantForm();
+                    ErrorHandler.showNotification(`새 참가자 '${validation.data.name}'이 추가되었습니다! (ID: ${newId})`, 'success');
+                }
+            }, {
+                showNotification: true,
+                logError: true
+            });
+        }
+
+
+        // 이벤트 리스너 설정
+        function setupEventListeners() {
+            document.getElementById('dateFilter').addEventListener('change', loadParticipants);
+            document.getElementById('timeFilter').addEventListener('change', loadParticipants);
+            document.getElementById('targetFilter').addEventListener('change', loadParticipants);
+            document.getElementById('toneFilter').addEventListener('change', loadParticipants);
+            document.getElementById('attendanceStatusFilter').addEventListener('change', loadParticipants);
+            document.getElementById('feedbackFilter').addEventListener('change', loadParticipants);
+            document.getElementById('searchInput').addEventListener('input', loadParticipants);
+        }
+
+        // 페이지 로드시 초기화
+        document.addEventListener('DOMContentLoaded', async function() {
+            return ErrorHandler.handle(async () => {
+                // 사용자 정보 표시
+                if (currentUser) {
+                    document.getElementById('userInfo').textContent = `👤 ${SecurityUtils.sanitizeHTML(currentUser.fullName)} (${SecurityUtils.sanitizeHTML(currentUser.role)})`;
+                }
+
+                document.getElementById('tableBody').innerHTML = '<tr><td colspan="17" class="loading-indicator">Airtable에서 데이터를 로드하는 중...</td></tr>';
+                await fetchAirtableData();
+                setupEventListeners();
+            }, {
+                showNotification: true,
+                logError: true
+            });
+        });
+    </script>
+</body>
+</html>
