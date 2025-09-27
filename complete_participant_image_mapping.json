@@ -319,7 +319,7 @@
   },
   "A206": {
     "pid": "P092",
-    "name": "Akouba Leïla olivia Tanoé",
+    "name": "Akouba Le\u00efla olivia Tano\u00e9",
     "row": 43,
     "images": []
   },
@@ -559,7 +559,7 @@
   },
   "A401": {
     "pid": "P079",
-    "name": "Noh Pınar",
+    "name": "Noh P\u0131nar",
     "row": 83,
     "images": []
   },
@@ -861,6 +861,12 @@
     "pid": "P318",
     "name": "ONUIGBO ANULI ASHLEY CHINYELU",
     "row": 133,
+    "images": []
+  },
+  "A216": {
+    "pid": "P292",
+    "name": "GUAYASAMIN URQUIZO MARIA CRISTINA",
+    "row": 134,
     "images": []
   }
 }
