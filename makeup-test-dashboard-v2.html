@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Makeup Test CLT Dashboard - AP BeautyLink 2025</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 50%, #a1c4fd 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4);
+            animation: colorWave 3s ease-in-out infinite;
+        }
+
+        @keyframes colorWave {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(10px); }
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 36px;
+            margin-bottom: 15px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #f093fb 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header .subtitle {
+            color: #666;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .header .date {
+            color: #999;
+            font-size: 14px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        }
+
+        .stat-card .icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card.participants .icon { background: linear-gradient(135deg, #667eea, #764ba2); }
+        .stat-card.gender .icon { background: linear-gradient(135deg, #f093fb, #f5576c); }
+        .stat-card.ethnicity .icon { background: linear-gradient(135deg, #4facfe, #00f2fe); }
+        .stat-card.nationality .icon { background: linear-gradient(135deg, #43e97b, #38f9d7); }
+        .stat-card.age .icon { background: linear-gradient(135deg, #fa709a, #fee140); }
+        .stat-card.makeup .icon { background: linear-gradient(135deg, #30cfd0, #330867); }
+
+        .stat-card .label {
+            color: #999;
+            font-size: 14px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-card .value {
+            color: #333;
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+
+        .stat-card .details {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .chart-section {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+
+        .chart-section h2 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        .participants-table {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            overflow-x: auto;
+        }
+
+        .participants-table h2 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .search-box input {
+            flex: 1;
+            padding: 12px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .search-box select {
+            padding: 12px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        thead th {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        thead th:first-child {
+            border-radius: 10px 0 0 0;
+        }
+
+        thead th:last-child {
+            border-radius: 0 10px 0 0;
+        }
+
+        tbody td {
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+            vertical-align: middle;
+        }
+
+        tbody tr {
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .skin-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .skin-color-box {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            margin-right: 8px;
+            vertical-align: middle;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .tone-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .tone-badge.Cool { background: linear-gradient(135deg, #667eea, #764ba2); }
+        .tone-badge.Warm { background: linear-gradient(135deg, #f093fb, #f5576c); }
+        .tone-badge.Neutral { background: linear-gradient(135deg, #4facfe, #00f2fe); }
+        .tone-badge.Olive { background: linear-gradient(135deg, #43e97b, #38f9d7); }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Participant Detail Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: white;
+            margin: 2% auto;
+            max-width: 1200px;
+            max-height: 90vh;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 30px;
+            position: relative;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 28px;
+        }
+
+        .modal-header .subtitle {
+            margin-top: 5px;
+            opacity: 0.9;
+            font-size: 16px;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            color: white;
+            font-size: 35px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        .close-modal:hover {
+            transform: rotate(90deg);
+        }
+
+        .modal-body {
+            padding: 30px;
+            max-height: calc(90vh - 120px);
+            overflow-y: auto;
+        }
+
+        .participant-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .detail-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .detail-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .detail-item {
+            margin: 10px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .detail-label {
+            color: #666;
+            font-weight: 500;
+        }
+
+        .detail-value {
+            color: #333;
+            font-weight: 600;
+        }
+
+        .participant-images {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .participant-image {
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        .participant-image:hover {
+            transform: scale(1.05);
+        }
+
+        .participant-image img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .no-images {
+            text-align: center;
+            color: #999;
+            padding: 40px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 28px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .participant-detail-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>💄 Makeup Test CLT Dashboard</h1>
+            <div class="subtitle">Amore Pacific BeautyLink Study 2025</div>
+            <div class="date">Data Report: September 27, 2025</div>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="stats-grid">
+            <div class="stat-card participants">
+                <div class="icon">👥</div>
+                <div class="label">Total Participants</div>
+                <div class="value" id="totalParticipants">132</div>
+                <div class="details" id="participantDetails">Complete dataset analyzed</div>
+            </div>
+
+            <div class="stat-card gender">
+                <div class="icon">⚥</div>
+                <div class="label">Gender Distribution</div>
+                <div class="value" id="genderStat">100%</div>
+                <div class="details" id="genderDetails">Female participants</div>
+            </div>
+
+            <div class="stat-card ethnicity">
+                <div class="icon">🌍</div>
+                <div class="label">Ethnic Groups</div>
+                <div class="value" id="ethnicStat">10+</div>
+                <div class="details" id="ethnicDetails">Diverse representation</div>
+            </div>
+
+            <div class="stat-card nationality">
+                <div class="icon">🌏</div>
+                <div class="label">Nationalities</div>
+                <div class="value" id="nationalityStat">30+</div>
+                <div class="details" id="nationalityDetails">Global participants</div>
+            </div>
+
+            <div class="stat-card age">
+                <div class="icon">📅</div>
+                <div class="label">Age Range</div>
+                <div class="value" id="ageStat">20-40</div>
+                <div class="details" id="ageDetails">Birth years: 1984-2004</div>
+            </div>
+
+            <div class="stat-card makeup">
+                <div class="icon">💋</div>
+                <div class="label">Makeup Usage</div>
+                <div class="value" id="makeupStat">95%</div>
+                <div class="details" id="makeupDetails">Regular users</div>
+            </div>
+        </div>
+
+        <!-- Participants Table with Charts Inside -->
+        <div class="participants-table">
+            <h2>👤 Participant Details & Data Analysis</h2>
+
+            <!-- Search and Filter Controls -->
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search by name, P-ID, or A-ID...">
+                <select id="filterSkinColor">
+                    <option value="">All Skin Colors</option>
+                    <option value="1">1(F) - Fair</option>
+                    <option value="2">2(L) - Light</option>
+                    <option value="3">3(LM) - Light Medium</option>
+                    <option value="4">4(M) - Medium</option>
+                    <option value="5">5(MD) - Medium Deep</option>
+                    <option value="6">6(D) - Deep</option>
+                    <option value="7">7(R) - Rich</option>
+                </select>
+                <select id="filterSkinTone">
+                    <option value="">All Skin Tones</option>
+                    <option value="Cool">Cool</option>
+                    <option value="Neutral">Neutral</option>
+                    <option value="Warm">Warm</option>
+                    <option value="Olive">Olive</option>
+                </select>
+            </div>
+
+            <!-- Data Visualizations Grid -->
+            <div class="chart-section" style="margin-bottom: 30px;">
+                <h3 style="color: #667eea; margin-bottom: 20px;">📊 Data Visualizations</h3>
+                <div class="charts-grid">
+                    <div class="chart-container">
+                        <canvas id="skinColorChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="skinToneChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="ethnicityChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="makeupFrequencyChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="skinTypeChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="cushionUsageChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Participants List -->
+            <div style="overflow-x: auto;">
+                <table id="participantsTable">
+                    <thead>
+                        <tr>
+                            <th>A-ID</th>
+                            <th>P-ID</th>
+                            <th>Name</th>
+                            <th>Nationality</th>
+                            <th>Ethnicity</th>
+                            <th>Birth Year</th>
+                            <th>Skin Color</th>
+                            <th>Skin Tone</th>
+                            <th>Skin Type</th>
+                            <th>Set Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- Data will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Participant Detail Modal -->
+    <div id="participantModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="close-modal" onclick="closeParticipantModal()">&times;</span>
+                <h2 id="modalParticipantName">Participant Details</h2>
+                <div class="subtitle" id="modalParticipantId">A-ID: -</div>
+            </div>
+            <div class="modal-body">
+                <div class="participant-detail-grid">
+                    <!-- Personal Information -->
+                    <div class="detail-section">
+                        <h3>Personal Information</h3>
+                        <div id="personalInfo"></div>
+                    </div>
+
+                    <!-- Skin Analysis -->
+                    <div class="detail-section">
+                        <h3>Skin Analysis</h3>
+                        <div id="skinInfo"></div>
+                    </div>
+
+                    <!-- Makeup Preferences -->
+                    <div class="detail-section">
+                        <h3>Makeup Preferences</h3>
+                        <div id="makeupInfo"></div>
+                    </div>
+
+                    <!-- Survey Responses -->
+                    <div class="detail-section">
+                        <h3>Survey Responses</h3>
+                        <div id="surveyInfo"></div>
+                    </div>
+                </div>
+
+                <!-- Participant Images -->
+                <div class="detail-section" style="grid-column: 1 / -1; margin-top: 20px;">
+                    <h3>Participant Images</h3>
+                    <div id="participantImages" class="participant-images">
+                        <!-- Images will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Skin color definitions
+        const skinColorInfo = {
+            "1": { label: "Fair", hex: "#ffe8d6" },
+            "2": { label: "Light", hex: "#fdd4b2" },
+            "3": { label: "Light Medium", hex: "#f5b895" },
+            "4": { label: "Medium", hex: "#d4a574" },
+            "5": { label: "Medium Deep", hex: "#a67c52" },
+            "6": { label: "Deep", hex: "#8b6239" },
+            "7": { label: "Rich", hex: "#704214" }
+        };
+
+        let allParticipants = [];
+        let analysisData = null;
+        let imageMapping = {};
+        let charts = {};  // Store chart instances
+
+        // Load data on page load
+        window.addEventListener('DOMContentLoaded', async () => {
+            await loadAnalysisData();
+            await loadImageMapping();
+            await loadParticipantData();
+            initializeCharts();
+            initializeFilters();
+        });
+
+        // Load analysis data
+        async function loadAnalysisData() {
+            try {
+                const response = await fetch('excel_analysis.json');
+                if (response.ok) {
+                    analysisData = await response.json();
+                    updateStatistics();
+                }
+            } catch (error) {
+                console.error('Error loading analysis data:', error);
+            }
+        }
+
+        // Load image mapping
+        async function loadImageMapping() {
+            try {
+                const response = await fetch('participant_image_mapping.json');
+                if (response.ok) {
+                    imageMapping = await response.json();
+                    console.log('Image mapping loaded:', Object.keys(imageMapping).length, 'participants');
+                }
+            } catch (error) {
+                console.error('Error loading image mapping:', error);
+                // Fallback: create simple mapping
+                imageMapping = {};
+            }
+        }
+
+        // Load participant data
+        async function loadParticipantData() {
+            try {
+                const response = await fetch('excel_analysis.json');
+                if (response.ok) {
+                    const data = await response.json();
+                    allParticipants = data.participant_data || [];
+                    displayParticipants(allParticipants);
+                }
+            } catch (error) {
+                console.error('Error loading participant data:', error);
+            }
+        }
+
+        // Update statistics
+        function updateStatistics() {
+            if (!analysisData || !analysisData.summary_stats) return;
+
+            const stats = analysisData.summary_stats;
+
+            // Gender stats
+            if (stats.gender_distribution) {
+                const femaleCount = stats.gender_distribution['Female'] || 0;
+                const percentage = Math.round((femaleCount / analysisData.total_participants) * 100);
+                document.getElementById('genderStat').textContent = `${percentage}%`;
+                document.getElementById('genderDetails').textContent = `${femaleCount} female participants`;
+            }
+
+            // Ethnicity stats
+            if (stats.ethnic_distribution) {
+                const ethnicCount = Object.keys(stats.ethnic_distribution).length;
+                document.getElementById('ethnicStat').textContent = ethnicCount;
+                document.getElementById('ethnicDetails').textContent = `${ethnicCount} ethnic groups represented`;
+            }
+
+            // Nationality stats
+            if (stats.nationality_distribution) {
+                const nationalityCount = Object.keys(stats.nationality_distribution).length;
+                document.getElementById('nationalityStat').textContent = nationalityCount;
+                document.getElementById('nationalityDetails').textContent = `${nationalityCount} countries represented`;
+            }
+
+            // Age stats
+            if (stats.age_range) {
+                const currentYear = 2025;
+                const minAge = currentYear - stats.age_range.max_birth_year;
+                const maxAge = currentYear - stats.age_range.min_birth_year;
+                document.getElementById('ageStat').textContent = `${minAge}-${maxAge}`;
+                document.getElementById('ageDetails').textContent =
+                    `Birth years: ${stats.age_range.min_birth_year}-${stats.age_range.max_birth_year}`;
+            }
+        }
+
+        // Initialize charts
+        function initializeCharts() {
+            if (!analysisData || !analysisData.summary_stats) {
+                console.error('No analysis data available for charts');
+                return;
+            }
+
+            const stats = analysisData.summary_stats;
+
+            // Destroy existing charts if they exist
+            Object.values(charts).forEach(chart => {
+                if (chart) chart.destroy();
+            });
+
+            // Skin Color Distribution Chart
+            if (stats.brightness_distribution) {
+                const ctx = document.getElementById('skinColorChart');
+                if (ctx) {
+                    const labels = Object.keys(stats.brightness_distribution).sort();
+                    const data = labels.map(key => stats.brightness_distribution[key]);
+                    const colors = labels.map(key => skinColorInfo[key]?.hex || '#ccc');
+
+                    charts.skinColor = new Chart(ctx.getContext('2d'), {
+                        type: 'bar',
+                        data: {
+                            labels: labels.map(key => `${key}(${skinColorInfo[key]?.label || key})`),
+                            datasets: [{
+                                label: 'Participants',
+                                data: data,
+                                backgroundColor: colors,
+                                borderColor: colors,
+                                borderWidth: 2
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: 'Skin Color Distribution'
+                                },
+                                legend: {
+                                    display: false
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+
+            // Skin Tone Distribution Chart
+            if (stats.tone_distribution) {
+                const ctx = document.getElementById('skinToneChart');
+                if (ctx) {
+                    const toneColors = {
+                        'Cool': '#667eea',
+                        'Neutral': '#4facfe',
+                        'Warm': '#f093fb',
+                        'Olive': '#43e97b'
+                    };
+
+                    charts.skinTone = new Chart(ctx.getContext('2d'), {
+                        type: 'doughnut',
+                        data: {
+                            labels: Object.keys(stats.tone_distribution),
+                            datasets: [{
+                                data: Object.values(stats.tone_distribution),
+                                backgroundColor: Object.keys(stats.tone_distribution).map(tone => toneColors[tone] || '#ccc')
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: 'Skin Tone Distribution'
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+
+            // Ethnicity Chart
+            if (stats.ethnic_distribution) {
+                const ctx = document.getElementById('ethnicityChart');
+                if (ctx) {
+                    const sortedEthnic = Object.entries(stats.ethnic_distribution)
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, 10);
+
+                    charts.ethnicity = new Chart(ctx.getContext('2d'), {
+                        type: 'pie',
+                        data: {
+                            labels: sortedEthnic.map(item => item[0]),
+                            datasets: [{
+                                data: sortedEthnic.map(item => item[1]),
+                                backgroundColor: [
+                                    '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
+                                    '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF',
+                                    '#4BC0C0', '#FF9F40'
+                                ]
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: 'Top 10 Ethnic Groups'
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+
+            // Makeup Frequency Chart
+            if (stats.makeup_frequency) {
+                const ctx = document.getElementById('makeupFrequencyChart');
+                if (ctx) {
+                    charts.makeupFreq = new Chart(ctx.getContext('2d'), {
+                        type: 'bar',
+                        data: {
+                            labels: Object.keys(stats.makeup_frequency),
+                            datasets: [{
+                                label: 'Participants',
+                                data: Object.values(stats.makeup_frequency),
+                                backgroundColor: '#f093fb'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: 'Makeup Usage Frequency'
+                                },
+                                legend: {
+                                    display: false
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+
+            // Skin Type Chart
+            if (stats.skin_type_distribution) {
+                const ctx = document.getElementById('skinTypeChart');
+                if (ctx) {
+                    const labels = Object.keys(stats.skin_type_distribution);
+                    const shortenLabel = (label) => {
+                        if (label.includes('Combination')) return 'Combination';
+                        if (label.includes('Dry')) return 'Dry';
+                        if (label.includes('Oily')) return 'Oily';
+                        if (label.includes('Normal')) return 'Normal';
+                        return label;
+                    };
+
+                    charts.skinType = new Chart(ctx.getContext('2d'), {
+                        type: 'polarArea',
+                        data: {
+                            labels: labels.map(shortenLabel),
+                            datasets: [{
+                                data: Object.values(stats.skin_type_distribution),
+                                backgroundColor: [
+                                    'rgba(255, 99, 132, 0.5)',
+                                    'rgba(54, 162, 235, 0.5)',
+                                    'rgba(255, 206, 86, 0.5)',
+                                    'rgba(75, 192, 192, 0.5)',
+                                    'rgba(153, 102, 255, 0.5)'
+                                ]
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: 'Skin Type Distribution'
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+
+            // Cushion Usage Chart
+            if (stats.cushion_usage) {
+                const ctx = document.getElementById('cushionUsageChart');
+                if (ctx) {
+                    charts.cushion = new Chart(ctx.getContext('2d'), {
+                        type: 'doughnut',
+                        data: {
+                            labels: Object.keys(stats.cushion_usage),
+                            datasets: [{
+                                data: Object.values(stats.cushion_usage),
+                                backgroundColor: [
+                                    '#30cfd0',
+                                    '#330867',
+                                    '#fa709a'
+                                ]
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: 'Cushion Foundation Usage'
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+        }
+
+        // Display participants in table
+        function displayParticipants(participants) {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            participants.forEach(p => {
+                const row = document.createElement('tr');
+                const skinColor = p['밝기판정'] || '-';
+                const skinTone = p['톤'] || '-';
+                const colorInfo = skinColorInfo[skinColor] || { hex: '#ccc', label: skinColor };
+
+                // Add click handler
+                row.onclick = () => showParticipantDetail(p);
+
+                row.innerHTML = `
+                    <td><strong>${p['A-ID'] || '-'}</strong></td>
+                    <td>${p['P-ID'] || '-'}</td>
+                    <td>${p['What is your full name? (Please write exactly as shown in your ARC or passport)'] || '-'}</td>
+                    <td>${p['What is your nationality?'] || '-'}</td>
+                    <td>${p['Please select the ethnic group you identify with:'] || '-'}</td>
+                    <td>${p['Please enter your 4-digit year of birth(e.g., 1980) '] || '-'}</td>
+                    <td>
+                        <span class="skin-color-box" style="background: ${colorInfo.hex};"></span>
+                        ${skinColor}(${colorInfo.label})
+                    </td>
+                    <td><span class="tone-badge ${skinTone}">${skinTone}</span></td>
+                    <td>${p['What is your skin type?'] || '-'}</td>
+                    <td>${p['setDate'] || '-'}</td>
+                `;
+
+                tbody.appendChild(row);
+            });
+        }
+
+        // Show participant detail modal
+        function showParticipantDetail(participant) {
+            const modal = document.getElementById('participantModal');
+            const aid = participant['A-ID'];
+            const name = participant['What is your full name? (Please write exactly as shown in your ARC or passport)'] || 'Unknown';
+
+            // Update modal header
+            document.getElementById('modalParticipantName').textContent = name;
+            document.getElementById('modalParticipantId').textContent = `A-ID: ${aid} | P-ID: ${participant['P-ID'] || '-'}`;
+
+            // Personal Information
+            const personalInfo = document.getElementById('personalInfo');
+            personalInfo.innerHTML = `
+                <div class="detail-item">
+                    <span class="detail-label">Name:</span>
+                    <span class="detail-value">${name}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Gender:</span>
+                    <span class="detail-value">${participant['What is your gender? '] || '-'}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Birth Year:</span>
+                    <span class="detail-value">${participant['Please enter your 4-digit year of birth(e.g., 1980) '] || '-'}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Nationality:</span>
+                    <span class="detail-value">${participant['What is your nationality?'] || '-'}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Ethnicity:</span>
+                    <span class="detail-value">${participant['Please select the ethnic group you identify with:'] || '-'}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">English Level:</span>
+                    <span class="detail-value">${participant['How would you rate your English speaking ability?'] || '-'}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Time in Korea:</span>
+                    <span class="detail-value">${participant['How long have you been living in Korea?'] || '-'}</span>
+                </div>
+            `;
+
+            // Skin Analysis
+            const skinColor = participant['밝기판정'] || '-';
+            const skinTone = participant['톤'] || '-';
+            const colorInfo = skinColorInfo[skinColor] || { hex: '#ccc', label: skinColor };
+
+            const skinInfo = document.getElementById('skinInfo');
+            skinInfo.innerHTML = `
+                <div class="detail-item">
+                    <span class="detail-label">Skin Color:</span>
+                    <span class="detail-value">
+                        <span class="skin-color-box" style="background: ${colorInfo.hex};"></span>
+                        ${skinColor}(${colorInfo.label})
+                    </span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Skin Tone:</span>
+                    <span class="detail-value">
+                        <span class="tone-badge ${skinTone}">${skinTone}</span>
+                    </span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Skin Type:</span>
+                    <span class="detail-value">${participant['What is your skin type?'] || '-'}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Eye Color:</span>
+                    <span class="detail-value">${participant['Which of the following options most matches your natural eye color?'] || '-'}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Hair Type:</span>
+                    <span class="detail-value">${participant['What is your Natural-born hair(not styled)?[Please select from the 10 options below]'] || '-'}</span>
+                </div>
+            `;
+
+            // Makeup Preferences
+            const makeupInfo = document.getElementById('makeupInfo');
+            makeupInfo.innerHTML = `
+                <div class="detail-item">
+                    <span class="detail-label">Makeup Frequency:</span>
+                    <span class="detail-value">${participant['How often do you usually apply face makeup? '] || '-'}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Cushion Usage:</span>
+                    <span class="detail-value">${participant['Have you ever used a cushion foundation?'] || '-'}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Sunscreen Usage:</span>
+                    <span class="detail-value">${participant['How often do you usually use sunscreen products?'] || '-'}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Store Visits:</span>
+                    <span class="detail-value">${participant['How many times do you visit cosmetic store?'] || '-'}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Purchase Style:</span>
+                    <span class="detail-value">${participant['Please check the one that best describes how you usually buy cosmetics.'] || '-'}</span>
+                </div>
+            `;
+
+            // Survey Responses (shortened)
+            const surveyInfo = document.getElementById('surveyInfo');
+            surveyInfo.innerHTML = `
+                <div class="detail-item">
+                    <span class="detail-label">Set Date:</span>
+                    <span class="detail-value">${participant['setDate'] || '-'}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Set Time:</span>
+                    <span class="detail-value">${participant['setTime'] || '-'}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Preferred Look:</span>
+                    <span class="detail-value">${participant['Which of the following makeup looks do you prefer the most after applying makeup?'] || '-'}</span>
+                </div>
+            `;
+
+            // Load participant images
+            const imagesContainer = document.getElementById('participantImages');
+            const participantImages = imageMapping[aid];
+
+            if (participantImages && participantImages.images && participantImages.images.length > 0) {
+                imagesContainer.innerHTML = '';
+                participantImages.images.forEach(imageName => {
+                    const imageDiv = document.createElement('div');
+                    imageDiv.className = 'participant-image';
+                    imageDiv.innerHTML = `<img src="excel_images/${imageName}" alt="${name} - ${imageName}" onerror="this.style.display='none'">`;
+                    imagesContainer.appendChild(imageDiv);
+                });
+            } else {
+                imagesContainer.innerHTML = '<div class="no-images">No images available for this participant</div>';
+            }
+
+            // Show modal
+            modal.style.display = 'block';
+        }
+
+        // Close participant modal
+        function closeParticipantModal() {
+            document.getElementById('participantModal').style.display = 'none';
+        }
+
+        // Initialize filters
+        function initializeFilters() {
+            const searchInput = document.getElementById('searchInput');
+            const filterSkinColor = document.getElementById('filterSkinColor');
+            const filterSkinTone = document.getElementById('filterSkinTone');
+
+            function applyFilters() {
+                const searchTerm = searchInput.value.toLowerCase();
+                const colorFilter = filterSkinColor.value;
+                const toneFilter = filterSkinTone.value;
+
+                let filtered = allParticipants.filter(p => {
+                    // Search filter
+                    if (searchTerm) {
+                        const name = (p['What is your full name? (Please write exactly as shown in your ARC or passport)'] || '').toLowerCase();
+                        const aid = (p['A-ID'] || '').toLowerCase();
+                        const pid = (p['P-ID'] || '').toLowerCase();
+
+                        if (!name.includes(searchTerm) && !aid.includes(searchTerm) && !pid.includes(searchTerm)) {
+                            return false;
+                        }
+                    }
+
+                    // Skin color filter
+                    if (colorFilter && p['밝기판정'] != colorFilter) {
+                        return false;
+                    }
+
+                    // Skin tone filter
+                    if (toneFilter && p['톤'] != toneFilter) {
+                        return false;
+                    }
+
+                    return true;
+                });
+
+                displayParticipants(filtered);
+            }
+
+            searchInput.addEventListener('input', applyFilters);
+            filterSkinColor.addEventListener('change', applyFilters);
+            filterSkinTone.addEventListener('change', applyFilters);
+        }
+
+        // Close modal on outside click
+        window.onclick = function(event) {
+            const modal = document.getElementById('participantModal');
+            if (event.target == modal) {
+                closeParticipantModal();
+            }
+        }
+    </script>
+</body>
+</html>
