@@ -793,7 +793,6 @@
                 return {
                     ...attendance,
                     participantName: participant?.name || attendance.name || 'Unknown',
-                    participantPhone: participant?.phone || participant?.phoneNumber || attendance.phoneNumber || '-',
                     skinColor: participant?.skinColor || attendance.skinColor || '-',
                     skinTone: participant?.skinTone || attendance.skinTone || '-',
                     setDate: participant?.setDate || attendance.setDate || '-'
@@ -838,7 +837,6 @@
                     matrixData[color][tone].people.push({
                         name: item.participantName,
                         aid: item['A-ID'] || '-',
-                        phone: item.participantPhone,
                         checkinTime: item.checkinTime,
                         date: item.setDate
                     });
