@@ -1122,57 +1122,69 @@
                 let hasImages = false;
                 let imagesHTML = '';
 
-                // Display face photo prominently
-                if (participantData.images.face_photo) {
-                    imagesHTML += `
-                        <div class="participant-image" style="grid-column: 1/-1;">
-                            <h4 style="margin-bottom: 10px;">Face Photo</h4>
-                            <img src="${participantData.images.face_photo}"
-                                 alt="${name} - Face Photo"
-                                 style="width: 100%; height: auto; max-width: 500px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.2);"
-                                 onerror="this.parentElement.style.display='none'">
-                        </div>`;
-                    hasImages = true;
-                }
+                // Check if we have any images
+                const hasFacePhoto = participantData.images.face_photo;
+                const hasSkinRef = participantData.images.skin_brightness;
+                const hasHairRef = participantData.images.hair;
+                const hasEyeRef = participantData.images.eye_color;
 
-                // Display other images in a grid
-                if (participantData.images.skin_brightness) {
-                    imagesHTML += `
-                        <div class="participant-image">
-                            <h5>Skin Brightness Reference</h5>
-                            <img src="${participantData.images.skin_brightness}"
-                                 alt="Skin Brightness"
-                                 style="width: 100%; height: auto; max-width: 200px;"
-                                 onerror="this.style.display='none'">
-                        </div>`;
-                    hasImages = true;
-                }
+                if (hasFacePhoto || hasSkinRef || hasHairRef || hasEyeRef) {
+                    imagesHTML = '<div style="display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap;">';
 
-                if (participantData.images.hair) {
-                    imagesHTML += `
-                        <div class="participant-image">
-                            <h5>Hair Reference</h5>
-                            <img src="${participantData.images.hair}"
-                                 alt="Hair Reference"
-                                 style="width: 100%; height: auto; max-width: 200px;"
-                                 onerror="this.style.display='none'">
-                        </div>`;
-                    hasImages = true;
-                }
+                    // Display face photo on the left
+                    if (hasFacePhoto) {
+                        imagesHTML += `
+                            <div style="flex: 0 0 auto;">
+                                <h4 style="margin-bottom: 10px; color: #667eea;">Face Photo</h4>
+                                <img src="${participantData.images.face_photo}"
+                                     alt="${name} - Face Photo"
+                                     style="width: auto; height: auto; max-width: 400px; max-height: 500px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.2);"
+                                     onerror="this.parentElement.style.display='none'">
+                            </div>`;
+                    }
 
-                if (participantData.images.eye_color) {
-                    imagesHTML += `
-                        <div class="participant-image">
-                            <h5>Eye Color Reference</h5>
-                            <img src="${participantData.images.eye_color}"
-                                 alt="Eye Color"
-                                 style="width: 100%; height: auto; max-width: 200px;"
-                                 onerror="this.style.display='none'">
-                        </div>`;
-                    hasImages = true;
-                }
+                    // Display reference images on the right in a vertical stack
+                    const hasRefs = hasSkinRef || hasHairRef || hasEyeRef;
+                    if (hasRefs) {
+                        imagesHTML += '<div style="display: flex; flex-direction: column; gap: 15px;">';
 
-                if (hasImages) {
+                        if (hasSkinRef) {
+                            imagesHTML += `
+                                <div style="background: #f8f9fa; padding: 10px; border-radius: 8px;">
+                                    <h5 style="margin: 0 0 8px 0; color: #666; font-size: 12px;">Skin Brightness Reference</h5>
+                                    <img src="${participantData.images.skin_brightness}"
+                                         alt="Skin Brightness"
+                                         style="width: auto; height: 120px; border-radius: 5px;"
+                                         onerror="this.parentElement.style.display='none'">
+                                </div>`;
+                        }
+
+                        if (hasHairRef) {
+                            imagesHTML += `
+                                <div style="background: #f8f9fa; padding: 10px; border-radius: 8px;">
+                                    <h5 style="margin: 0 0 8px 0; color: #666; font-size: 12px;">Hair Reference</h5>
+                                    <img src="${participantData.images.hair}"
+                                         alt="Hair Reference"
+                                         style="width: auto; height: 120px; border-radius: 5px;"
+                                         onerror="this.parentElement.style.display='none'">
+                                </div>`;
+                        }
+
+                        if (hasEyeRef) {
+                            imagesHTML += `
+                                <div style="background: #f8f9fa; padding: 10px; border-radius: 8px;">
+                                    <h5 style="margin: 0 0 8px 0; color: #666; font-size: 12px;">Eye Color Reference</h5>
+                                    <img src="${participantData.images.eye_color}"
+                                         alt="Eye Color"
+                                         style="width: auto; height: 120px; border-radius: 5px;"
+                                         onerror="this.parentElement.style.display='none'">
+                                </div>`;
+                        }
+
+                        imagesHTML += '</div>';
+                    }
+
+                    imagesHTML += '</div>';
                     imagesContainer.innerHTML = imagesHTML;
                 } else {
                     imagesContainer.innerHTML = '<div class="no-images">No images available for this participant</div>';
