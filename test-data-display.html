@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Data Display</title>
+</head>
+<body>
+    <h1>Data Test - 133 Participants</h1>
+    <div id="status"></div>
+    <div id="participant-count"></div>
+    <div id="a216-status"></div>
+    <div id="participant-list"></div>
+
+    <script>
+        // Copy the data from makeup-test-dashboard.html
+        let allParticipants = [{"A-ID": "A101", "P-ID": "P180", "setDate": "9/22", "setTime": "13:00", "What is your full name? (Please write exactly as shown in your ARC or passport)": "SHANNON TATUM RAE", "What is your gender? ": "Female", "Please enter your 4-digit year of birth(e.g., 1980) ": 1997, "What is your nationality?": "United States", "How would you rate your English speaking ability?": "Advanced", "Please select the ethnic group you identify with:": "Caucasian", "How long have you been living in Korea?": "1 to 2 years", "How long do you plan to stay in Korea? ": "1 to 2 years", "How often do you usually apply face makeup? ": "almost everyday", "How many times do you visit cosmetic store?": "Approximately 1-2 times a month", "Please check the one that best describes how you usually buy cosmetics.": "I usually purchase products, but I am usually influenced by acquaintances/family", "Please rate the following statements to indicate your level of agreement with the items related to your cosmetics usage and purchase behavior. (purchase behavior: Disagree(1)~Agree(5)) >> For me, makeup isn't something bothersome or obligatory, but rather something fun and exciting.": 4, "Please rate the following statements to indicate your level of agreement with the items related to your cosmetics usage and purchase behavior. (purchase behavior: Disagree(1)~Agree(5)) >> I enjoy trying out and testing various cosmetics.": 5, "Please rate the following statements to indicate your level of agreement with the items related to your cosmetics usage and purchase behavior. (purchase behavior: Disagree(1)~Agree(5)) >> Even if I don't plan on buying cosmetics, I often stop by a store to browse and test products.": 5, "Please rate the following statements to indicate your level of agreement with the items related to your cosmetics usage and purchase behavior. (purchase behavior: Disagree(1)~Agree(5)) >> Even when I don't plan on buying cosmetics, I browse cosmetics-related content on mobile platforms like TikTok and Instagram.": 5, "Please rate the following statements to indicate your level of agreement with the items related to your cosmetics usage and purchase behavior. (purchase behavior: Disagree(1)~Agree(5)) >> I enjoy talking with friends about their experiences using cosmetics.": 5, "Which option best matches your skin brightness?": "Fair", "Which option best matches your skin brightness?(image)": null, "Which of the following items best matches your skin tone?": "Warm", "Please select all face/base makeup products you typically use: for your daily makeup routine (Select at least one)": "Cushion foundation", "Have you ever used a cushion foundation?": "I currently use it", "밝기판정": 1, "톤": "Warm", "Please upload a photo of your facial skin (focus on under-eye area) - Please don't take picture with your makeup! ": null, "Which of the following makeup looks do you prefer the most after applying makeup?": "Natural", " ": null, "Please select all the lip makeup products you typically use for your daily makeup routine.": "Lip tint/stain\nLip gloss\nTinted lip balm", "Please select all the lip care products you typically use for your daily routine.": "Lip balm", "How often do you usually use sunscreen products?": "Almost everyday", "What is your skin type?": "Combination (oily T-zone, dry cheeks)", "1순위 확정": null, "2순위 후보군": "1(Fair)\n2(Light)\n3(Medium)"}];
+
+        // Just test with simple data
+        console.log('Testing data display...');
+
+        document.getElementById('status').textContent = 'Data loaded: ' + (allParticipants ? 'YES' : 'NO');
+        document.getElementById('participant-count').textContent = 'Total participants: ' + allParticipants.length;
+
+        // Check for A216
+        const a216 = allParticipants.find(p => p['A-ID'] === 'A216');
+        document.getElementById('a216-status').textContent = 'A216 found: ' + (a216 ? 'YES - ' + a216['What is your full name? (Please write exactly as shown in your ARC or passport)'] : 'NO');
+
+        // List all A-IDs
+        const list = document.getElementById('participant-list');
+        list.innerHTML = '<h3>All A-IDs:</h3>' + allParticipants.map(p => p['A-ID']).join(', ');
+    </script>
+</body>
+</html>

@@ -44,7 +44,10 @@
     "Which of the following options most matches your natural eye color?(images)"
   ],
   "summary_stats": {
-    "unique_p_ids": 132,
+    "total_participants": 133,
+    "gender_distribution": {
+      "Female": 133
+    },
     "brightness_distribution": {
       "3": 33,
       "2": 30,
@@ -60,28 +63,15 @@
       "Cool": 17,
       "Olive": 13
     },
-    "gender_distribution": {
-      "Female": 132
-    },
     "nationality_distribution": {
       "United States": 22,
       "France": 19,
       "French": 13,
       "India": 12,
-      "Spain": 9,
-      "Spanish": 9,
-      "Indian": 8,
-      "Russia": 7,
-      "Mexican": 3,
-      "Russian": 3
-    },
-    "age_range": {
-      "min_birth_year": 1983,
-      "max_birth_year": 2005,
-      "avg_birth_year": 1995
+      "Spain": 9
     },
     "ethnic_distribution": {
-      "Hispanic/Latinx": 33,
+      "Hispanic/Latinx": 34,
       "African": 31,
       "Caucasian": 23,
       "Asian (Indian)": 20,
@@ -100,40 +90,7 @@
       "Mixed Asian-Caucasian": 1,
       "Half Caucasian, half Asian": 1,
       "African American": 1
-    },
-    "makeup_frequency": {
-      "3 times a week or more": 50,
-      "almost everyday": 47,
-      "1-2 times a week": 26,
-      "Less than once a week": 9
-    },
-    "cushion_usage": {
-      "I currently use it": 66,
-      "I have used it before, but I don't use it now": 39,
-      "I have never used it": 27
-    },
-    "skin_type_distribution": {
-      "Combination (oily T-zone, dry cheeks)": 53,
-      "Normal": 26,
-      "Oily": 21,
-      "Dry": 17,
-      "Sensitive": 15
-    },
-    "eye_color_distribution": {
-      "Dark brown(Black) ": 79,
-      "Medium brown ": 17,
-      "Light brown": 7,
-      "Dark brown(Black)": 7,
-      "Hazel": 5,
-      "Green ": 4,
-      "Gray ": 3,
-      "Light brown ": 3,
-      "Blue": 3,
-      "Blue ": 2,
-      "Medium brown": 1,
-      "Dark brown(Black) <img src=\"https://i.imgur.com/eTnYyqe.png\" width=\"“220”/\" />": 1
-    },
-    "total_participants": 133
+    }
   },
   "participant_data": [
     {
