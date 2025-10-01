@@ -463,6 +463,7 @@
             </div>
             <button class="btn btn-primary" onclick="showCSVData()">📄 CSV 데이터 보기</button>
             <button class="btn btn-success" onclick="showAddParticipantForm()">➕ 새 참가자 추가</button>
+            <button class="btn btn-warning" onclick="goToMakeupDashboard()">💄 메이크업 대시보드</button>
         </div>
 
         <!-- Table -->
@@ -1475,6 +1476,25 @@
 
         function showNotification(message, type = 'success') {
             ErrorHandler.showNotification(message, type);
+        }
+
+        function goToMakeupDashboard() {
+            // 권한 체크 - admin, manager만 접근 가능
+            const session = sessionStorage.getItem('clt_session');
+            if (!session) {
+                alert('로그인이 필요합니다.');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const sessionData = JSON.parse(session);
+            const userRole = sessionData.role || sessionData.userType;
+
+            if (userRole === 'admin' || userRole === 'manager') {
+                window.location.href = 'makeup-test-dashboard.html';
+            } else {
+                alert('메이크업 대시보드는 Admin 또는 Manager 권한이 필요합니다.');
+            }
         }
 
         function showCSVData() {
